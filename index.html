@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Procureme - Gestão de Pedidos</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#4F46E5;--primary-light:#EEF2FF;--primary-dark:#3730A3;
+  --green:#10B981;--red:#EF4444;--amber:#F59E0B;--purple:#8B5CF6;--orange:#F97316;
+  --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;--gray-300:#D1D5DB;
+  --gray-400:#9CA3AF;--gray-500:#6B7280;--gray-700:#374151;--gray-900:#111827;
+  --sidebar-w:220px;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-100);color:var(--gray-900);min-height:100vh;font-size:14px}
+button,input,select,textarea{font-family:inherit}
+button{cursor:pointer}
+a{text-decoration:none}
+
+/* ── LAYOUT ── */
+.app{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  width:var(--sidebar-w);background:#fff;border-right:1px solid var(--gray-200);
+  display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;
+  height:100vh;z-index:200;transition:transform .25s ease;
+}
+.logo-area{padding:18px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:var(--primary);border-radius:8px;display:grid;place-items:center;flex-shrink:0}
+.logo-text strong{display:block;font-size:15px;font-weight:700}
+.logo-text small{font-size:11px;color:var(--gray-500)}
+nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--gray-500);border:none;background:none;width:100%;text-align:left;font-size:13.5px;transition:all .15s}
+.nav-item:hover{background:var(--gray-100);color:var(--gray-900)}
+.nav-item.active{background:var(--primary);color:#fff;font-weight:500}
+.nav-item svg{width:17px;height:17px;flex-shrink:0}
+.nav-arrow{margin-left:auto;opacity:.6;font-size:12px}
+.sidebar-bottom{padding:12px 8px;border-top:1px solid var(--gray-200)}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px}
+.user-ava{width:32px;height:32px;background:var(--primary-light);border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.user-ava svg{width:16px;height:16px;color:var(--primary)}
+.user-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;color:var(--gray-900)}
+.user-role{font-size:11px;color:var(--gray-500)}
+.btn-sair{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;color:var(--gray-500);border:none;background:none;width:100%;font-size:13px;transition:all .15s}
+.btn-sair:hover{background:#FEF2F2;color:var(--red)}
+.btn-sair svg{width:16px;height:16px}
+
+/* ── SIDEBAR OVERLAY (mobile) ── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:199}
+.sidebar-overlay.open{display:block}
+
+/* ── TOPBAR (mobile) ── */
+#topbar{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:#fff;border-bottom:1px solid var(--gray-200);z-index:100;align-items:center;gap:12px;padding:0 16px}
+.btn-menu{background:none;border:none;padding:4px;color:var(--gray-700);display:grid;place-items:center}
+.btn-menu svg{width:22px;height:22px}
+.topbar-logo{display:flex;align-items:center;gap:8px}
+.topbar-logo-icon{width:28px;height:28px;background:var(--primary);border-radius:6px;display:grid;place-items:center}
+.topbar-title{font-size:15px;font-weight:700}
+
+/* ── MAIN ── */
+#main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.page{display:none;flex:1;flex-direction:column}
+.page.active{display:flex}
+.page-header{padding:28px 32px 0}
+.page-header h1{font-size:21px;font-weight:700}
+.page-header p{font-size:13px;color:var(--gray-500);margin-top:3px}
+.page-body{padding:22px 32px 40px;flex:1}
+
+/* ── KPI ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi{background:#fff;border-radius:var(--radius);padding:18px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow)}
+.kpi-icon{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.kpi-icon.indigo{background:#EEF2FF}.kpi-icon.purple{background:#F5F3FF}.kpi-icon.amber{background:#FFFBEB}.kpi-icon.emerald{background:#ECFDF5}
+.kpi-val{font-size:26px;font-weight:700;line-height:1}
+.kpi-lbl{font-size:11.5px;color:var(--gray-500);margin-top:3px}
+
+/* ── CHART ── */
+.chart-card{background:#fff;border-radius:var(--radius);padding:22px;margin-bottom:20px;box-shadow:var(--shadow)}
+.chart-card h3{font-size:14px;font-weight:600;margin-bottom:16px}
+.bar-chart-wrap{display:flex;align-items:flex-end;gap:10px;height:160px;overflow-x:auto;padding-bottom:4px}
+.bar-group{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
+.bar{border-radius:4px 4px 0 0;min-width:44px}
+.bar-lbl{font-size:11px;color:var(--gray-400);white-space:nowrap}
+.bar-val{font-size:11px;color:var(--gray-700);font-weight:500}
+
+/* ── KANBAN ── */
+.kanban-topbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.kanban-topbar .search-wrap{flex:1;min-width:160px;position:relative}
+.kanban-topbar .search-wrap input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none;background:#fff}
+.kanban-topbar .search-wrap input:focus{border-color:var(--primary)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);pointer-events:none}
+.search-icon svg{width:14px;height:14px}
+.kanban-topbar select{padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none;background:#fff}
+.kanban-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;min-height:300px}
+.kanban-col{min-width:230px;width:230px;flex-shrink:0}
+.col-head{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.col-name{font-size:12.5px;font-weight:600;flex:1}
+.col-cnt{font-size:12px;color:var(--gray-400)}
+.col-body{display:flex;flex-direction:column;gap:8px}
+.col-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--gray-200);border-radius:10px;padding:28px 10px;color:var(--gray-300);font-size:12px;min-height:100px}
+.col-empty svg{width:26px;height:26px}
+
+/* ── KANBAN CARD ── */
+.k-card{background:#fff;border-radius:10px;padding:13px;box-shadow:var(--shadow);cursor:pointer;border:1px solid var(--gray-100);transition:box-shadow .15s,transform .1s}
+.k-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.k-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:8px}
+.k-title{font-size:13px;font-weight:600;line-height:1.4;color:var(--gray-900)}
+.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
+.badge.alta{background:#FEF3C7;color:#92400E}
+.badge.urgente{background:#FEE2E2;color:#991B1B}
+.badge.media{background:#DBEAFE;color:#1E40AF}
+.badge.baixa{background:#D1FAE5;color:#065F46}
+.k-meta{font-size:11.5px;color:var(--gray-500);display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.k-meta svg{width:12px;height:12px;flex-shrink:0}
+.k-footer{display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px;border-top:1px solid var(--gray-100);padding-top:8px;gap:6px}
+.k-user{font-size:12px;font-weight:500;color:var(--gray-700)}
+.k-cat{background:var(--gray-100);color:var(--gray-500);font-size:11px;padding:1px 7px;border-radius:4px}
+.k-ap{font-size:11px;padding:2px 7px;border-radius:4px;font-weight:500;margin-top:3px}
+.k-ap.pendente{background:#FEF9C3;color:#854D0E}
+.k-ap.aprovado{background:#DCFCE7;color:#15803D}
+.k-ap.reprovado{background:#FEE2E2;color:#991B1B}
+
+/* ── STATUS BADGE ── */
+.sbadge{display:inline-flex;align-items:center;font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px}
+.sbadge.triagem{background:#E0F2FE;color:#0369A1}
+.sbadge.cotacao{background:#F3E8FF;color:#7C3AED}
+.sbadge.aprovacao{background:#FEF9C3;color:#854D0E}
+.sbadge.entrega{background:#FED7AA;color:#C2410C}
+.sbadge.concluido{background:#DCFCE7;color:#15803D}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;overflow-y:auto;padding:20px}
+.overlay.open{display:flex;align-items:flex-start;justify-content:center}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:680px;margin:auto;overflow:hidden}
+.modal-hd{padding:20px 22px;border-bottom:1px solid var(--gray-200)}
+.modal-hd-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.modal-hd h2{font-size:17px;font-weight:700;line-height:1.3}
+.modal-sub{font-size:12px;color:var(--gray-500);margin-top:3px}
+.modal-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.close-btn{background:none;border:none;color:var(--gray-400);font-size:24px;line-height:1;padding:0;cursor:pointer;flex-shrink:0}
+.close-btn:hover{color:var(--gray-700)}
+.modal-bd{padding:20px 22px;max-height:72vh;overflow-y:auto}
+
+/* ── SECTIONS (modal) ── */
+.sec{border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
+.sec h3{font-size:14px;font-weight:600;margin-bottom:13px;color:var(--gray-900)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ii-lbl{font-size:11.5px;color:var(--gray-500);display:flex;align-items:center;gap:4px;margin-bottom:2px}
+.ii-lbl svg{width:12px;height:12px}
+.ii-val{font-size:13.5px;font-weight:500}
+.just-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100)}
+.just-lbl{font-size:11.5px;color:var(--gray-500);margin-bottom:4px}
+.just-txt{font-size:13px;color:var(--gray-700)}
+.form-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg label{display:block;font-size:12.5px;font-weight:500;color:var(--gray-700);margin-bottom:5px;margin-top:10px}
+.fg select,.fg input,.fg textarea{width:100%;padding:8px 11px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none;transition:border .15s}
+.fg select:focus,.fg input:focus,.fg textarea:focus{border-color:var(--primary)}
+.fg textarea{resize:vertical;min-height:70px}
+
+/* ── COTAÇÃO ── */
+.cot-list{display:flex;flex-direction:column;gap:8px}
+.cot-item{border:1.5px solid var(--gray-200);border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color .15s}
+.cot-item.chosen{border-color:var(--primary)}
+.cot-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.cot-forn{font-size:13px;font-weight:600}
+.chosen-badge{background:var(--primary);color:#fff;font-size:11px;padding:2px 9px;border-radius:20px}
+.cot-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cf-val{font-size:13px;font-weight:500}
+.cf-lbl{font-size:11px;color:var(--gray-400)}
+.btn-add-cot{display:flex;align-items:center;justify-content:center;gap:6px;background:none;border:1.5px dashed #C7D2FE;color:var(--primary);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:500;margin-top:8px;width:100%;transition:background .15s}
+.btn-add-cot:hover{background:var(--primary-light)}
+.cot-form{display:none;margin-top:12px;border:1px solid var(--gray-200);border-radius:10px;padding:14px;background:var(--gray-50)}
+
+/* ── APPROVAL ── */
+.ap-wait{background:var(--gray-50);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--gray-700);margin-bottom:12px}
+.ap-wait svg{color:var(--gray-400);width:16px;height:16px}
+.ap-done{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:13.5px;font-weight:500;margin-bottom:12px}
+.ap-done.aprovado{background:#DCFCE7;color:#15803D}
+.ap-done.reprovado{background:#FEE2E2;color:#991B1B}
+.ap-done.revisao{background:#FEF9C3;color:#854D0E}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:13.5px;font-weight:500;border:none;cursor:pointer;transition:opacity .15s,transform .1s}
+.btn:hover{opacity:.88}
+.btn:active{transform:scale(.97)}
+.btn-green{background:var(--green);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-outline{background:#fff;color:var(--gray-700);border:1.5px solid var(--gray-300)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary-full{background:var(--primary);color:#fff;width:100%;justify-content:center;padding:13px;font-size:15px;border-radius:10px;border:none}
+.btn-sm{padding:7px 14px;font-size:12.5px}
+
+/* ── REQ LIST ── */
+.req-list{display:flex;flex-direction:column;gap:10px}
+.req-item{background:#fff;border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);cursor:pointer;border:1px solid var(--gray-100);transition:box-shadow .15s,transform .1s}
+.req-item:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.req-item-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;gap:10px}
+.req-title{font-size:14.5px;font-weight:600;line-height:1.3}
+.req-badges{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;align-items:center}
+.req-meta{display:flex;gap:16px;font-size:12.5px;color:var(--gray-500);flex-wrap:wrap}
+.req-meta span{display:flex;align-items:center;gap:4px}
+.req-meta svg{width:13px;height:13px}
+
+/* ── CHIPS ── */
+.chips{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.chip{padding:6px 14px;border-radius:20px;font-size:12.5px;cursor:pointer;border:1.5px solid var(--gray-200);background:#fff;color:var(--gray-500);transition:all .15s;user-select:none}
+.chip:hover{border-color:var(--primary);color:var(--primary)}
+.chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* ── NOVA FORM ── */
+.form-card{background:#fff;border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);max-width:660px;margin:0 auto}
+.form-card h2{font-size:16px;font-weight:700;margin-bottom:4px}
+.form-card .form-desc{font-size:13px;color:var(--gray-500);margin-bottom:20px}
+.ff{margin-bottom:16px}
+.ff label{display:block;font-size:13px;font-weight:500;color:var(--gray-700);margin-bottom:6px}
+.ff .req-mark{color:var(--red)}
+.ff input,.ff select,.ff textarea{width:100%;padding:11px 13px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:14px;outline:none;transition:border .15s;background:#fff}
+.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.08)}
+.ff textarea{resize:vertical;min-height:90px}
+.ff input[readonly]{background:var(--gray-50);color:var(--gray-700)}
+.ff-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.upload-area{border:2px dashed var(--gray-200);border-radius:9px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.upload-area:hover{border-color:var(--primary);background:var(--primary-light)}
+.upload-area svg{width:28px;height:28px;color:var(--gray-400);margin-bottom:6px}
+.upload-area p{font-size:13px;color:var(--gray-500)}
+.upload-area small{font-size:11px;color:var(--gray-400)}
+.file-input{display:none}
+.file-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.file-tag{display:flex;align-items:center;justify-content:space-between;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:6px 10px;font-size:12.5px}
+.file-tag-name{display:flex;align-items:center;gap:6px;color:var(--gray-700)}
+.file-remove{background:none;border:none;color:var(--gray-400);font-size:16px;padding:0;line-height:1}
+.file-remove:hover{color:var(--red)}
+.form-divider{border:none;border-top:1px solid var(--gray-100);margin:20px 0}
+
+/* ── FILA ── */
+.fila-item{background:#fff;border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;border:1px solid var(--gray-100);transition:box-shadow .15s}
+.fila-item:hover{box-shadow:var(--shadow-md)}
+.fila-info{flex:1;min-width:0}
+.fila-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.fila-meta{font-size:12.5px;color:var(--gray-500);display:flex;gap:12px;flex-wrap:wrap}
+.fila-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;align-items:center}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--gray-400)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-txt{font-size:15px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;left:24px;max-width:340px;margin:auto;background:var(--gray-900);color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;z-index:9999;display:none;text-align:center;box-shadow:var(--shadow-md)}
+@keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:3px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.open{transform:translateX(0)}
+  #topbar{display:flex}
+  #main{margin-left:0;padding-top:56px}
+  .page-header{padding:20px 16px 0}
+  .page-body{padding:16px 16px 32px}
+  .kpi-row{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{padding:14px}
+  .kpi-val{font-size:22px}
+  .kpi-icon{width:38px;height:38px;font-size:18px}
+  .kanban-board{padding-bottom:8px}
+  .kanban-col{min-width:200px;width:200px}
+  .modal{border-radius:0;min-height:100vh;margin:0;border-radius:16px 16px 0 0;margin-top:auto}
+  .overlay{padding:0;align-items:flex-end}
+  .modal-bd{max-height:80vh}
+  .info-grid{grid-template-columns:1fr}
+  .form-2{grid-template-columns:1fr}
+  .form-card{border-radius:0;box-shadow:none;padding:16px}
+  .ff-row{grid-template-columns:1fr}
+  .cot-fields{grid-template-columns:1fr 1fr}
+  .btn-row{gap:8px}
+  .btn{padding:9px 14px;font-size:13px}
+  .fila-item{flex-direction:column;align-items:flex-start}
+  .fila-actions{width:100%}
+  .req-item-top{flex-direction:column}
+  .req-badges{margin-top:4px}
+  .form-card{max-width:100%}
+}
+@media(max-width:480px){
+  .kpi-icon{display:none}
+  .kpi{gap:0}
+  .cot-fields{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR (mobile) -->
+<div id="topbar">
+  <button class="btn-menu" onclick="toggleSidebar()">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <div class="topbar-logo">
+    <div class="topbar-logo-icon"><svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+    <span class="topbar-title">Procureme</span>
+  </div>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo-area">
+    <div class="logo-icon"><svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+    <div class="logo-text"><strong>Procureme</strong><small>Gestão de Pedidos</small></div>
+  </div>
+  <nav>
+    <button class="nav-item active" onclick="go('admin')" id="nav-admin">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Painel Admin <span class="nav-arrow">›</span>
+    </button>
+    <button class="nav-item" onclick="go('kanban')" id="nav-kanban">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      Painel Kanban
+    </button>
+    <button class="nav-item" onclick="go('fila')" id="nav-fila">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      Fila de Aprovação
+    </button>
+    <button class="nav-item" onclick="go('nova')" id="nav-nova">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+      Nova Solicitação
+    </button>
+    <button class="nav-item" onclick="go('minhas')" id="nav-minhas">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h4"/></svg>
+      Minhas Solicitações
+    </button>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="sidebar-user">
+      <div class="user-ava"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg></div>
+      <div><div class="user-name">Luiz F. Cizacoski</div><div class="user-role">Administrador</div></div>
+    </div>
+    <button class="btn-sair">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      Sair
+    </button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main" class="app">
+
+  <!-- PAINEL ADMIN -->
+  <div class="page active" id="page-admin">
+    <div class="page-header"><h1>Painel Administrativo</h1><p>Visão geral de todas as solicitações</p></div>
+    <div class="page-body">
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="chart-card"><h3>Pedidos por Mês</h3><div class="bar-chart-wrap" id="chart-mes"></div></div>
+      <div class="chart-card"><h3>Valor Total por Setor (R$)</h3><div class="bar-chart-wrap" id="chart-setor"></div></div>
+    </div>
+  </div>
+
+  <!-- KANBAN -->
+  <div class="page" id="page-kanban">
+    <div class="page-header"><h1>Painel de Compras</h1><p id="k-sub">0 solicitações no total</p></div>
+    <div class="page-body" style="display:flex;flex-direction:column;padding-bottom:0">
+      <div class="kanban-topbar">
+        <div class="search-wrap">
+          <span class="search-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+          <input type="text" placeholder="Buscar solicitação..." id="k-search" oninput="renderKanban()">
+        </div>
+        <select id="k-filter" onchange="renderKanban()">
+          <option value="">Todas</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+          <option value="urgente">Urgente</option>
+        </select>
+      </div>
+      <div class="kanban-board" id="kanban-board"></div>
+    </div>
+  </div>
+
+  <!-- FILA -->
+  <div class="page" id="page-fila">
+    <div class="page-header"><h1>Fila de Aprovação</h1><p>Solicitações aguardando aprovação da diretoria</p></div>
+    <div class="page-body"><div id="fila-list"></div></div>
+  </div>
+
+  <!-- NOVA SOLICITAÇÃO -->
+  <div class="page" id="page-nova">
+    <div class="page-header"><h1>Nova Solicitação</h1><p>Preencha os dados para solicitar uma compra</p></div>
+    <div class="page-body">
+      <div class="form-card">
+        <div class="ff-row">
+          <div class="ff">
+            <label>Nome do Solicitante <span class="req-mark">*</span></label>
+            <input type="text" id="f-nome" placeholder="Seu nome completo">
+          </div>
+          <div class="ff">
+            <label>Email do Solicitante</label>
+            <input type="email" id="f-email" placeholder="seu@email.com">
+          </div>
+        </div>
+        <div class="ff">
+          <label>Setor <span class="req-mark">*</span></label>
+          <select id="f-setor">
+            <option value="">Selecione o setor</option>
+            <option>Administrativo</option><option>Produção</option><option>Logística</option>
+            <option>Comercial</option><option>TI</option><option>RH</option><option>Financeiro</option><option>Qualidade</option>
+          </select>
+        </div>
+        <div class="ff">
+          <label>Descrição do Item/Serviço <span class="req-mark">*</span></label>
+          <textarea id="f-desc" rows="3" placeholder="Descreva detalhadamente o que precisa ser comprado"></textarea>
+        </div>
+        <div class="ff-row">
+          <div class="ff">
+            <label>Quantidade e Unidade <span class="req-mark">*</span></label>
+            <input type="text" id="f-qtd" placeholder="Ex: 100 peças, 50 kg">
+          </div>
+          <div class="ff">
+            <label>Prazo Necessário <span class="req-mark">*</span></label>
+            <input type="date" id="f-prazo">
+          </div>
+        </div>
+        <div class="ff">
+          <label>Justificativa/Uso <span class="req-mark">*</span></label>
+          <textarea id="f-just" rows="3" placeholder="Explique a finalidade e a necessidade da compra"></textarea>
+        </div>
+        <div class="ff">
+          <label>Anexos (Especificações, Desenhos, Fotos)</label>
+          <div class="upload-area" onclick="document.getElementById('file-input').click()">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+            <p>Clique para anexar arquivos</p>
+            <small>PDF, JPG, PNG, XLSX até 10MB</small>
+          </div>
+          <input type="file" id="file-input" class="file-input" multiple onchange="handleFiles(this)">
+          <div class="file-list" id="file-list"></div>
+        </div>
+        <button class="btn-primary-full" onclick="criarSolicitacao()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          &nbsp;Enviar Solicitação
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MINHAS SOLICITAÇÕES -->
+  <div class="page" id="page-minhas">
+    <div class="page-header"><h1>Minhas Solicitações</h1><p>Acompanhe o andamento das suas solicitações</p></div>
+    <div class="page-body">
+      <div class="chips" id="chips">
+        <div class="chip active" onclick="setChip(this,'')" data-f="">Todas</div>
+        <div class="chip" onclick="setChip(this,'triagem')" data-f="triagem">Triagem</div>
+        <div class="chip" onclick="setChip(this,'cotacao')" data-f="cotacao">Cotação</div>
+        <div class="chip" onclick="setChip(this,'aprovacao')" data-f="aprovacao">Aprovação</div>
+        <div class="chip" onclick="setChip(this,'entrega')" data-f="entrega">Entrega</div>
+        <div class="chip" onclick="setChip(this,'concluido')" data-f="concluido">Concluído</div>
+      </div>
+      <div class="req-list" id="req-list"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-hd">
+      <div class="modal-hd-row">
+        <div style="flex:1;min-width:0">
+          <h2 id="m-title">-</h2>
+          <div class="modal-sub" id="m-sub">-</div>
+          <div class="modal-badges" id="m-badges"></div>
+        </div>
+        <button class="close-btn" onclick="closeModal()">×</button>
+      </div>
+    </div>
+    <div class="modal-bd" id="modal-bd"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════
+const SK='procureme_v3';
+const USER={nome:'Luiz Fernando Cizacoski',email:'lfcizacoski@gmail.com',setor:'Administrativo',role:'admin'};
+
+const SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',aprovacao:'Aprovação da Diretoria',entrega:'Entrega e Encerramento',concluido:'Concluído'};
+const SC={triagem:'#3B82F6',cotacao:'#8B5CF6',aprovacao:'#F59E0B',entrega:'#F97316',concluido:'#10B981'};
+
+const CATS=['Capex','Matéria-prima','Consumo','Spot','Serviço','Outro'];
+const PRIOS=['baixa','media','alta','urgente'];
+const PA={alta:'↑',urgente:'↑↑',media:'→',baixa:'↓'};
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let st={sols:[],filter:'',selId:null,pendingFiles:[]};
+
+function load(){
+  try{const r=localStorage.getItem(SK);if(r)st.sols=JSON.parse(r);}catch(e){}
+  if(!st.sols.length){st.sols=seed();save();}
+}
+function save(){localStorage.setItem(SK,JSON.stringify(st.sols));}
+
+function seed(){return[
+  {id:1,titulo:'Aquisição de Álcool 99% para revenda',nome:'João Teste',email:'compras@abbaquimica.com.br',setor:'Produção',descricao:'Álcool 99% para revenda ao cliente Tecnoplanta',quantidade:'50l',prazo:'2026-06-09',justificativa:'Revenda para o cliente Tecnoplanta',prioridade:'alta',categoria:'Spot',status:'concluido',cotacoes:[],aprovacao:{status:'aprovado',obs:'Aprovado.'},criadoEm:'2026-06-09',arquivos:[]},
+  {id:2,titulo:'Material de escritório',nome:'Luiz Fernando Cizacoski',email:'lfcizacoski@gmail.com',setor:'Administrativo',descricao:'Papel A4, canetas, grampeador',quantidade:'1 kit',prazo:'2026-06-14',justificativa:'Reposição de estoque',prioridade:'baixa',categoria:'Consumo',status:'aprovacao',cotacoes:[{id:1,forn:'Papelaria Central',val:280,prazo:'3 dias',cond:'À vista',ok:false},{id:2,forn:'Office Plus',val:265,prazo:'5 dias',cond:'30 dias',ok:false},{id:3,forn:'Mega Papelaria',val:250,prazo:'7 dias',cond:'30/60',ok:true}],aprovacao:{status:'aguardando',obs:''},criadoEm:'2026-06-10',arquivos:[]},
+  {id:3,titulo:'Manutenção preventiva ar-condicionado',nome:'Luiz Fernando Cizacoski',email:'lfcizacoski@gmail.com',setor:'Administrativo',descricao:'Serviço de manutenção preventiva dos 6 aparelhos',quantidade:'6 unidades',prazo:'2026-06-20',justificativa:'Manutenção obrigatória semestral',prioridade:'media',categoria:'Serviço',status:'cotacao',cotacoes:[],aprovacao:{status:'aguardando',obs:''},criadoEm:'2026-06-12',arquivos:[]}
+];}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function go(p){
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const nav=document.getElementById('nav-'+p);
+  if(nav)nav.classList.add('active');
+  closeSidebar();
+  render(p);
+}
+
+function render(p){
+  if(p==='admin')renderAdmin();
+  else if(p==='kanban')renderKanban();
+  else if(p==='fila')renderFila();
+  else if(p==='minhas')renderMinhas();
+}
+
+function curPage(){
+  const a=document.querySelector('.page.active');
+  return a?a.id.replace('page-',''):'admin';
+}
+
+// ══════════════════════════════════════════════
+// SIDEBAR (mobile)
+// ══════════════════════════════════════════════
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
+// ADMIN
+// ══════════════════════════════════════════════
+function renderAdmin(){
+  const s=st.sols;
+  const wait=s.filter(x=>x.aprovacao.status==='aguardando').length;
+  const sets=new Set(s.map(x=>x.setor)).size;
+  const vol=s.reduce((a,x)=>a+x.cotacoes.reduce((b,c)=>b+(c.ok?c.val:0),0),0);
+
+  document.getElementById('kpi-row').innerHTML=`
+    <div class="kpi"><div class="kpi-icon indigo">🛒</div><div><div class="kpi-val">${s.length}</div><div class="kpi-lbl">Total de Pedidos</div></div></div>
+    <div class="kpi"><div class="kpi-icon purple">👥</div><div><div class="kpi-val">${sets}</div><div class="kpi-lbl">Setores Ativos</div></div></div>
+    <div class="kpi"><div class="kpi-icon amber">⏳</div><div><div class="kpi-val">${wait}</div><div class="kpi-lbl">Aguardando Aprovação</div></div></div>
+    <div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;${fmt(vol)}</div><div class="kpi-lbl">Volume Total</div></div></div>`;
+
+  const pm={};s.forEach(x=>{const k=mkey(x.criadoEm);pm[k]=(pm[k]||0)+1;});
+  drawBars('chart-mes',pm,'#4F46E5',v=>v);
+
+  const ps={};
+  s.forEach(x=>{const v=x.cotacoes.reduce((a,c)=>a+(c.ok?c.val:0),0);if(v)ps[x.setor]=(ps[x.setor]||0)+v;});
+  drawBars('chart-setor',ps,'#8B5CF6',v=>'R$'+fmt(v));
+}
+
+function drawBars(id,obj,color,lFn){
+  const el=document.getElementById(id);
+  const es=Object.entries(obj);
+  if(!es.length){el.innerHTML='<p style="color:var(--gray-400);font-size:13px;padding:10px 0">Nenhum dado ainda</p>';return;}
+  const max=Math.max(...es.map(e=>e[1]))||1;
+  const H=130;const bw=Math.max(44,Math.min(90,Math.floor(600/es.length)-14));
+  el.innerHTML=es.map(([l,v])=>{
+    const bh=Math.round((v/max)*H)||4;
+    return `<div class="bar-group">
+      <span class="bar-val">${lFn(v)}</span>
+      <div class="bar" style="height:${bh}px;width:${bw}px;background:${color}"></div>
+      <span class="bar-lbl">${l}</span>
+    </div>`;
+  }).join('');
+}
+
+function mkey(d){try{const dt=new Date(d+'T00:00:00');return dt.toLocaleString('pt-BR',{month:'short'})+'/'+String(dt.getFullYear()).slice(2);}catch(e){return d;}}
+
+// ══════════════════════════════════════════════
+// KANBAN
+// ══════════════════════════════════════════════
+const COLS=[
+  {id:'triagem',l:'Triagem e Priorização'},
+  {id:'cotacao',l:'Cotação Externa'},
+  {id:'aprovacao',l:'Aprovação da Diretoria'},
+  {id:'entrega',l:'Entrega e Encerramento'},
+  {id:'concluido',l:'Concluído'}
+];
+
+function renderKanban(){
+  const q=(document.getElementById('k-search')?.value||'').toLowerCase();
+  const fp=document.getElementById('k-filter')?.value||'';
+  let items=st.sols;
+  if(q)items=items.filter(s=>(s.titulo||s.descricao||'').toLowerCase().includes(q)||s.nome.toLowerCase().includes(q));
+  if(fp)items=items.filter(s=>s.prioridade===fp);
+  document.getElementById('k-sub').textContent=items.length+' solicitações no total';
+  document.getElementById('kanban-board').innerHTML=COLS.map(col=>{
+    const ci=items.filter(s=>s.status===col.id);
+    const cards=ci.length?ci.map(kCard).join(''):
+      `<div class="col-empty"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h10"/></svg>Nenhuma solicitação</div>`;
+    return `<div class="kanban-col">
+      <div class="col-head"><div class="col-dot" style="background:${SC[col.id]}"></div><span class="col-name">${col.l}</span><span class="col-cnt">${ci.length}</span></div>
+      <div class="col-body">${cards}</div>
+    </div>`;
+  }).join('');
+}
+
+function kCard(s){
+  const ap=s.aprovacao?.status;
+  const stag=ap==='aguardando'?'<span class="k-ap pendente">Pendente</span>':ap==='aprovado'?'<span class="k-ap aprovado">Aprovado</span>':ap==='reprovado'?'<span class="k-ap reprovado">Reprovado</span>':'';
+  const title=s.titulo||s.descricao?.substring(0,40)||'Sem título';
+  return `<div class="k-card" onclick="openModal(${s.id})">
+    <div class="k-card-top"><span class="k-title">${esc(title)}</span><span class="badge ${s.prioridade}">${PA[s.prioridade]||'→'} ${cap(s.prioridade)}</span></div>
+    <div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>${esc(s.setor)}</div>
+    <div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>${esc(s.quantidade)}</div>
+    <div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>${fmtD(s.prazo)}</div>
+    <div class="k-footer"><div><div class="k-user">${esc(s.nome)}</div>${stag}</div><span class="k-cat">${esc(s.categoria)}</span></div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// FILA
+// ══════════════════════════════════════════════
+function renderFila(){
+  const fila=st.sols.filter(s=>s.status==='aprovacao'&&s.aprovacao.status==='aguardando');
+  const el=document.getElementById('fila-list');
+  if(!fila.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma solicitação aguardando aprovação</div></div>`;return;}
+  el.innerHTML=fila.map(s=>`
+    <div class="fila-item" onclick="openModal(${s.id})">
+      <div class="fila-info">
+        <div class="fila-title">${esc(s.titulo||s.descricao?.substring(0,50)||'-')}</div>
+        <div class="fila-meta">
+          <span>👤 ${esc(s.nome)}</span><span>🏢 ${esc(s.setor)}</span>
+          <span>📦 ${esc(s.quantidade)}</span><span>📅 ${fmtD(s.prazo)}</span>
+        </div>
+      </div>
+      <div class="fila-actions">
+        <span class="badge ${s.prioridade}">${cap(s.prioridade)}</span>
+        <button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAprovar(${s.id})">✅ Aprovar</button>
+        <button class="btn btn-red btn-sm" onclick="event.stopPropagation();qReprovar(${s.id})">❌ Reprovar</button>
+      </div>
+    </div>`).join('');
+}
+function qAprovar(id){mut(id,s=>{s.aprovacao.status='aprovado';s.status='entrega';});renderFila();toast('✅ Aprovado e movido para Entrega!');}
+function qReprovar(id){mut(id,s=>{s.aprovacao.status='reprovado';});renderFila();toast('❌ Solicitação reprovada.');}
+
+// ══════════════════════════════════════════════
+// MINHAS
+// ══════════════════════════════════════════════
+function setChip(el,f){
+  st.filter=f;
+  document.querySelectorAll('#chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.f===f));
+  renderMinhas();
+}
+function renderMinhas(){
+  let items=st.sols;
+  if(st.filter)items=items.filter(s=>s.status===st.filter);
+  const el=document.getElementById('req-list');
+  if(!items.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-txt">Nenhuma solicitação encontrada</div></div>`;return;}
+  el.innerHTML=items.map(s=>`
+    <div class="req-item" onclick="openModal(${s.id})">
+      <div class="req-item-top">
+        <span class="req-title">${esc(s.titulo||s.descricao?.substring(0,60)||'-')}</span>
+        <div class="req-badges">
+          <span class="badge ${s.prioridade}">${cap(s.prioridade)}</span>
+          <span class="sbadge ${s.status}">${SL[s.status]}</span>
+        </div>
+      </div>
+      <div class="req-meta">
+        <span><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>${esc(s.nome)}</span>
+        <span><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>${esc(s.setor)}</span>
+        <span><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>${fmtD(s.prazo)}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// NOVA SOLICITAÇÃO
+// ══════════════════════════════════════════════
+function handleFiles(input){
+  st.pendingFiles=[...input.files];
+  const el=document.getElementById('file-list');
+  if(!st.pendingFiles.length){el.innerHTML='';return;}
+  el.innerHTML=st.pendingFiles.map((f,i)=>`
+    <div class="file-tag">
+      <span class="file-tag-name">📎 ${esc(f.name)}</span>
+      <button class="file-remove" onclick="removeFile(${i})">×</button>
+    </div>`).join('');
+}
+function removeFile(i){
+  st.pendingFiles.splice(i,1);
+  const dt=new DataTransfer();
+  st.pendingFiles.forEach(f=>dt.items.add(f));
+  document.getElementById('file-input').files=dt.files;
+  handleFiles(document.getElementById('file-input'));
+}
+
+function criarSolicitacao(){
+  const nome=(document.getElementById('f-nome')?.value||'').trim();
+  const email=(document.getElementById('f-email')?.value||'').trim();
+  const setor=document.getElementById('f-setor')?.value||'';
+  const desc=(document.getElementById('f-desc')?.value||'').trim();
+  const qtd=(document.getElementById('f-qtd')?.value||'').trim();
+  const prazo=document.getElementById('f-prazo')?.value||'';
+  const just=(document.getElementById('f-just')?.value||'').trim();
+
+  if(!nome||!setor||!desc||!qtd||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
+
+  const nova={
+    id:Date.now(),
+    titulo:desc.substring(0,60),
+    nome,email,setor,descricao:desc,
+    quantidade:qtd,prazo,justificativa:just,
+    prioridade:'media',categoria:'Spot',status:'triagem',
+    cotacoes:[],aprovacao:{status:'aguardando',obs:''},
+    criadoEm:new Date().toISOString().split('T')[0],
+    arquivos:st.pendingFiles.map(f=>f.name)
+  };
+  st.sols.push(nova);
+  save();
+
+  // reset
+  ['f-nome','f-email','f-desc','f-qtd','f-prazo','f-just'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-setor').value='';
+  st.pendingFiles=[];
+  document.getElementById('file-list').innerHTML='';
+  document.getElementById('file-input').value='';
+
+  toast('✅ Solicitação enviada com sucesso!');
+  go('kanban');
+}
+
+// Fill user data on form open
+function fillForm(){
+  const n=document.getElementById('f-nome');
+  const e=document.getElementById('f-email');
+  if(n&&!n.value)n.value=USER.nome;
+  if(e&&!e.value)e.value=USER.email;
+}
+
+// ══════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════
+function openModal(id){
+  st.selId=id;
+  const s=st.sols.find(x=>x.id===id);
+  if(!s)return;
+  const title=s.titulo||s.descricao?.substring(0,60)||'-';
+  document.getElementById('m-title').textContent=title;
+  document.getElementById('m-sub').textContent='Criado em '+fmtDL(s.criadoEm);
+  document.getElementById('m-badges').innerHTML=`<span class="badge ${s.prioridade}">${cap(s.prioridade)}</span><span class="sbadge ${s.status}">${SL[s.status]}</span>`;
+  document.getElementById('modal-bd').innerHTML=buildModal(s);
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow='';
+  st.selId=null;
+}
+function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
+
+function buildModal(s){
+  // info
+  const info=`<div class="sec"><h3>Informações da Solicitação</h3>
+    <div class="info-grid">
+      <div class="info-item"><div class="ii-lbl">👤 Solicitante</div><div class="ii-val">${esc(s.nome)}</div></div>
+      <div class="info-item"><div class="ii-lbl">✉️ Email</div><div class="ii-val">${esc(s.email)}</div></div>
+      <div class="info-item"><div class="ii-lbl">🏢 Setor</div><div class="ii-val">${esc(s.setor)}</div></div>
+      <div class="info-item"><div class="ii-lbl">📦 Quantidade</div><div class="ii-val">${esc(s.quantidade)}</div></div>
+      <div class="info-item"><div class="ii-lbl">📅 Prazo</div><div class="ii-val">${fmtD(s.prazo)}</div></div>
+      <div class="info-item"><div class="ii-lbl">📁 Categoria</div><div class="ii-val">${esc(s.categoria)}</div></div>
+    </div>
+    <div class="just-block"><div class="just-lbl">Descrição</div><p class="just-txt">${esc(s.descricao||s.titulo||'-')}</p></div>
+    <div class="just-block" style="margin-top:8px"><div class="just-lbl">Justificativa</div><p class="just-txt">${esc(s.justificativa||'-')}</p></div>
+    ${s.arquivos?.length?`<div class="just-block" style="margin-top:8px"><div class="just-lbl">Arquivos Anexados</div><div>${s.arquivos.map(f=>`<span style="display:inline-block;background:var(--gray-100);border-radius:5px;padding:2px 8px;font-size:12px;margin:3px 3px 0 0">📎 ${esc(f)}</span>`).join('')}</div></div>`:''}
+  </div>`;
+
+  // triagem
+  const triagem=`<div class="sec"><h3>Triagem e Priorização</h3>
+    <div class="form-2">
+      <div class="fg"><label>Prioridade</label>
+        <select onchange="mutField(${s.id},'prioridade',this.value)">
+          ${PRIOS.map(p=>`<option value="${p}"${s.prioridade===p?' selected':''}>${cap(p)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>Categoria da Compra</label>
+        <select onchange="mutField(${s.id},'categoria',this.value)">
+          ${CATS.map(c=>`<option${s.categoria===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Mover para etapa</label>
+      <select onchange="mutStatus(${s.id},this.value)">
+        ${Object.entries(SL).map(([k,v])=>`<option value="${k}"${s.status===k?' selected':''}>${v}</option>`).join('')}
+      </select>
+    </div>
+  </div>`;
+
+  // cotações
+  const cotItems=s.cotacoes.map(c=>`
+    <div class="cot-item${c.ok?' chosen':''}" onclick="toggleCot(${s.id},${c.id})">
+      <div class="cot-head"><span class="cot-forn">${esc(c.forn)}</span>${c.ok?'<span class="chosen-badge">Escolhido</span>':''}</div>
+      <div class="cot-fields">
+        <div><div class="cf-val">R$ ${fmt(c.val)}</div><div class="cf-lbl">Valor Total</div></div>
+        <div><div class="cf-val">${esc(c.prazo)}</div><div class="cf-lbl">Prazo Entrega</div></div>
+        <div><div class="cf-val">${esc(c.cond)}</div><div class="cf-lbl">Condição Pgto.</div></div>
+      </div>
+    </div>`).join('');
+  const cot=`<div class="sec"><h3>Cotação Externa</h3>
+    <div class="cot-list">${cotItems||'<p style="color:var(--gray-400);font-size:13px">Nenhuma cotação adicionada</p>'}</div>
+    <button class="btn-add-cot" onclick="showCotForm(${s.id})">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Adicionar Cotação
+    </button>
+    <div class="cot-form" id="cf-${s.id}">
+      <div class="form-2" style="margin-bottom:10px">
+        <div class="fg"><label style="margin-top:0">Fornecedor</label><input id="ci-forn-${s.id}" placeholder="Nome do fornecedor"></div>
+        <div class="fg"><label style="margin-top:0">Valor Total (R$)</label><input type="number" id="ci-val-${s.id}" placeholder="0"></div>
+      </div>
+      <div class="form-2" style="margin-bottom:12px">
+        <div class="fg"><label style="margin-top:0">Prazo de Entrega</label><input id="ci-prazo-${s.id}" placeholder="Ex: 7 dias"></div>
+        <div class="fg"><label style="margin-top:0">Condição Pgto.</label><input id="ci-cond-${s.id}" placeholder="Ex: 30/60/90"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline btn-sm" onclick="hideCotForm(${s.id})">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveCot(${s.id})">Salvar Cotação</button>
+      </div>
+    </div>
+  </div>`;
+
+  // aprovação
+  const ap=s.aprovacao;
+  let apSt='';
+  if(ap.status==='aguardando') apSt=`<div class="ap-wait"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Aguardando Aprovação</div>`;
+  else if(ap.status==='aprovado') apSt=`<div class="ap-done aprovado">✅ Aprovado</div>`;
+  else if(ap.status==='reprovado') apSt=`<div class="ap-done reprovado">❌ Reprovado</div>`;
+  else if(ap.status==='revisao') apSt=`<div class="ap-done revisao">🔄 Revisão Solicitada</div>`;
+  const showAp=ap.status==='aguardando'&&s.status==='aprovacao';
+  const apSec=`<div class="sec"><h3>Aprovação da Diretoria</h3>
+    ${apSt}
+    ${ap.obs?`<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700);margin-bottom:12px">${esc(ap.obs)}</div>`:''}
+    ${showAp?`<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Observações/Parecer</label>
+      <textarea id="ap-obs-${s.id}" placeholder="Insira seu parecer...">${esc(ap.obs)}</textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="doAp(${s.id},'aprovado')">✅ Aprovar</button>
+        <button class="btn btn-red" onclick="doAp(${s.id},'reprovado')">❌ Reprovar</button>
+        <button class="btn btn-outline" onclick="doAp(${s.id},'revisao')">🔄 Pedir Revisão</button>
+      </div>`:''}
+  </div>`;
+
+  return info+triagem+cot+apSec;
+}
+
+// ══════════════════════════════════════════════
+// MUTATIONS
+// ══════════════════════════════════════════════
+function mut(id,fn){const s=st.sols.find(x=>x.id===id);if(s){fn(s);save();}}
+
+function mutField(id,f,v){mut(id,s=>s[f]=v);render(curPage());}
+
+function mutStatus(id,status){mut(id,s=>s.status=status);openModal(id);render(curPage());}
+
+function toggleCot(sid,cid){mut(sid,s=>s.cotacoes.forEach(c=>c.ok=c.id===cid?!c.ok:false));openModal(sid);}
+
+function showCotForm(id){const el=document.getElementById('cf-'+id);if(el)el.style.display='block';}
+function hideCotForm(id){const el=document.getElementById('cf-'+id);if(el)el.style.display='none';}
+
+function saveCot(id){
+  const forn=(document.getElementById('ci-forn-'+id)?.value||'').trim();
+  const val=parseFloat(document.getElementById('ci-val-'+id)?.value)||0;
+  const prazo=(document.getElementById('ci-prazo-'+id)?.value||'').trim();
+  const cond=(document.getElementById('ci-cond-'+id)?.value||'').trim();
+  if(!forn){toast('⚠️ Informe o nome do fornecedor');return;}
+  mut(id,s=>s.cotacoes.push({id:Date.now(),forn,val,prazo,cond,ok:false}));
+  openModal(id);
+  toast('✅ Cotação adicionada!');
+}
+
+function getObs(id){return (document.getElementById('ap-obs-'+id)?.value||'').trim();}
+
+function doAp(id,status){
+  const obs=getObs(id);
+  mut(id,s=>{
+    s.aprovacao.status=status;
+    s.aprovacao.obs=obs;
+    if(status==='aprovado')s.status='entrega';
+    if(status==='revisao')s.status='triagem';
+  });
+  openModal(id);
+  render(curPage());
+  const msgs={aprovado:'✅ Aprovado! Movido para Entrega.',reprovado:'❌ Solicitação reprovada.',revisao:'🔄 Revisão solicitada.'};
+  toast(msgs[status]);
+}
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function cap(s){return s?s[0].toUpperCase()+s.slice(1):'';}
+function fmtD(d){if(!d)return'-';try{const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}catch(e){return d;}}
+function fmtDL(d){if(!d)return'-';try{return new Date(d+'T00:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}}
+function fmt(v){return Number(v).toLocaleString('pt-BR');}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';t.style.animation='none';
+  requestAnimationFrame(()=>{t.style.animation='toastIn .25s ease';});
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',3200);
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+load();
+renderAdmin();
+
+// Pre-fill nova solicitação when navigating to it
+const origGo=go;
+document.getElementById('nav-nova').addEventListener('click',()=>{setTimeout(fillForm,50);});
+</script>
+</body>
+</html>
