@@ -906,9 +906,22 @@ function buildModal(s,anexos){
     '</div>':'')+
     '</div>';
 
+  var entregaSec='';
+  if(s.status==='entrega'||s.status==='concluido'||s.dt_entrega){
+    var dtVal=s.dt_entrega||'';
+    var isConcluido=s.status==='concluido';
+    entregaSec='<div class="sec"><h3>Entrega</h3>'+
+      (isConcluido&&s.dt_entrega?'<div class="ap-done aprovado">✅ Entregue em '+fmtD(s.dt_entrega)+'</div>':
+      (canEdit?
+        '<div class="fg"><label>Data Real de Entrega</label><input type="date" id="dt-entrega-'+s.id+'" value="'+esc(dtVal)+'" style="max-width:220px"></div>'+
+        '<div style="margin-top:10px"><button class="btn btn-green" onclick="saveEntrega('+s.id+')">✅ Confirmar Entrega</button></div>':
+        '<div class="ap-wait">Aguardando confirmação de entrega pelo Compras</div>'))+
+      '</div>';
+  }
+
   var canUpload=CU.role==='admin'||CU.role==='solicitante';
   var anexSec=buildAnexSection(s.id,anexos,canUpload);
-  return info+triagem+cot+apSec+anexSec;
+  return info+triagem+cot+apSec+entregaSec+anexSec;
 }
 
 // MUTAÇÕES
@@ -917,6 +930,16 @@ async function updField(id,field,val){
   await sb.from('solicitacoes').update(upd).eq('id',id);
   sols=[];render(curPage());
 }
+async function saveEntrega(id){
+  var el=document.getElementById('dt-entrega-'+id);
+  if(!el||!el.value){toast('⚠️ Selecione a data de entrega.');return;}
+  var dt=el.value;
+  var r=await sb.from('solicitacoes').update({dt_entrega:dt,status:'concluido'}).eq('id',id);
+  if(r.error){toast('❌ Erro: '+r.error.message);return;}
+  await notifySolicitante(id,'Pedido Entregue!','Sua solicitação foi entregue em '+fmtD(dt)+'. Processo concluído.','entrega');
+  sols=[];await openModal(id);toast('✅ Entrega confirmada! Solicitante notificado.');
+}
+
 async function updStatus(id,status){
   await sb.from('solicitacoes').update({status:status}).eq('id',id);
   var s=sols.find(function(x){return x.id===id;});var titulo=s?s.titulo:'Solicitação';
