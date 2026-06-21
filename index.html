@@ -455,7 +455,13 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
     <div class="modal-hd">
       <div class="modal-hd-row">
         <div style="flex:1;min-width:0"><h2 id="m-title">-</h2><div class="modal-sub" id="m-sub">-</div><div class="modal-badges" id="m-badges"></div></div>
-        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-red btn-sm" id="btn-del-modal" style="display:none" onclick="deleteSol(selId)">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            Excluir
+          </button>
+          <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
       </div>
     </div>
     <div class="modal-bd" id="modal-bd"></div>
@@ -790,8 +796,18 @@ async function openModal(id){
   document.getElementById('m-sub').textContent='Criado em '+fmtDL(s.created_at);
   document.getElementById('m-badges').innerHTML='<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span><span class="sbadge '+s.status+'">'+SL[s.status]+'</span>';
   document.getElementById('modal-bd').innerHTML=buildModal(s);
+  document.getElementById('btn-del-modal').style.display=CU.role==='admin'?'inline-flex':'none';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
+}
+
+async function deleteSol(id){
+  if(!confirm('Excluir esta solicitação permanentemente?'))return;
+  await sb.from('cotacoes').delete().eq('sol_id',id);
+  await sb.from('notificacoes').delete().eq('sol_id',id);
+  var r=await sb.from('solicitacoes').delete().eq('id',id);
+  if(r.error){toast('❌ Erro ao excluir: '+r.error.message);return;}
+  closeModal();sols=[];render(curPage());toast('🗑️ Solicitação excluída.');
 }
 function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';selId=null;}
 function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
