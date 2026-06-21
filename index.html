@@ -242,6 +242,19 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .empty-txt{font-size:15px}
 .loading-state{text-align:center;padding:40px;color:var(--gray-400)}
 .loading-state .spin{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+.upload-area{border:2px dashed var(--gray-300);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:all .15s;display:block}
+.upload-area:hover{border-color:var(--primary);background:var(--primary-light)}
+.upload-area-icon{font-size:26px;margin-bottom:5px}
+.upload-area-txt{font-size:12.5px;color:var(--gray-500)}
+.file-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.file-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--gray-50);border-radius:8px;font-size:13px;border:1px solid var(--gray-200)}
+.file-item-icon{font-size:17px;flex-shrink:0}
+.file-item-link{color:var(--primary);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-item-link:hover{text-decoration:underline}
+.file-item-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray-700)}
+.file-item-size{font-size:11px;color:var(--gray-400);flex-shrink:0}
+.file-item-del{background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:18px;padding:0;line-height:1;flex-shrink:0}
+.file-item-del:hover{color:var(--red)}
 #toast{position:fixed;bottom:24px;right:24px;left:24px;max-width:340px;margin:auto;background:var(--gray-900);color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;z-index:9999;display:none;text-align:center;box-shadow:var(--shadow-md)}
 @keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -412,6 +425,14 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo"></div>
           </div>
           <div class="ff"><label>Justificativa/Uso <span class="req-mark">*</span></label><textarea id="f-just" rows="3" placeholder="Explique a finalidade da compra"></textarea></div>
+          <div class="ff"><label>Anexos <span style="color:var(--gray-400);font-weight:400">(fotos, documentos)</span></label>
+            <label class="upload-area" id="upload-area-form">
+              <div class="upload-area-icon">📎</div>
+              <div class="upload-area-txt">Clique para selecionar arquivos (imagens, PDF, Word, Excel...)</div>
+              <input type="file" id="f-files" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="handleFileSelect(this)">
+            </label>
+            <div class="file-list" id="pending-files"></div>
+          </div>
           <button class="btn-primary-full" onclick="criarSolicitacao()">
             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
             Enviar Solicita&ccedil;&atilde;o
@@ -780,10 +801,12 @@ async function criarSolicitacao(){
   var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:'Spot',status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
   if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
   var solId=r.data.id;
+  if(pendingFiles.length)await uploadAnexos(solId);
   // Notificar admins sobre nova solicitação
   await notifyUsers(['admin'],'Nova Solicitação Recebida',nome+' ('+setor+'): "'+desc.substring(0,50)+'"','nova',solId);
   sols=[];
   ['f-desc','f-qtd','f-prazo','f-just'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  renderPendingFiles();
   toast('✅ Solicitação enviada com sucesso!');go('minhas');
 }
 
@@ -795,7 +818,8 @@ async function openModal(id){
   document.getElementById('m-title').textContent=s.titulo||'-';
   document.getElementById('m-sub').textContent='Criado em '+fmtDL(s.created_at);
   document.getElementById('m-badges').innerHTML='<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span><span class="sbadge '+s.status+'">'+SL[s.status]+'</span>';
-  document.getElementById('modal-bd').innerHTML=buildModal(s);
+  var anexos=await loadAnexos(id);
+  document.getElementById('modal-bd').innerHTML=buildModal(s,anexos);
   document.getElementById('btn-del-modal').style.display=CU.role==='admin'?'inline-flex':'none';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -812,7 +836,8 @@ async function deleteSol(id){
 function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';selId=null;}
 function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
 
-function buildModal(s){
+function buildModal(s,anexos){
+  anexos=anexos||[];
   var canEdit=CU.role==='admin';
   var canApprove=CU.role==='diretor'||CU.role==='admin';
   var roTag=canEdit?'':'<span style="font-size:11px;color:var(--gray-400);font-weight:400">(visualização)</span>';
@@ -877,7 +902,9 @@ function buildModal(s){
     '</div>':'')+
     '</div>';
 
-  return info+triagem+cot+apSec;
+  var canUpload=CU.role==='admin'||CU.role==='solicitante';
+  var anexSec=buildAnexSection(s.id,anexos,canUpload);
+  return info+triagem+cot+apSec+anexSec;
 }
 
 // MUTAÇÕES
@@ -927,6 +954,95 @@ async function doAp(id,status){
   sols=[];await openModal(id);render(curPage());
   toast(status==='aprovado'?'✅ Aprovado!':status==='reprovado'?'❌ Reprovado.':'🔄 Revisão solicitada.');
 }
+
+// ANEXOS
+var pendingFiles=[];
+
+function handleFileSelect(input){
+  Array.from(input.files).forEach(function(f){pendingFiles.push(f);});
+  renderPendingFiles();input.value='';
+}
+function renderPendingFiles(){
+  var el=document.getElementById('pending-files');if(!el)return;
+  el.innerHTML=pendingFiles.map(function(f,i){
+    return'<div class="file-item"><span class="file-item-icon">'+fileIcon(f.name)+'</span>'+
+      '<span class="file-item-name">'+esc(f.name)+'</span>'+
+      '<span class="file-item-size">'+fmtSize(f.size)+'</span>'+
+      '<button class="file-item-del" onclick="removePending('+i+')">&times;</button></div>';
+  }).join('');
+}
+function removePending(i){pendingFiles.splice(i,1);renderPendingFiles();}
+
+async function uploadAnexos(solId){
+  for(var i=0;i<pendingFiles.length;i++){
+    var f=pendingFiles[i];
+    var path=solId+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    var r=await sb.storage.from('anexos').upload(path,f,{upsert:true});
+    if(!r.error){
+      var url=sb.storage.from('anexos').getPublicUrl(path).data.publicUrl;
+      await sb.from('anexos').insert({sol_id:solId,user_id:CU.id,nome:f.name,url:url,tipo:f.type||''});
+    }
+  }
+  pendingFiles=[];
+}
+
+async function loadAnexos(solId){
+  var r=await sb.from('anexos').select('*').eq('sol_id',solId).order('created_at',{ascending:true});
+  return r.data||[];
+}
+
+function buildAnexSection(solId,anexos,canUpload){
+  var items=anexos.map(function(a){
+    return'<div class="file-item">'+
+      '<span class="file-item-icon">'+fileIcon(a.nome)+'</span>'+
+      '<a href="'+esc(a.url)+'" target="_blank" class="file-item-link">'+esc(a.nome)+'</a>'+
+      (canUpload?'<button class="file-item-del" onclick="deleteAnexo('+a.id+',\''+a.url.replace(/'/g,"\\'")+'\')" title="Remover">&times;</button>':'')+
+      '</div>';
+  }).join('');
+  return'<div class="sec"><h3>Anexos</h3>'+
+    (items?'<div class="file-list" style="margin-bottom:12px">'+items+'</div>':
+    '<p style="color:var(--gray-400);font-size:13px;margin-bottom:12px">Nenhum anexo adicionado</p>')+
+    (canUpload?'<label class="upload-area">'+
+    '<div class="upload-area-icon">📎</div>'+
+    '<div class="upload-area-txt">Clique para adicionar anexo</div>'+
+    '<input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="uploadModalFile('+solId+',this)">'+
+    '</label>':'')+
+    '</div>';
+}
+
+async function uploadModalFile(solId,input){
+  var files=Array.from(input.files);if(!files.length)return;
+  toast('📎 Enviando anexo(s)...');
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    var path=solId+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    var r=await sb.storage.from('anexos').upload(path,f,{upsert:true});
+    if(!r.error){
+      var url=sb.storage.from('anexos').getPublicUrl(path).data.publicUrl;
+      await sb.from('anexos').insert({sol_id:solId,user_id:CU.id,nome:f.name,url:url,tipo:f.type||''});
+    }
+  }
+  input.value='';sols=[];await openModal(solId);toast('✅ Anexo(s) adicionado(s)!');
+}
+
+async function deleteAnexo(id,url){
+  if(!confirm('Remover este anexo?'))return;
+  var path=url.split('/object/public/anexos/')[1];
+  if(path)await sb.storage.from('anexos').remove([decodeURIComponent(path)]);
+  await sb.from('anexos').delete().eq('id',id);
+  sols=[];await openModal(selId);toast('🗑️ Anexo removido.');
+}
+
+function fileIcon(name){
+  var ext=(name||'').split('.').pop().toLowerCase();
+  if(['jpg','jpeg','png','gif','webp','bmp'].indexOf(ext)>=0)return'🖼️';
+  if(ext==='pdf')return'📄';
+  if(['doc','docx'].indexOf(ext)>=0)return'📝';
+  if(['xls','xlsx','csv'].indexOf(ext)>=0)return'📊';
+  if(['zip','rar','7z'].indexOf(ext)>=0)return'🗜️';
+  return'📎';
+}
+function fmtSize(b){if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return (b/1048576).toFixed(1)+'MB';}
 
 // UTILS
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
