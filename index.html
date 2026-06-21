@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>ABBA Supply - Gest&atilde;o de Compras</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -16,9 +17,31 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-100);color:var(--gray-900);min-height:100vh;font-size:14px}
 button,input,select,textarea{font-family:inherit}
 button{cursor:pointer}
-a{text-decoration:none}
-.app{display:flex;min-height:100vh}
-#sidebar{width:var(--sidebar-w);background:#fff;border-right:1px solid var(--gray-200);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;z-index:200;transition:transform .25s ease;}
+
+/* LOGIN */
+#login-screen{display:flex;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);padding:20px}
+.login-card{background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.login-logo{text-align:center;margin-bottom:24px}
+.login-logo-icon{width:56px;height:56px;background:var(--primary);border-radius:14px;display:grid;place-items:center;margin:0 auto 12px}
+.login-logo h1{font-size:22px;font-weight:700}
+.login-logo p{font-size:13px;color:var(--gray-500);margin-top:3px}
+.login-tabs{display:flex;background:var(--gray-100);border-radius:8px;padding:3px;margin-bottom:22px}
+.ltab{flex:1;padding:8px;border:none;background:none;border-radius:6px;font-size:13.5px;font-weight:500;color:var(--gray-500);transition:all .15s}
+.ltab.active{background:#fff;color:var(--primary);box-shadow:var(--shadow)}
+.lf{margin-bottom:14px}
+.lf label{display:block;font-size:13px;font-weight:500;color:var(--gray-700);margin-bottom:5px}
+.lf input,.lf select{width:100%;padding:11px 13px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:14px;outline:none;transition:border .15s}
+.lf input:focus,.lf select:focus{border-color:var(--primary)}
+.btn-login{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;transition:opacity .15s}
+.btn-login:hover{opacity:.9}
+.login-loading{text-align:center;padding:40px 20px;color:var(--gray-500)}
+.login-loading .spin{width:32px;height:32px;border:3px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* APP */
+#app{display:none;min-height:100vh}
+.app-inner{display:flex;min-height:100vh}
+#sidebar{width:var(--sidebar-w);background:#fff;border-right:1px solid var(--gray-200);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;z-index:200;transition:transform .25s ease}
 .logo-area{padding:18px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px}
 .logo-icon{width:36px;height:36px;background:var(--primary);border-radius:8px;display:grid;place-items:center;flex-shrink:0}
 .logo-text strong{display:block;font-size:15px;font-weight:700}
@@ -33,8 +56,8 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .sidebar-user{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px}
 .user-ava{width:32px;height:32px;background:var(--primary-light);border-radius:50%;display:grid;place-items:center;flex-shrink:0}
 .user-ava svg{width:16px;height:16px;color:var(--primary)}
-.user-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;color:var(--gray-900)}
-.user-role{font-size:11px;color:var(--gray-500)}
+.user-name-txt{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;color:var(--gray-900)}
+.user-role-txt{font-size:11px;color:var(--gray-500)}
 .btn-sair{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;color:var(--gray-500);border:none;background:none;width:100%;font-size:13px;transition:all .15s}
 .btn-sair:hover{background:#FEF2F2;color:var(--red)}
 .btn-sair svg{width:16px;height:16px}
@@ -119,8 +142,10 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .modal-bd{padding:20px 22px;max-height:72vh;overflow-y:auto}
 .sec{border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
 .sec h3{font-size:14px;font-weight:600;margin-bottom:13px}
+.sec.readonly{background:var(--gray-50);opacity:.85}
+.sec.readonly select,.sec.readonly input{pointer-events:none;background:var(--gray-100);color:var(--gray-500)}
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.ii-lbl{font-size:11.5px;color:var(--gray-500);display:flex;align-items:center;gap:4px;margin-bottom:2px}
+.ii-lbl{font-size:11.5px;color:var(--gray-500);margin-bottom:2px}
 .ii-val{font-size:13.5px;font-weight:500}
 .just-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100)}
 .just-lbl{font-size:11.5px;color:var(--gray-500);margin-bottom:4px}
@@ -186,11 +211,6 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .upload-area p{font-size:13px;color:var(--gray-500)}
 .upload-area small{font-size:11px;color:var(--gray-400)}
 .file-input{display:none}
-.file-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
-.file-tag{display:flex;align-items:center;justify-content:space-between;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:6px 10px;font-size:12.5px}
-.file-tag-name{display:flex;align-items:center;gap:6px;color:var(--gray-700)}
-.file-remove{background:none;border:none;color:var(--gray-400);font-size:16px;padding:0;line-height:1;cursor:pointer}
-.file-remove:hover{color:var(--red)}
 .fila-item{background:#fff;border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;border:1px solid var(--gray-100);transition:box-shadow .15s}
 .fila-item:hover{box-shadow:var(--shadow-md)}
 .fila-info{flex:1;min-width:0}
@@ -200,6 +220,8 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .empty-state{text-align:center;padding:60px 20px;color:var(--gray-400)}
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-txt{font-size:15px}
+.loading-state{text-align:center;padding:40px;color:var(--gray-400)}
+.loading-state .spin{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
 #toast{position:fixed;bottom:24px;right:24px;left:24px;max-width:340px;margin:auto;background:var(--gray-900);color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;z-index:9999;display:none;text-align:center;box-shadow:var(--shadow-md)}
 @keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
 ::-webkit-scrollbar{width:5px;height:5px}
@@ -228,6 +250,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
   .fila-item{flex-direction:column;align-items:flex-start}
   .fila-actions{width:100%}
   .req-item-top{flex-direction:column}
+  .login-card{padding:28px 20px}
 }
 @media(max-width:480px){
   .kpi-icon{display:none}
@@ -237,174 +260,194 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 </head>
 <body>
 
-<div id="topbar">
-  <button class="btn-menu" onclick="toggleSidebar()">
-    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-  </button>
-  <div class="topbar-logo">
-    <div class="topbar-logo-icon"><svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
-    <span class="topbar-title">ABBA Supply</span>
-  </div>
-</div>
-
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
-<div id="sidebar">
-  <div class="logo-area">
-    <div class="logo-icon"><svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
-    <div class="logo-text"><strong>ABBA Supply</strong><small>Gest&atilde;o de Compras</small></div>
-  </div>
-  <nav>
-    <button class="nav-item active" onclick="go('admin')" id="nav-admin">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-      Painel Admin <span class="nav-arrow">&#8250;</span>
-    </button>
-    <button class="nav-item" onclick="go('kanban')" id="nav-kanban">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-      Painel Kanban
-    </button>
-    <button class="nav-item" onclick="go('fila')" id="nav-fila">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-      Fila de Aprova&ccedil;&atilde;o
-    </button>
-    <button class="nav-item" onclick="go('nova')" id="nav-nova">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-      Nova Solicita&ccedil;&atilde;o
-    </button>
-    <button class="nav-item" onclick="go('minhas')" id="nav-minhas">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h4"/></svg>
-      Minhas Solicita&ccedil;&otilde;es
-    </button>
-  </nav>
-  <div class="sidebar-bottom">
-    <div class="sidebar-user">
-      <div class="user-ava"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg></div>
-      <div><div class="user-name">Luiz F. Cizacoski</div><div class="user-role">Administrador</div></div>
+<!-- ===== LOGIN ===== -->
+<div id="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      </div>
+      <h1>ABBA Supply</h1>
+      <p>Gest&atilde;o de Compras</p>
     </div>
-    <button class="btn-sair">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-      Sair
-    </button>
-  </div>
-</div>
-
-<div id="main" class="app">
-
-  <div class="page active" id="page-admin">
-    <div class="page-header"><h1>Painel Administrativo</h1><p>Vis&atilde;o geral de todas as solicita&ccedil;&otilde;es</p></div>
-    <div class="page-body">
-      <div class="kpi-row" id="kpi-row"></div>
-      <div class="chart-card"><h3>Pedidos por M&ecirc;s</h3><div class="bar-chart-wrap" id="chart-mes"></div></div>
-      <div class="chart-card"><h3>Valor Total por Setor (R$)</h3><div class="bar-chart-wrap" id="chart-setor"></div></div>
+    <div class="login-tabs">
+      <button class="ltab active" onclick="switchTab('login')">Entrar</button>
+      <button class="ltab" onclick="switchTab('register')">Criar Conta</button>
     </div>
-  </div>
-
-  <div class="page" id="page-kanban">
-    <div class="page-header"><h1>Painel de Compras</h1><p id="k-sub">0 solicita&ccedil;&otilde;es no total</p></div>
-    <div class="page-body" style="display:flex;flex-direction:column;padding-bottom:0">
-      <div class="kanban-topbar">
-        <div class="search-wrap">
-          <span class="search-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
-          <input type="text" placeholder="Buscar solicita&ccedil;&atilde;o..." id="k-search" oninput="renderKanban()">
-        </div>
-        <select id="k-filter" onchange="renderKanban()">
-          <option value="">Todas</option>
-          <option value="alta">Alta</option>
-          <option value="media">M&eacute;dia</option>
-          <option value="baixa">Baixa</option>
-          <option value="urgente">Urgente</option>
+    <div id="tab-login">
+      <div class="lf"><label>Email</label><input type="email" id="l-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="lf"><label>Senha</label><input type="password" id="l-pwd" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-login" onclick="doLogin()">Entrar</button>
+    </div>
+    <div id="tab-register" style="display:none">
+      <div class="lf"><label>Nome Completo <span style="color:var(--red)">*</span></label><input type="text" id="r-nome" placeholder="Seu nome completo"></div>
+      <div class="lf"><label>Email <span style="color:var(--red)">*</span></label><input type="email" id="r-email" placeholder="seu@email.com"></div>
+      <div class="lf"><label>Senha <span style="color:var(--red)">*</span></label><input type="password" id="r-pwd" placeholder="M&iacute;nimo 6 caracteres"></div>
+      <div class="lf"><label>Setor <span style="color:var(--red)">*</span></label>
+        <select id="r-setor">
+          <option value="">Selecione o setor</option>
+          <option>Administrativo</option><option>Produ&ccedil;&atilde;o</option><option>Log&iacute;stica</option>
+          <option>Comercial</option><option>TI</option><option>RH</option><option>Financeiro</option><option>Qualidade</option>
         </select>
       </div>
-      <div class="kanban-board" id="kanban-board"></div>
-    </div>
-  </div>
-
-  <div class="page" id="page-fila">
-    <div class="page-header"><h1>Fila de Aprova&ccedil;&atilde;o</h1><p>Solicita&ccedil;&otilde;es aguardando aprova&ccedil;&atilde;o da diretoria</p></div>
-    <div class="page-body"><div id="fila-list"></div></div>
-  </div>
-
-  <div class="page" id="page-nova">
-    <div class="page-header"><h1>Nova Solicita&ccedil;&atilde;o</h1><p>Preencha os dados para solicitar uma compra</p></div>
-    <div class="page-body">
-      <div class="form-card">
-        <div class="ff-row">
-          <div class="ff"><label>Nome do Solicitante <span class="req-mark">*</span></label>
-            <input type="text" id="f-nome" placeholder="Seu nome completo">
-          </div>
-          <div class="ff"><label>Email do Solicitante</label>
-            <input type="email" id="f-email" placeholder="seu@email.com">
-          </div>
-        </div>
-        <div class="ff">
-          <label>Setor <span class="req-mark">*</span></label>
-          <select id="f-setor">
-            <option value="">Selecione o setor</option>
-            <option>Administrativo</option><option>Produ&ccedil;&atilde;o</option><option>Log&iacute;stica</option>
-            <option>Comercial</option><option>TI</option><option>RH</option>
-            <option>Financeiro</option><option>Qualidade</option>
-          </select>
-        </div>
-        <div class="ff">
-          <label>Descri&ccedil;&atilde;o do Item/Servi&ccedil;o <span class="req-mark">*</span></label>
-          <textarea id="f-desc" rows="3" placeholder="Descreva detalhadamente o que precisa ser comprado"></textarea>
-        </div>
-        <div class="ff-row">
-          <div class="ff"><label>Quantidade e Unidade <span class="req-mark">*</span></label>
-            <input type="text" id="f-qtd" placeholder="Ex: 100 pe&ccedil;as, 50 kg">
-          </div>
-          <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label>
-            <input type="date" id="f-prazo">
-          </div>
-        </div>
-        <div class="ff">
-          <label>Justificativa/Uso <span class="req-mark">*</span></label>
-          <textarea id="f-just" rows="3" placeholder="Explique a finalidade e a necessidade da compra"></textarea>
-        </div>
-        <div class="ff">
-          <label>Anexos (Especifica&ccedil;&otilde;es, Desenhos, Fotos)</label>
-          <div class="upload-area" onclick="document.getElementById('file-input').click()">
-            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-            <p>Clique para anexar arquivos</p>
-            <small>PDF, JPG, PNG, XLSX at&eacute; 10MB</small>
-          </div>
-          <input type="file" id="file-input" class="file-input" multiple onchange="handleFiles(this)">
-          <div class="file-list" id="file-list"></div>
-        </div>
-        <button class="btn-primary-full" onclick="criarSolicitacao()">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-          Enviar Solicita&ccedil;&atilde;o
-        </button>
+      <div class="lf"><label>Tipo de Acesso <span style="color:var(--red)">*</span></label>
+        <select id="r-role" onchange="toggleCode()">
+          <option value="solicitante">Solicitante</option>
+          <option value="diretor">Diretor</option>
+          <option value="admin">Administrador (Compras)</option>
+        </select>
       </div>
-    </div>
-  </div>
-
-  <div class="page" id="page-minhas">
-    <div class="page-header"><h1>Minhas Solicita&ccedil;&otilde;es</h1><p>Acompanhe o andamento das suas solicita&ccedil;&otilde;es</p></div>
-    <div class="page-body">
-      <div class="chips" id="chips">
-        <div class="chip active" onclick="setChip(this,'')" data-f="">Todas</div>
-        <div class="chip" onclick="setChip(this,'triagem')" data-f="triagem">Triagem</div>
-        <div class="chip" onclick="setChip(this,'cotacao')" data-f="cotacao">Cota&ccedil;&atilde;o</div>
-        <div class="chip" onclick="setChip(this,'aprovacao')" data-f="aprovacao">Aprova&ccedil;&atilde;o</div>
-        <div class="chip" onclick="setChip(this,'entrega')" data-f="entrega">Entrega</div>
-        <div class="chip" onclick="setChip(this,'concluido')" data-f="concluido">Conclu&iacute;do</div>
+      <div class="lf" id="code-wrap" style="display:none">
+        <label>C&oacute;digo de Acesso <span style="color:var(--red)">*</span></label>
+        <input type="password" id="r-code" placeholder="C&oacute;digo fornecido pelo administrador">
       </div>
-      <div class="req-list" id="req-list"></div>
+      <button class="btn-login" onclick="doRegister()">Criar Conta</button>
     </div>
   </div>
-
 </div>
 
+<!-- ===== LOADING ===== -->
+<div id="loading-screen" style="display:flex;min-height:100vh;align-items:center;justify-content:center;background:var(--gray-100)">
+  <div style="text-align:center;color:var(--gray-500)">
+    <div style="width:40px;height:40px;border:3px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px"></div>
+    <div style="font-size:14px">Carregando...</div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+  <div id="topbar">
+    <button class="btn-menu" onclick="toggleSidebar()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="topbar-logo">
+      <div class="topbar-logo-icon"><svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+      <span class="topbar-title">ABBA Supply</span>
+    </div>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <div id="sidebar">
+    <div class="logo-area">
+      <div class="logo-icon"><svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+      <div class="logo-text"><strong>ABBA Supply</strong><small>Gest&atilde;o de Compras</small></div>
+    </div>
+    <nav>
+      <button class="nav-item" onclick="go('admin')" id="nav-admin" style="display:none">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Painel Admin <span class="nav-arrow">&#8250;</span>
+      </button>
+      <button class="nav-item" onclick="go('kanban')" id="nav-kanban" style="display:none">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Painel Kanban
+      </button>
+      <button class="nav-item" onclick="go('fila')" id="nav-fila" style="display:none">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Fila de Aprova&ccedil;&atilde;o
+      </button>
+      <button class="nav-item" onclick="go('nova')" id="nav-nova" style="display:none">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+        Nova Solicita&ccedil;&atilde;o
+      </button>
+      <button class="nav-item" onclick="go('minhas')" id="nav-minhas">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h4"/></svg>
+        Minhas Solicita&ccedil;&otilde;es
+      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-ava"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg></div>
+        <div><div class="user-name-txt" id="disp-nome">-</div><div class="user-role-txt" id="disp-role">-</div></div>
+      </div>
+      <button class="btn-sair" onclick="doLogout()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Sair
+      </button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div class="page" id="page-admin">
+      <div class="page-header"><h1>Painel Administrativo</h1><p>Vis&atilde;o geral de todas as solicita&ccedil;&otilde;es</p></div>
+      <div class="page-body">
+        <div class="kpi-row" id="kpi-row"></div>
+        <div class="chart-card"><h3>Pedidos por M&ecirc;s</h3><div class="bar-chart-wrap" id="chart-mes"></div></div>
+        <div class="chart-card"><h3>Valor Total por Setor (R$)</h3><div class="bar-chart-wrap" id="chart-setor"></div></div>
+      </div>
+    </div>
+    <div class="page" id="page-kanban">
+      <div class="page-header"><h1>Painel de Compras</h1><p id="k-sub">Carregando...</p></div>
+      <div class="page-body" style="display:flex;flex-direction:column;padding-bottom:0">
+        <div class="kanban-topbar">
+          <div class="search-wrap">
+            <span class="search-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+            <input type="text" placeholder="Buscar..." id="k-search" oninput="renderKanban()">
+          </div>
+          <select id="k-filter" onchange="renderKanban()">
+            <option value="">Todas</option>
+            <option value="alta">Alta</option>
+            <option value="media">M&eacute;dia</option>
+            <option value="baixa">Baixa</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </div>
+        <div class="kanban-board" id="kanban-board"></div>
+      </div>
+    </div>
+    <div class="page" id="page-fila">
+      <div class="page-header"><h1>Fila de Aprova&ccedil;&atilde;o</h1><p>Solicita&ccedil;&otilde;es aguardando aprova&ccedil;&atilde;o</p></div>
+      <div class="page-body"><div id="fila-list"></div></div>
+    </div>
+    <div class="page" id="page-nova">
+      <div class="page-header"><h1>Nova Solicita&ccedil;&atilde;o</h1><p>Preencha os dados para solicitar uma compra</p></div>
+      <div class="page-body">
+        <div class="form-card">
+          <div class="ff-row">
+            <div class="ff"><label>Nome <span class="req-mark">*</span></label><input type="text" id="f-nome" placeholder="Seu nome completo"></div>
+            <div class="ff"><label>Email</label><input type="email" id="f-email" placeholder="seu@email.com"></div>
+          </div>
+          <div class="ff"><label>Setor <span class="req-mark">*</span></label>
+            <select id="f-setor">
+              <option value="">Selecione o setor</option>
+              <option>Administrativo</option><option>Produ&ccedil;&atilde;o</option><option>Log&iacute;stica</option>
+              <option>Comercial</option><option>TI</option><option>RH</option><option>Financeiro</option><option>Qualidade</option>
+            </select>
+          </div>
+          <div class="ff"><label>Descri&ccedil;&atilde;o do Item/Servi&ccedil;o <span class="req-mark">*</span></label><textarea id="f-desc" rows="3" placeholder="Descreva o que precisa ser comprado"></textarea></div>
+          <div class="ff-row">
+            <div class="ff"><label>Quantidade e Unidade <span class="req-mark">*</span></label><input type="text" id="f-qtd" placeholder="Ex: 100 pe&ccedil;as, 50 kg"></div>
+            <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo"></div>
+          </div>
+          <div class="ff"><label>Justificativa/Uso <span class="req-mark">*</span></label><textarea id="f-just" rows="3" placeholder="Explique a finalidade da compra"></textarea></div>
+          <button class="btn-primary-full" onclick="criarSolicitacao()">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            Enviar Solicita&ccedil;&atilde;o
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="page" id="page-minhas">
+      <div class="page-header"><h1>Minhas Solicita&ccedil;&otilde;es</h1><p>Acompanhe suas solicita&ccedil;&otilde;es</p></div>
+      <div class="page-body">
+        <div class="chips" id="chips">
+          <div class="chip active" onclick="setChip(this,'')" data-f="">Todas</div>
+          <div class="chip" onclick="setChip(this,'triagem')" data-f="triagem">Triagem</div>
+          <div class="chip" onclick="setChip(this,'cotacao')" data-f="cotacao">Cota&ccedil;&atilde;o</div>
+          <div class="chip" onclick="setChip(this,'aprovacao')" data-f="aprovacao">Aprova&ccedil;&atilde;o</div>
+          <div class="chip" onclick="setChip(this,'entrega')" data-f="entrega">Entrega</div>
+          <div class="chip" onclick="setChip(this,'concluido')" data-f="concluido">Conclu&iacute;do</div>
+        </div>
+        <div class="req-list" id="req-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
 <div class="overlay" id="overlay" onclick="overlayClick(event)">
-  <div class="modal" id="modal">
+  <div class="modal">
     <div class="modal-hd">
       <div class="modal-hd-row">
-        <div style="flex:1;min-width:0">
-          <h2 id="m-title">-</h2>
-          <div class="modal-sub" id="m-sub">-</div>
-          <div class="modal-badges" id="m-badges"></div>
-        </div>
+        <div style="flex:1;min-width:0"><h2 id="m-title">-</h2><div class="modal-sub" id="m-sub">-</div><div class="modal-badges" id="m-badges"></div></div>
         <button class="close-btn" onclick="closeModal()">&times;</button>
       </div>
     </div>
@@ -415,39 +458,126 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 <div id="toast"></div>
 
 <script>
-var SK='abbasupply_v1';
-var USER={nome:'Luiz Fernando Cizacoski',email:'lfcizacoski@gmail.com',setor:'Administrativo',role:'admin'};
-var SL={
-  triagem:'Triagem e Priorização',
-  cotacao:'Cotação Externa',
-  aprovacao:'Aprovação da Diretoria',
-  entrega:'Entrega e Encerramento',
-  concluido:'Concluído'
-};
+var SURL='https://mdiwameqbbguvmugbloh.supabase.co';
+var SKEY='sb_publishable_xriu2k1UP-FcZhULRRowuA_iodzduFq';
+var CODES={diretor:'DIRETORIA',admin:'COMPRAS2026'};
+var sb=supabase.createClient(SURL,SKEY);
+var CU=null;
+var sols=[];
+var chipFilter='';
+var selId=null;
+
+var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',aprovacao:'Aprovação da Diretoria',entrega:'Entrega e Encerramento',concluido:'Concluído'};
 var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',aprovacao:'#F59E0B',entrega:'#F97316',concluido:'#10B981'};
 var CATS=['Capex','Matéria-prima','Consumo','Spot','Serviço','Outro'];
 var PRIOS=['baixa','media','alta','urgente'];
 var PA={alta:'↑',urgente:'↑↑',media:'→',baixa:'↓'};
+var COLS=[
+  {id:'triagem',l:'Triagem e Priorização'},
+  {id:'cotacao',l:'Cotação Externa'},
+  {id:'aprovacao',l:'Aprovação da Diretoria'},
+  {id:'entrega',l:'Entrega e Encerramento'},
+  {id:'concluido',l:'Concluído'}
+];
 
-var st={sols:[],filter:'',selId:null,pendingFiles:[]};
-
-function load(){
-  try{var r=localStorage.getItem(SK);if(r)st.sols=JSON.parse(r);}catch(e){}
-  if(!st.sols.length){st.sols=seed();save();}
+// INIT
+async function init(){
+  try{
+    var s=await sb.auth.getSession();
+    if(s.data&&s.data.session){
+      await loadProfile(s.data.session.user);
+      showApp();
+    }else{
+      showLogin();
+    }
+  }catch(e){showLogin();}
 }
-function save(){localStorage.setItem(SK,JSON.stringify(st.sols));}
 
-function seed(){return[
-  {id:1,titulo:'Aquisição de Álcool 99% para revenda',nome:'João Teste',email:'compras@abbaquimica.com.br',setor:'Produção',descricao:'Álcool 99% para revenda ao cliente Tecnoplanta',quantidade:'50l',prazo:'2026-06-09',justificativa:'Revenda para o cliente Tecnoplanta',prioridade:'alta',categoria:'Spot',status:'concluido',cotacoes:[],aprovacao:{status:'aprovado',obs:'Aprovado conforme orçamento.'},criadoEm:'2026-06-09',arquivos:[]},
-  {id:2,titulo:'Material de escritório',nome:'Luiz Fernando Cizacoski',email:'lfcizacoski@gmail.com',setor:'Administrativo',descricao:'Papel A4, canetas, grampeador',quantidade:'1 kit',prazo:'2026-06-14',justificativa:'Reposição de estoque do setor',prioridade:'baixa',categoria:'Consumo',status:'aprovacao',cotacoes:[{id:1,forn:'Papelaria Central',val:280,prazo:'3 dias',cond:'À vista',ok:false},{id:2,forn:'Office Plus',val:265,prazo:'5 dias',cond:'30 dias',ok:false},{id:3,forn:'Mega Papelaria',val:250,prazo:'7 dias',cond:'30/60',ok:true}],aprovacao:{status:'aguardando',obs:''},criadoEm:'2026-06-10',arquivos:[]},
-  {id:3,titulo:'Manutenção preventiva ar-condicionado',nome:'Luiz Fernando Cizacoski',email:'lfcizacoski@gmail.com',setor:'Administrativo',descricao:'Serviço de manutenção preventiva dos 6 aparelhos de ar-condicionado',quantidade:'6 unidades',prazo:'2026-06-20',justificativa:'Manutenção obrigatória semestral',prioridade:'media',categoria:'Serviço',status:'cotacao',cotacoes:[],aprovacao:{status:'aguardando',obs:''},criadoEm:'2026-06-12',arquivos:[]}
-];}
+async function loadProfile(user){
+  var r=await sb.from('profiles').select('*').eq('id',user.id).single();
+  if(r.data){CU={id:user.id,email:user.email,nome:r.data.nome,setor:r.data.setor,role:r.data.role};}
+  else{CU={id:user.id,email:user.email,nome:user.email,setor:'',role:'solicitante'};}
+}
 
+function showLogin(){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+function showApp(){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  setupNav();
+}
+
+// AUTH
+async function doLogin(){
+  var email=document.getElementById('l-email').value.trim();
+  var pwd=document.getElementById('l-pwd').value;
+  if(!email||!pwd){toast('⚠️ Preencha email e senha');return;}
+  var r=await sb.auth.signInWithPassword({email:email,password:pwd});
+  if(r.error){toast('❌ Email ou senha incorretos');return;}
+  await loadProfile(r.data.user);
+  showApp();
+}
+
+async function doRegister(){
+  var nome=document.getElementById('r-nome').value.trim();
+  var email=document.getElementById('r-email').value.trim();
+  var pwd=document.getElementById('r-pwd').value;
+  var setor=document.getElementById('r-setor').value;
+  var role=document.getElementById('r-role').value;
+  var code=document.getElementById('r-code').value;
+  if(!nome||!email||!pwd||!setor){toast('⚠️ Preencha todos os campos');return;}
+  if(pwd.length<6){toast('⚠️ Senha mínimo 6 caracteres');return;}
+  if(role!=='solicitante'&&code!==CODES[role]){toast('❌ Código de acesso inválido');return;}
+  var r=await sb.auth.signUp({email:email,password:pwd});
+  if(r.error){toast('❌ '+r.error.message);return;}
+  await sb.from('profiles').insert({id:r.data.user.id,nome:nome,setor:setor,role:role});
+  toast('✅ Conta criada! Faça login.');
+  switchTab('login');
+}
+
+function toggleCode(){
+  var role=document.getElementById('r-role').value;
+  document.getElementById('code-wrap').style.display=(role!=='solicitante')?'block':'none';
+}
+function switchTab(t){
+  document.getElementById('tab-login').style.display=t==='login'?'block':'none';
+  document.getElementById('tab-register').style.display=t==='register'?'block':'none';
+  document.querySelectorAll('.ltab').forEach(function(b,i){b.classList.toggle('active',(i===0&&t==='login')||(i===1&&t==='register'));});
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  CU=null;sols=[];
+  document.getElementById('app').style.display='none';
+  showLogin();
+}
+
+// SETUP NAV
+function setupNav(){
+  var role=CU.role;
+  var isDir=role==='diretor';
+  var isAdmin=role==='admin';
+  var isSol=role==='solicitante';
+  document.getElementById('nav-admin').style.display=(isDir||isAdmin)?'flex':'none';
+  document.getElementById('nav-kanban').style.display=(isDir||isAdmin)?'flex':'none';
+  document.getElementById('nav-fila').style.display=(isDir||isAdmin)?'flex':'none';
+  document.getElementById('nav-nova').style.display=(isSol||isAdmin)?'flex':'none';
+  document.getElementById('disp-nome').textContent=CU.nome;
+  document.getElementById('disp-role').textContent=CU.role==='admin'?'Administrador':CU.role==='diretor'?'Diretor':'Solicitante';
+  if(isSol)go('nova');
+  else go('admin');
+}
+
+// ROUTING
 function go(p){
   document.querySelectorAll('.page').forEach(function(e){e.classList.remove('active');});
   document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active');});
-  document.getElementById('page-'+p).classList.add('active');
-  var n=document.getElementById('nav-'+p);if(n)n.classList.add('active');
+  var pg=document.getElementById('page-'+p);
+  var nv=document.getElementById('nav-'+p);
+  if(pg)pg.classList.add('active');
+  if(nv)nv.classList.add('active');
   closeSidebar();
   render(p);
 }
@@ -456,120 +586,119 @@ function render(p){
   else if(p==='kanban')renderKanban();
   else if(p==='fila')renderFila();
   else if(p==='minhas')renderMinhas();
+  else if(p==='nova')fillForm();
 }
 function curPage(){var a=document.querySelector('.page.active');return a?a.id.replace('page-',''):'admin';}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
 
-function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebar-overlay').classList.toggle('open');
-}
-function closeSidebar(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('open');
+// LOAD DATA
+async function loadSols(){
+  var q=sb.from('solicitacoes').select('*, cotacoes(*)').order('created_at',{ascending:false});
+  if(CU.role==='solicitante')q=q.eq('user_id',CU.id);
+  var r=await q;
+  if(r.error){console.error(r.error);sols=[];return;}
+  sols=(r.data||[]).map(function(s){
+    return Object.assign({},s,{
+      titulo:s.titulo||s.descricao||'',
+      aprovacao:{status:s.ap_status||'aguardando',obs:s.ap_obs||''},
+      arquivos:[]
+    });
+  });
 }
 
-function renderAdmin(){
-  var s=st.sols;
-  var wait=s.filter(function(x){return x.aprovacao.status==='aguardando';}).length;
+// ADMIN
+async function renderAdmin(){
+  document.getElementById('kpi-row').innerHTML='<div class="loading-state"><div class="spin"></div></div>';
+  await loadSols();
+  var s=sols;
+  var wait=s.filter(function(x){return x.ap_status==='aguardando'&&x.status==='aprovacao';}).length;
   var sets=new Set(s.map(function(x){return x.setor;})).size;
-  var vol=s.reduce(function(a,x){return a+x.cotacoes.reduce(function(b,c){return b+(c.ok?c.val:0);},0);},0);
+  var vol=s.reduce(function(a,x){return a+(x.cotacoes||[]).reduce(function(b,c){return b+(c.escolhida?c.val:0);},0);},0);
   document.getElementById('kpi-row').innerHTML=
     '<div class="kpi"><div class="kpi-icon indigo">🛒</div><div><div class="kpi-val">'+s.length+'</div><div class="kpi-lbl">Total de Pedidos</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon purple">👥</div><div><div class="kpi-val">'+sets+'</div><div class="kpi-lbl">Setores Ativos</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon amber">⏳</div><div><div class="kpi-val">'+wait+'</div><div class="kpi-lbl">Aguardando Aprovação</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(vol)+'</div><div class="kpi-lbl">Volume Total</div></div></div>';
-  var pm={};s.forEach(function(x){var k=mkey(x.criadoEm);pm[k]=(pm[k]||0)+1;});
+  var pm={};s.forEach(function(x){var k=mkey(x.created_at);pm[k]=(pm[k]||0)+1;});
   drawBars('chart-mes',pm,'#4F46E5',function(v){return v;});
-  var ps={};s.forEach(function(x){var v=x.cotacoes.reduce(function(a,c){return a+(c.ok?c.val:0);},0);if(v)ps[x.setor]=(ps[x.setor]||0)+v;});
+  var ps={};s.forEach(function(x){var v=(x.cotacoes||[]).reduce(function(a,c){return a+(c.escolhida?c.val:0);},0);if(v)ps[x.setor]=(ps[x.setor]||0)+v;});
   drawBars('chart-setor',ps,'#8B5CF6',function(v){return 'R$'+fmt(v);});
 }
 function drawBars(id,obj,color,lFn){
-  var el=document.getElementById(id);
-  var es=Object.entries(obj);
+  var el=document.getElementById(id);var es=Object.entries(obj);
   if(!es.length){el.innerHTML='<p style="color:var(--gray-400);font-size:13px;padding:10px 0">Nenhum dado ainda</p>';return;}
   var max=Math.max.apply(null,es.map(function(e){return e[1];}))||1;
   var H=130;var bw=Math.max(44,Math.min(90,Math.floor(600/es.length)-14));
   el.innerHTML=es.map(function(e){
-    var l=e[0],v=e[1];
-    var bh=Math.round((v/max)*H)||4;
+    var l=e[0],v=e[1];var bh=Math.round((v/max)*H)||4;
     return '<div class="bar-group"><span class="bar-val">'+lFn(v)+'</span><div class="bar" style="height:'+bh+'px;width:'+bw+'px;background:'+color+'"></div><span class="bar-lbl">'+l+'</span></div>';
   }).join('');
 }
-function mkey(d){try{var dt=new Date(d+'T00:00:00');return dt.toLocaleString('pt-BR',{month:'short'})+'/'+String(dt.getFullYear()).slice(2);}catch(e){return d;}}
+function mkey(d){try{var dt=new Date(d);return dt.toLocaleString('pt-BR',{month:'short'})+'/'+String(dt.getFullYear()).slice(2);}catch(e){return d;}}
 
-var COLS=[
-  {id:'triagem',l:'Triagem e Priorização'},
-  {id:'cotacao',l:'Cotação Externa'},
-  {id:'aprovacao',l:'Aprovação da Diretoria'},
-  {id:'entrega',l:'Entrega e Encerramento'},
-  {id:'concluido',l:'Concluído'}
-];
-function renderKanban(){
+// KANBAN
+async function renderKanban(){
   var q=(document.getElementById('k-search')?document.getElementById('k-search').value:'').toLowerCase();
   var fp=document.getElementById('k-filter')?document.getElementById('k-filter').value:'';
-  var items=st.sols;
-  if(q)items=items.filter(function(s){return(s.titulo||s.descricao||'').toLowerCase().indexOf(q)>=0||s.nome.toLowerCase().indexOf(q)>=0;});
+  if(!sols.length)await loadSols();
+  var items=sols;
+  if(q)items=items.filter(function(s){return(s.titulo||'').toLowerCase().indexOf(q)>=0||s.nome.toLowerCase().indexOf(q)>=0;});
   if(fp)items=items.filter(function(s){return s.prioridade===fp;});
   document.getElementById('k-sub').textContent=items.length+' solicitações no total';
   document.getElementById('kanban-board').innerHTML=COLS.map(function(col){
     var ci=items.filter(function(s){return s.status===col.id;});
-    var cards=ci.length?ci.map(kCard).join(''):
-      '<div class="col-empty"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h10"/></svg>Nenhuma solicitação</div>';
+    var cards=ci.length?ci.map(kCard).join(''):'<div class="col-empty"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h10"/></svg>Nenhuma</div>';
     return '<div class="kanban-col"><div class="col-head"><div class="col-dot" style="background:'+SC[col.id]+'"></div><span class="col-name">'+col.l+'</span><span class="col-cnt">'+ci.length+'</span></div><div class="col-body">'+cards+'</div></div>';
   }).join('');
 }
 function kCard(s){
   var ap=s.aprovacao?s.aprovacao.status:'';
   var stag=ap==='aguardando'?'<span class="k-ap pendente">Pendente</span>':ap==='aprovado'?'<span class="k-ap aprovado">Aprovado</span>':ap==='reprovado'?'<span class="k-ap reprovado">Reprovado</span>':'';
-  var title=s.titulo||((s.descricao||'').substring(0,40))||'Sem título';
   return '<div class="k-card" onclick="openModal('+s.id+')">'+
-    '<div class="k-card-top"><span class="k-title">'+esc(title)+'</span><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade)+'</span></div>'+
+    '<div class="k-card-top"><span class="k-title">'+esc(s.titulo)+'</span><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade)+'</span></div>'+
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>'+esc(s.setor)+'</div>'+
-    '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>'+esc(s.quantidade)+'</div>'+
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+fmtD(s.prazo)+'</div>'+
-    '<div class="k-footer"><div><div class="k-user">'+esc(s.nome)+'</div>'+stag+'</div><span class="k-cat">'+esc(s.categoria)+'</span></div>'+
-    '</div>';
+    '<div class="k-footer"><div><div class="k-user">'+esc(s.nome)+'</div>'+stag+'</div><span class="k-cat">'+esc(s.categoria)+'</span></div></div>';
 }
 
-function renderFila(){
-  var fila=st.sols.filter(function(s){return s.status==='aprovacao'&&s.aprovacao.status==='aguardando';});
+// FILA
+async function renderFila(){
+  if(!sols.length)await loadSols();
+  var fila=sols.filter(function(s){return s.status==='aprovacao'&&s.ap_status==='aguardando';});
   var el=document.getElementById('fila-list');
   if(!fila.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma solicitação aguardando aprovação</div></div>';return;}
   el.innerHTML=fila.map(function(s){
     return '<div class="fila-item" onclick="openModal('+s.id+')">'+
-      '<div class="fila-info">'+
-      '<div class="fila-title">'+esc(s.titulo||(s.descricao||'').substring(0,50)||'-')+'</div>'+
-      '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
-      '</div>'+
-      '<div class="fila-actions">'+
-      '<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
-      '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
+      '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
+      '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div></div>'+
+      '<div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
+      '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Aprovar</button>'+
       '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'reprovado\')">❌ Reprovar</button>'+
       '</div></div>';
   }).join('');
 }
-function qAp(id,status){
-  mut(id,function(s){s.aprovacao.status=status;if(status==='aprovado')s.status='entrega';});
-  renderFila();
+async function qAp(id,status){
+  await sb.from('solicitacoes').update({ap_status:status,status:status==='aprovado'?'entrega':'aprovacao'}).eq('id',id);
+  sols=[];await renderFila();
   toast(status==='aprovado'?'✅ Aprovado! Movido para Entrega.':'❌ Solicitação reprovada.');
 }
 
+// MINHAS
 function setChip(el,f){
-  st.filter=f;
+  chipFilter=f;
   document.querySelectorAll('#chips .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f===f);});
   renderMinhas();
 }
-function renderMinhas(){
-  var items=st.sols;
-  if(st.filter)items=items.filter(function(s){return s.status===st.filter;});
+async function renderMinhas(){
+  if(!sols.length)await loadSols();
+  var items=chipFilter?sols.filter(function(s){return s.status===chipFilter;}):sols;
   var el=document.getElementById('req-list');
   if(!items.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-txt">Nenhuma solicitação encontrada</div></div>';return;}
   el.innerHTML=items.map(function(s){
     return '<div class="req-item" onclick="openModal('+s.id+')">'+
-      '<div class="req-item-top">'+
-      '<span class="req-title">'+esc(s.titulo||(s.descricao||'').substring(0,60)||'-')+'</span>'+
-      '<div class="req-badges"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span><span class="sbadge '+s.status+'">'+SL[s.status]+'</span></div>'+
-      '</div>'+
+      '<div class="req-item-top"><span class="req-title">'+esc(s.titulo)+'</span>'+
+      '<div class="req-badges"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span><span class="sbadge '+s.status+'">'+SL[s.status]+'</span></div></div>'+
       '<div class="req-meta">'+
       '<span><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>'+esc(s.nome)+'</span>'+
       '<span><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>'+esc(s.setor)+'</span>'+
@@ -578,109 +707,95 @@ function renderMinhas(){
   }).join('');
 }
 
-function handleFiles(input){
-  st.pendingFiles=Array.prototype.slice.call(input.files);
-  var el=document.getElementById('file-list');
-  el.innerHTML=st.pendingFiles.map(function(f,i){
-    return '<div class="file-tag"><span class="file-tag-name">📎 '+esc(f.name)+'</span><button class="file-remove" onclick="removeFile('+i+')">&times;</button></div>';
-  }).join('');
-}
-function removeFile(i){
-  st.pendingFiles.splice(i,1);
-  var dt=new DataTransfer();
-  st.pendingFiles.forEach(function(f){dt.items.add(f);});
-  document.getElementById('file-input').files=dt.files;
-  handleFiles(document.getElementById('file-input'));
-}
-function criarSolicitacao(){
-  var nome=(document.getElementById('f-nome')?document.getElementById('f-nome').value:'').trim();
-  var email=(document.getElementById('f-email')?document.getElementById('f-email').value:'').trim();
-  var setor=document.getElementById('f-setor')?document.getElementById('f-setor').value:'';
-  var desc=(document.getElementById('f-desc')?document.getElementById('f-desc').value:'').trim();
-  var qtd=(document.getElementById('f-qtd')?document.getElementById('f-qtd').value:'').trim();
-  var prazo=document.getElementById('f-prazo')?document.getElementById('f-prazo').value:'';
-  var just=(document.getElementById('f-just')?document.getElementById('f-just').value:'').trim();
-  if(!nome||!setor||!desc||!qtd||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
-  st.sols.push({id:Date.now(),titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:'Spot',status:'triagem',cotacoes:[],aprovacao:{status:'aguardando',obs:''},criadoEm:new Date().toISOString().split('T')[0],arquivos:st.pendingFiles.map(function(f){return f.name;})});
-  save();
-  ['f-nome','f-email','f-desc','f-qtd','f-prazo','f-just'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-  document.getElementById('f-setor').value='';
-  st.pendingFiles=[];document.getElementById('file-list').innerHTML='';document.getElementById('file-input').value='';
-  toast('✅ Solicitação enviada com sucesso!');
-  go('kanban');
-}
+// NOVA
 function fillForm(){
-  var n=document.getElementById('f-nome');var e=document.getElementById('f-email');
-  if(n&&!n.value)n.value=USER.nome;if(e&&!e.value)e.value=USER.email;
+  var n=document.getElementById('f-nome');var e=document.getElementById('f-email');var st=document.getElementById('f-setor');
+  if(n&&CU)n.value=CU.nome;if(e&&CU)e.value=CU.email;
+  if(st&&CU&&CU.setor){for(var i=0;i<st.options.length;i++){if(st.options[i].text===CU.setor){st.selectedIndex=i;break;}}}
+}
+async function criarSolicitacao(){
+  var nome=(document.getElementById('f-nome').value||'').trim();
+  var email=(document.getElementById('f-email').value||'').trim();
+  var setor=document.getElementById('f-setor').value;
+  var desc=(document.getElementById('f-desc').value||'').trim();
+  var qtd=(document.getElementById('f-qtd').value||'').trim();
+  var prazo=document.getElementById('f-prazo').value;
+  var just=(document.getElementById('f-just').value||'').trim();
+  if(!nome||!setor||!desc||!qtd||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
+  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:'Spot',status:'triagem',ap_status:'aguardando',ap_obs:''});
+  if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
+  sols=[];
+  ['f-desc','f-qtd','f-prazo','f-just'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  toast('✅ Solicitação enviada com sucesso!');
+  go('minhas');
 }
 
-function openModal(id){
-  st.selId=id;var s=st.sols.filter(function(x){return x.id===id;})[0];if(!s)return;
-  var title=s.titulo||(s.descricao||'').substring(0,60)||'-';
-  document.getElementById('m-title').textContent=title;
-  document.getElementById('m-sub').textContent='Criado em '+fmtDL(s.criadoEm);
+// MODAL
+async function openModal(id){
+  selId=id;
+  if(!sols.find(function(s){return s.id===id;}))await loadSols();
+  var s=sols.find(function(x){return x.id===id;});if(!s)return;
+  document.getElementById('m-title').textContent=s.titulo||'-';
+  document.getElementById('m-sub').textContent='Criado em '+fmtDL(s.created_at);
   document.getElementById('m-badges').innerHTML='<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span><span class="sbadge '+s.status+'">'+SL[s.status]+'</span>';
   document.getElementById('modal-bd').innerHTML=buildModal(s);
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
-function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';st.selId=null;}
+function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';selId=null;}
 function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
 
 function buildModal(s){
+  var canEdit=CU.role==='admin';
+  var canApprove=CU.role==='diretor'||CU.role==='admin';
+
   var info='<div class="sec"><h3>Informações da Solicitação</h3>'+
     '<div class="info-grid">'+
-    '<div class="info-item"><div class="ii-lbl">👤 Solicitante</div><div class="ii-val">'+esc(s.nome)+'</div></div>'+
-    '<div class="info-item"><div class="ii-lbl">✉️ Email</div><div class="ii-val">'+esc(s.email)+'</div></div>'+
-    '<div class="info-item"><div class="ii-lbl">🏢 Setor</div><div class="ii-val">'+esc(s.setor)+'</div></div>'+
-    '<div class="info-item"><div class="ii-lbl">📦 Quantidade</div><div class="ii-val">'+esc(s.quantidade)+'</div></div>'+
-    '<div class="info-item"><div class="ii-lbl">📅 Prazo</div><div class="ii-val">'+fmtD(s.prazo)+'</div></div>'+
-    '<div class="info-item"><div class="ii-lbl">📁 Categoria</div><div class="ii-val">'+esc(s.categoria)+'</div></div>'+
+    '<div><div class="ii-lbl">👤 Solicitante</div><div class="ii-val">'+esc(s.nome)+'</div></div>'+
+    '<div><div class="ii-lbl">✉️ Email</div><div class="ii-val">'+esc(s.email)+'</div></div>'+
+    '<div><div class="ii-lbl">🏢 Setor</div><div class="ii-val">'+esc(s.setor)+'</div></div>'+
+    '<div><div class="ii-lbl">📦 Quantidade</div><div class="ii-val">'+esc(s.quantidade)+'</div></div>'+
+    '<div><div class="ii-lbl">📅 Prazo</div><div class="ii-val">'+fmtD(s.prazo)+'</div></div>'+
+    '<div><div class="ii-lbl">📁 Categoria</div><div class="ii-val">'+esc(s.categoria)+'</div></div>'+
     '</div>'+
     '<div class="just-block"><div class="just-lbl">Descrição</div><p class="just-txt">'+esc(s.descricao||s.titulo||'-')+'</p></div>'+
     '<div class="just-block" style="margin-top:8px"><div class="just-lbl">Justificativa</div><p class="just-txt">'+esc(s.justificativa||'-')+'</p></div>'+
-    (s.arquivos&&s.arquivos.length?'<div class="just-block" style="margin-top:8px"><div class="just-lbl">Arquivos Anexados</div><div>'+s.arquivos.map(function(f){return'<span style="display:inline-block;background:var(--gray-100);border-radius:5px;padding:2px 8px;font-size:12px;margin:3px 3px 0 0">📎 '+esc(f)+'</span>';}).join('')+'</div></div>':'')+
     '</div>';
 
-  var triagem='<div class="sec"><h3>Triagem e Priorização</h3>'+
+  var triagem='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Triagem e Priorização '+(canEdit?'':'<span style="font-size:11px;color:var(--gray-400);font-weight:400">(somente visualização)</span>')+'</h3>'+
     '<div class="form-2">'+
-    '<div class="fg"><label>Prioridade</label>'+
-    '<select onchange="mutField('+s.id+',\'prioridade\',this.value)">'+
+    '<div class="fg"><label>Prioridade</label><select '+(canEdit?'onchange="updField('+s.id+',\'prioridade\',this.value)"':'disabled')+'>'+
     PRIOS.map(function(p){return'<option value="'+p+'"'+(s.prioridade===p?' selected':'')+'>'+cap(p)+'</option>';}).join('')+
     '</select></div>'+
-    '<div class="fg"><label>Categoria da Compra</label>'+
-    '<select onchange="mutField('+s.id+',\'categoria\',this.value)">'+
+    '<div class="fg"><label>Categoria</label><select '+(canEdit?'onchange="updField('+s.id+',\'categoria\',this.value)"':'disabled')+'>'+
     CATS.map(function(c){return'<option'+(s.categoria===c?' selected':'')+'>'+c+'</option>';}).join('')+
     '</select></div></div>'+
-    '<div class="fg"><label>Mover para etapa</label>'+
-    '<select onchange="mutStatus('+s.id+',this.value)">'+
+    '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
     Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+
     '</select></div></div>';
 
-  var cotItems=s.cotacoes.map(function(c){
-    return '<div class="cot-item'+(c.ok?' chosen':'')+'" onclick="toggleCot('+s.id+','+c.id+')">'+
-      '<div class="cot-head"><span class="cot-forn">'+esc(c.forn)+'</span>'+(c.ok?'<span class="chosen-badge">Escolhido</span>':'')+
+  var cotItems=(s.cotacoes||[]).map(function(c){
+    return '<div class="cot-item'+(c.escolhida?' chosen':'')+'"'+(canEdit?' onclick="toggleCot('+s.id+','+c.id+','+c.escolhida+')"':'')+'>'+
+      '<div class="cot-head"><span class="cot-forn">'+esc(c.forn)+'</span>'+(c.escolhida?'<span class="chosen-badge">Escolhido</span>':'')+
       '</div><div class="cot-fields">'+
       '<div><div class="cf-val">R$ '+fmt(c.val)+'</div><div class="cf-lbl">Valor Total</div></div>'+
-      '<div><div class="cf-val">'+esc(c.prazo)+'</div><div class="cf-lbl">Prazo Entrega</div></div>'+
-      '<div><div class="cf-val">'+esc(c.cond)+'</div><div class="cf-lbl">Condição Pgto.</div></div>'+
+      '<div><div class="cf-val">'+esc(c.prazo)+'</div><div class="cf-lbl">Prazo</div></div>'+
+      '<div><div class="cf-val">'+esc(c.cond)+'</div><div class="cf-lbl">Condição</div></div>'+
       '</div></div>';
   }).join('');
-  var cot='<div class="sec"><h3>Cotação Externa</h3>'+
+  var cot='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Cotação Externa '+(canEdit?'':'<span style="font-size:11px;color:var(--gray-400);font-weight:400">(somente visualização)</span>')+'</h3>'+
     '<div class="cot-list">'+(cotItems||'<p style="color:var(--gray-400);font-size:13px">Nenhuma cotação adicionada</p>')+'</div>'+
-    '<button class="btn-add-cot" onclick="showCotForm('+s.id+')">'+
-    '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Adicionar Cotação</button>'+
+    (canEdit?'<button class="btn-add-cot" onclick="showCotForm('+s.id+')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Adicionar Cotação</button>'+
     '<div class="cot-form" id="cf-'+s.id+'">'+
     '<div class="form-2" style="margin-bottom:10px">'+
     '<div class="fg"><label style="margin-top:0">Fornecedor</label><input id="ci-forn-'+s.id+'" placeholder="Nome do fornecedor"></div>'+
-    '<div class="fg"><label style="margin-top:0">Valor Total (R$)</label><input type="number" id="ci-val-'+s.id+'" placeholder="0"></div>'+
-    '</div><div class="form-2" style="margin-bottom:12px">'+
-    '<div class="fg"><label style="margin-top:0">Prazo de Entrega</label><input id="ci-prazo-'+s.id+'" placeholder="Ex: 7 dias"></div>'+
-    '<div class="fg"><label style="margin-top:0">Condição Pgto.</label><input id="ci-cond-'+s.id+'" placeholder="Ex: 30/60/90"></div>'+
-    '</div><div style="display:flex;gap:8px;justify-content:flex-end">'+
+    '<div class="fg"><label style="margin-top:0">Valor (R$)</label><input type="number" id="ci-val-'+s.id+'" placeholder="0"></div></div>'+
+    '<div class="form-2" style="margin-bottom:12px">'+
+    '<div class="fg"><label style="margin-top:0">Prazo Entrega</label><input id="ci-prazo-'+s.id+'" placeholder="Ex: 7 dias"></div>'+
+    '<div class="fg"><label style="margin-top:0">Condição Pgto.</label><input id="ci-cond-'+s.id+'" placeholder="Ex: 30/60"></div></div>'+
+    '<div style="display:flex;gap:8px;justify-content:flex-end">'+
     '<button class="btn btn-outline btn-sm" onclick="hideCotForm('+s.id+')">Cancelar</button>'+
-    '<button class="btn btn-primary btn-sm" onclick="saveCot('+s.id+')">Salvar Cotação</button>'+
-    '</div></div></div>';
+    '<button class="btn btn-primary btn-sm" onclick="saveCot('+s.id+')">Salvar</button></div></div>':'')+'</div>';
 
   var ap=s.aprovacao;
   var apSt='';
@@ -688,10 +803,10 @@ function buildModal(s){
   else if(ap.status==='aprovado')apSt='<div class="ap-done aprovado">✅ Aprovado</div>';
   else if(ap.status==='reprovado')apSt='<div class="ap-done reprovado">❌ Reprovado</div>';
   else if(ap.status==='revisao')apSt='<div class="ap-done revisao">🔄 Revisão Solicitada</div>';
-  var showAp=ap.status==='aguardando'&&s.status==='aprovacao';
+  var showApBtn=canApprove&&ap.status==='aguardando'&&s.status==='aprovacao';
   var apSec='<div class="sec"><h3>Aprovação da Diretoria</h3>'+apSt+
     (ap.obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700);margin-bottom:12px">'+esc(ap.obs)+'</div>':'')+
-    (showAp?'<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Observações/Parecer</label>'+
+    (showApBtn?'<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Observações/Parecer</label>'+
     '<textarea id="ap-obs-'+s.id+'" placeholder="Insira seu parecer...">'+esc(ap.obs)+'</textarea></div>'+
     '<div class="btn-row">'+
     '<button class="btn btn-green" onclick="doAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
@@ -703,33 +818,48 @@ function buildModal(s){
   return info+triagem+cot+apSec;
 }
 
-function mut(id,fn){var s=st.sols.filter(function(x){return x.id===id;})[0];if(s){fn(s);save();}}
-function mutField(id,f,v){mut(id,function(s){s[f]=v;});render(curPage());}
-function mutStatus(id,status){mut(id,function(s){s.status=status;});openModal(id);render(curPage());}
-function toggleCot(sid,cid){mut(sid,function(s){s.cotacoes.forEach(function(c){c.ok=c.id===cid?!c.ok:false;});});openModal(sid);}
+// MUTATIONS
+async function updField(id,field,val){
+  var upd={};upd[field]=val;
+  await sb.from('solicitacoes').update(upd).eq('id',id);
+  sols=[];render(curPage());
+}
+async function updStatus(id,status){
+  await sb.from('solicitacoes').update({status:status}).eq('id',id);
+  sols=[];await openModal(id);render(curPage());
+}
+async function toggleCot(solId,cotId,wasChosen){
+  await sb.from('cotacoes').update({escolhida:false}).eq('sol_id',solId);
+  if(!wasChosen)await sb.from('cotacoes').update({escolhida:true}).eq('id',cotId);
+  sols=[];await openModal(solId);
+}
 function showCotForm(id){var el=document.getElementById('cf-'+id);if(el)el.style.display='block';}
 function hideCotForm(id){var el=document.getElementById('cf-'+id);if(el)el.style.display='none';}
-function saveCot(id){
-  var forn=(document.getElementById('ci-forn-'+id)?document.getElementById('ci-forn-'+id).value:'').trim();
-  var val=parseFloat(document.getElementById('ci-val-'+id)?document.getElementById('ci-val-'+id).value:0)||0;
-  var prazo=(document.getElementById('ci-prazo-'+id)?document.getElementById('ci-prazo-'+id).value:'').trim();
-  var cond=(document.getElementById('ci-cond-'+id)?document.getElementById('ci-cond-'+id).value:'').trim();
-  if(!forn){toast('⚠️ Informe o nome do fornecedor');return;}
-  mut(id,function(s){s.cotacoes.push({id:Date.now(),forn:forn,val:val,prazo:prazo,cond:cond,ok:false});});
-  openModal(id);toast('✅ Cotação adicionada!');
+async function saveCot(id){
+  var forn=(document.getElementById('ci-forn-'+id).value||'').trim();
+  var val=parseFloat(document.getElementById('ci-val-'+id).value)||0;
+  var prazo=(document.getElementById('ci-prazo-'+id).value||'').trim();
+  var cond=(document.getElementById('ci-cond-'+id).value||'').trim();
+  if(!forn){toast('⚠️ Informe o fornecedor');return;}
+  await sb.from('cotacoes').insert({sol_id:id,forn:forn,val:val,prazo:prazo,cond:cond,escolhida:false});
+  sols=[];await openModal(id);toast('✅ Cotação adicionada!');
 }
-function doAp(id,status){
+async function doAp(id,status){
   var obs=(document.getElementById('ap-obs-'+id)?document.getElementById('ap-obs-'+id).value:'').trim();
-  mut(id,function(s){s.aprovacao.status=status;s.aprovacao.obs=obs;if(status==='aprovado')s.status='entrega';if(status==='revisao')s.status='triagem';});
-  openModal(id);render(curPage());
+  var upd={ap_status:status,ap_obs:obs};
+  if(status==='aprovado')upd.status='entrega';
+  if(status==='revisao')upd.status='triagem';
+  await sb.from('solicitacoes').update(upd).eq('id',id);
+  sols=[];await openModal(id);render(curPage());
   var msgs={aprovado:'✅ Aprovado! Movido para Entrega.',reprovado:'❌ Solicitação reprovada.',revisao:'🔄 Revisão solicitada.'};
   toast(msgs[status]);
 }
 
+// UTILS
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function cap(s){return s?s[0].toUpperCase()+s.slice(1):'';}
-function fmtD(d){if(!d)return'-';try{var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}catch(e){return d;}}
-function fmtDL(d){if(!d)return'-';try{return new Date(d+'T00:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}}
+function fmtD(d){if(!d)return'-';try{var p=String(d).split('T')[0].split('-');return p[2]+'/'+p[1]+'/'+p[0];}catch(e){return d;}}
+function fmtDL(d){if(!d)return'-';try{return new Date(d).toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}}
 function fmt(v){return Number(v).toLocaleString('pt-BR');}
 function toast(msg){
   var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
@@ -737,9 +867,7 @@ function toast(msg){
   clearTimeout(t._t);t._t=setTimeout(function(){t.style.display='none';},3200);
 }
 
-load();
-renderAdmin();
-document.getElementById('nav-nova').addEventListener('click',function(){setTimeout(fillForm,50);});
+init();
 </script>
 </body>
 </html>
