@@ -907,16 +907,24 @@ function buildModal(s,anexos){
     '</div>';
 
   var entregaSec='';
-  if(s.status==='entrega'||s.status==='concluido'||s.dt_entrega){
-    var dtVal=s.dt_entrega||'';
+  if(s.status==='entrega'||s.status==='concluido'||s.dt_entrega||s.dt_prevista){
+    var dtPrevista=s.dt_prevista||'';
+    var dtReal=s.dt_entrega||'';
     var isConcluido=s.status==='concluido';
     entregaSec='<div class="sec"><h3>Entrega</h3>'+
-      (isConcluido&&s.dt_entrega?'<div class="ap-done aprovado">✅ Entregue em '+fmtD(s.dt_entrega)+'</div>':
       (canEdit?
-        '<div class="fg"><label>Data Real de Entrega</label><input type="date" id="dt-entrega-'+s.id+'" value="'+esc(dtVal)+'" style="max-width:220px"></div>'+
-        '<div style="margin-top:10px"><button class="btn btn-green" onclick="saveEntrega('+s.id+')">✅ Confirmar Entrega</button></div>':
-        '<div class="ap-wait">Aguardando confirmação de entrega pelo Compras</div>'))+
-      '</div>';
+        '<div class="form-2">'+
+        '<div class="fg"><label>Data Prevista de Entrega</label><input type="date" id="dt-prevista-'+s.id+'" value="'+esc(dtPrevista)+'" style="max-width:220px">'+
+        '<button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="saveDtPrevista('+s.id+')">Salvar Previsão</button></div>'+
+        (dtPrevista&&!isConcluido?
+          '<div class="fg"><label>Data Real de Entrega</label><input type="date" id="dt-entrega-'+s.id+'" value="'+esc(dtReal)+'" style="max-width:220px">'+
+          '<button class="btn btn-green btn-sm" style="margin-top:6px" onclick="saveEntrega('+s.id+')">✅ Confirmar Entrega</button></div>':'')
+        +'</div>'+
+        (isConcluido?'<div class="ap-done aprovado" style="margin-top:10px">✅ Entregue em '+fmtD(dtReal)+'</div>':
+        (dtPrevista?'<div class="ap-wait" style="margin-top:8px">📅 Previsão: '+fmtD(dtPrevista)+'</div>':'')):
+        '<div class="ap-wait">'+(dtPrevista?'📅 Previsão de entrega: '+fmtD(dtPrevista):'Aguardando previsão de entrega')+'</div>'+
+        (isConcluido?'<div class="ap-done aprovado" style="margin-top:8px">✅ Entregue em '+fmtD(dtReal)+'</div>':'')
+      )+'</div>';
   }
 
   var canUpload=CU.role==='admin'||CU.role==='solicitante';
@@ -929,6 +937,14 @@ async function updField(id,field,val){
   var upd={};upd[field]=val;
   await sb.from('solicitacoes').update(upd).eq('id',id);
   sols=[];render(curPage());
+}
+async function saveDtPrevista(id){
+  var el=document.getElementById('dt-prevista-'+id);
+  if(!el||!el.value){toast('⚠️ Selecione a data prevista.');return;}
+  var r=await sb.from('solicitacoes').update({dt_prevista:el.value}).eq('id',id);
+  if(r.error){toast('❌ Erro: '+r.error.message);return;}
+  await notifySolicitante(id,'Previsão de Entrega','Sua solicitação tem previsão de entrega para '+fmtD(el.value)+'.','entrega');
+  sols=[];await openModal(id);toast('📅 Previsão salva! Solicitante notificado.');
 }
 async function saveEntrega(id){
   var el=document.getElementById('dt-entrega-'+id);
