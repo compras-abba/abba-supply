@@ -255,6 +255,9 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .file-item-size{font-size:11px;color:var(--gray-400);flex-shrink:0}
 .file-item-del{background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:18px;padding:0;line-height:1;flex-shrink:0}
 .file-item-del:hover{color:var(--red)}
+.k-forn{font-size:11.5px;color:var(--green);font-weight:600;margin-top:4px;padding-top:4px;border-top:1px solid var(--gray-100)}
+.fila-forn{font-size:12.5px;color:var(--green);font-weight:500;margin-top:6px;padding:6px 10px;background:#DCFCE7;border-radius:6px}
+.fila-forn-none{color:var(--amber);background:#FFFBEB}
 #toast{position:fixed;bottom:24px;right:24px;left:24px;max-width:340px;margin:auto;background:var(--gray-900);color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;z-index:9999;display:none;text-align:center;box-shadow:var(--shadow-md)}
 @keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -728,10 +731,13 @@ async function renderKanban(){
 function kCard(s){
   var ap=s.aprovacao?s.aprovacao.status:'';
   var stag=ap==='aguardando'?'<span class="k-ap pendente">Pendente</span>':ap==='aprovado'?'<span class="k-ap aprovado">Aprovado</span>':ap==='reprovado'?'<span class="k-ap reprovado">Reprovado</span>':'';
+  var chosen=(s.cotacoes||[]).find(function(c){return c.escolhida;});
+  var fornTag=chosen?'<div class="k-forn">✅ '+esc(chosen.forn)+' &bull; R$ '+fmt(chosen.val)+'</div>':'';
   return'<div class="k-card" onclick="openModal('+s.id+')">'+
     '<div class="k-card-top"><span class="k-title">'+esc(s.titulo)+'</span><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade)+'</span></div>'+
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>'+esc(s.setor)+'</div>'+
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+fmtD(s.prazo)+'</div>'+
+    fornTag+
     '<div class="k-footer"><div><div class="k-user">'+esc(s.nome)+'</div>'+stag+'</div><span class="k-cat">'+esc(s.categoria)+'</span></div></div>';
 }
 
@@ -744,8 +750,8 @@ async function renderFila(){
   el.innerHTML=fila.map(function(s){
     return'<div class="fila-item" onclick="openModal('+s.id+')">'+
       '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
-      '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div></div>'+
-      '<div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
+      '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+(function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
+      '</div><div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
       '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
       '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'reprovado\')">❌ Reprovar</button>'+
       '</div></div>';
@@ -1067,6 +1073,7 @@ init();
 </script>
 </body>
 </html>
+
 
 
 
