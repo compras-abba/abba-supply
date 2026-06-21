@@ -935,8 +935,21 @@ function buildModal(s,anexos){
       )+'</div>';
   }
 
+  var isSol=CU.role==='solicitante';
   var canUpload=CU.role==='admin'||CU.role==='solicitante';
   var anexSec=buildAnexSection(s.id,anexos,canUpload);
+
+  // Solicitante vê apenas: info, etapa atual, aprovação (resultado) e entrega
+  if(isSol){
+    var etapaSec='<div class="sec"><h3>Etapa Atual</h3>'+
+      '<div class="sbadge '+s.status+'" style="display:inline-block;font-size:14px;padding:8px 14px">'+SL[s.status]+'</div></div>';
+    var apResSec='';
+    if(s.ap_status==='aprovado')apResSec='<div class="sec"><h3>Aprovação</h3><div class="ap-done aprovado">✅ Aprovado</div>'+(s.ap_obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px">'+esc(s.ap_obs)+'</div>':'')+'</div>';
+    else if(s.ap_status==='reprovado')apResSec='<div class="sec"><h3>Aprovação</h3><div class="ap-done reprovado">❌ Reprovado</div>'+(s.ap_obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px">'+esc(s.ap_obs)+'</div>':'')+'</div>';
+    else if(s.ap_status==='revisao')apResSec='<div class="sec"><h3>Aprovação</h3><div class="ap-done revisao">🔄 Revisão Solicitada</div>'+(s.ap_obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px">'+esc(s.ap_obs)+'</div>':'')+'</div>';
+    return info+etapaSec+apResSec+entregaSec+anexSec;
+  }
+
   return info+triagem+cot+apSec+entregaSec+anexSec;
 }
 
