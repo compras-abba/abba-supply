@@ -1320,11 +1320,11 @@ function buildAnexSection(solId,anexos,canUpload){
   return'<div class="sec"><h3>Anexos</h3>'+
     (items?'<div class="file-list" style="margin-bottom:12px">'+items+'</div>':
     '<p style="color:var(--gray-400);font-size:13px;margin-bottom:12px">Nenhum anexo adicionado</p>')+
-    (canUpload?'<label class="upload-area">'+
+    (canUpload?'<input type="file" id="anex-input-'+solId+'" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="uploadModalFile('+solId+',this)">'+
+    '<div class="upload-area" onclick="document.getElementById(\'anex-input-'+solId+'\').click()">'+
     '<div class="upload-area-icon">📎</div>'+
     '<div class="upload-area-txt">Clique para adicionar anexo</div>'+
-    '<input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="uploadModalFile('+solId+',this)">'+
-    '</label>':'')+
+    '</div>':'')+
     '</div>';
 }
 
