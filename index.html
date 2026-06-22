@@ -902,7 +902,16 @@ function kCard(s){
 // FILA
 async function renderFila(){
   if(!sols.length)await loadSols();
-  var fila=sols.filter(function(s){return s.status==='aprovacao'&&s.ap_status==='aguardando';});
+  var fila=sols.filter(function(s){
+    if(s.status!=='aprovacao'||s.ap_status!=='aguardando')return false;
+    if(CU.role==='diretor'){
+      // Filtra apenas as solicitações destinadas a este diretor
+      var aprov=(s.aprovador||'').toLowerCase();
+      var nome=(CU.nome||'').toLowerCase();
+      return aprov&&nome&&(aprov===nome||nome.includes(aprov)||aprov.includes(nome.split(' ')[0]));
+    }
+    return true;
+  });
   var el=document.getElementById('fila-list');
   if(!fila.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma solicitação aguardando aprovação</div></div>';return;}
   el.innerHTML=fila.map(function(s){
