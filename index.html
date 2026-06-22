@@ -470,7 +470,12 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           <div class="ff"><label>Setor <span class="req-mark">*</span></label>
             <select id="f-setor"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Compras/Revenda</option><option>Compras Consumo</option></select>
           </div>
-          <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo" style="max-width:220px"></div>
+          <div class="ff-row">
+            <div class="ff"><label>Categoria <span class="req-mark">*</span></label>
+              <select id="f-cat"><option value="">Selecione a categoria</option><option>Consumo</option><option>Revenda</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;o</option><option>Ativo/Equipamento</option><option>TI</option><option>Outros</option></select>
+            </div>
+            <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo" style="max-width:220px"></div>
+          </div>
           <div class="ff">
             <label>Itens da Solicita&ccedil;&atilde;o <span class="req-mark">*</span></label>
             <table class="itens-table" id="itens-table">
@@ -944,14 +949,15 @@ async function criarSolicitacao(){
   var nome=(document.getElementById('f-nome').value||'').trim();
   var email=(document.getElementById('f-email').value||'').trim();
   var setor=document.getElementById('f-setor').value;
+  var cat=document.getElementById('f-cat').value;
   var prazo=document.getElementById('f-prazo').value;
   var itens=getItemRows();
   var just=(document.getElementById('f-just').value||'').trim();
-  if(!nome||!setor||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
+  if(!nome||!setor||!cat||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
   var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
   var qtd=itens.length+' item(ns)';
-  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:'Spot',status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
+  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:cat,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
   if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
   var solId=r.data.id;
   if(pendingFiles.length)await uploadAnexos(solId);
@@ -961,7 +967,7 @@ async function criarSolicitacao(){
   var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
   if(itemsToSave.length)await sb.from('itens_solicitacao').insert(itemsToSave);
   sols=[];
-  ['f-prazo','f-just'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  ['f-prazo','f-just','f-cat'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
   var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();;
   // Clear items table
   var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
