@@ -391,8 +391,10 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
       <div class="page-header"><h1>Painel Administrativo</h1><p>Vis&atilde;o geral de todas as solicita&ccedil;&otilde;es</p></div>
       <div class="page-body">
         <div class="kpi-row" id="kpi-row"></div>
+        <div class="kpi-row" id="kpi-row2" style="margin-bottom:20px"></div>
         <div class="chart-card"><h3>Pedidos por M&ecirc;s</h3><div class="bar-chart-wrap" id="chart-mes"></div></div>
         <div class="chart-card"><h3>Valor Total por Setor (R$)</h3><div class="bar-chart-wrap" id="chart-setor"></div></div>
+        <div class="chart-card"><h3>Saving por Fornecedor (R$)</h3><div class="bar-chart-wrap" id="chart-saving"></div></div>
       </div>
     </div>
     <div class="page" id="page-kanban">
@@ -699,10 +701,45 @@ async function renderAdmin(){
     '<div class="kpi"><div class="kpi-icon purple">👥</div><div><div class="kpi-val">'+sets+'</div><div class="kpi-lbl">Setores Ativos</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon amber">⏳</div><div><div class="kpi-val">'+wait+'</div><div class="kpi-lbl">Aguardando Aprovação</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(vol)+'</div><div class="kpi-lbl">Volume Total</div></div></div>';
+  // Saving: diferença entre maior cotação e escolhida
+  var totalSaving=s.reduce(function(acc,x){
+    var cots=x.cotacoes||[];if(cots.length<2)return acc;
+    var chosen=cots.find(function(c){return c.escolhida;});if(!chosen)return acc;
+    var maxVal=Math.max.apply(null,cots.map(function(c){return Number(c.val)||0;}));
+    return acc+Math.max(0,maxVal-Number(chosen.val));
+  },0);
+
+  // Lead Time: dias entre aprovação e entrega real
+  var ltSols=s.filter(function(x){return x.dt_aprovacao&&x.dt_entrega;});
+  var avgLt=ltSols.length?Math.round(ltSols.reduce(function(acc,x){
+    return acc+Math.round((new Date(x.dt_entrega)-new Date(x.dt_aprovacao))/86400000);
+  },0)/ltSols.length):null;
+
+  // OTD: % entregues até a data prevista
+  var otdSols=s.filter(function(x){return x.dt_prevista&&x.dt_entrega;});
+  var otd=otdSols.length?Math.round(otdSols.filter(function(x){
+    return new Date(x.dt_entrega)<=new Date(x.dt_prevista);
+  }).length/otdSols.length*100):null;
+
+  document.getElementById('kpi-row2').innerHTML=
+    '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(totalSaving)+'</div><div class="kpi-lbl">Saving Total</div></div></div>'+
+    '<div class="kpi"><div class="kpi-icon indigo">⏱️</div><div><div class="kpi-val">'+(avgLt!==null?avgLt+' dias':'—')+'</div><div class="kpi-lbl">Lead Time M&eacute;dio</div></div></div>'+
+    '<div class="kpi"><div class="kpi-icon '+(otd===null?'amber':otd>=80?'emerald':'amber')+'">🎯</div><div><div class="kpi-val">'+(otd!==null?otd+'%':'—')+'</div><div class="kpi-lbl">OTD (On Time Delivery)</div></div></div>';
+
   var pm={};s.forEach(function(x){var k=mkey(x.created_at);pm[k]=(pm[k]||0)+1;});
   drawBars('chart-mes',pm,'#4F46E5',function(v){return v;});
   var ps={};s.forEach(function(x){var v=(x.cotacoes||[]).reduce(function(a,c){return a+(c.escolhida?Number(c.val):0);},0);if(v)ps[x.setor]=(ps[x.setor]||0)+v;});
   drawBars('chart-setor',ps,'#8B5CF6',function(v){return 'R$'+fmt(v);});
+
+  // Saving por fornecedor
+  var pf={};s.forEach(function(x){
+    var cots=x.cotacoes||[];if(cots.length<2)return;
+    var chosen=cots.find(function(c){return c.escolhida;});if(!chosen)return;
+    var maxVal=Math.max.apply(null,cots.map(function(c){return Number(c.val)||0;}));
+    var sv=Math.max(0,maxVal-Number(chosen.val));
+    if(sv>0)pf[chosen.forn]=(pf[chosen.forn]||0)+sv;
+  });
+  drawBars('chart-saving',pf,'#10B981',function(v){return 'R$'+fmt(v);});
 }
 function drawBars(id,obj,color,lFn){
   var el=document.getElementById(id);var es=Object.entries(obj);
@@ -1012,7 +1049,7 @@ async function saveCot(id){
 async function doAp(id,status){
   var obs=(document.getElementById('ap-obs-'+id)?document.getElementById('ap-obs-'+id).value:'').trim();
   var upd={ap_status:status,ap_obs:obs};
-  if(status==='aprovado')upd.status='entrega';
+  if(status==='aprovado'){upd.status='entrega';upd.dt_aprovacao=new Date().toISOString().split('T')[0];}
   if(status==='reprovado')upd.status='concluido';
   if(status==='revisao')upd.status='triagem';
   await sb.from('solicitacoes').update(upd).eq('id',id);
