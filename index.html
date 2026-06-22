@@ -331,6 +331,13 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
       <div class="lf"><label>Email</label><input type="email" id="l-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div class="lf"><label>Senha</label><input type="password" id="l-pwd" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn-login" onclick="doLogin()">Entrar</button>
+      <div style="text-align:center;margin-top:12px"><a href="#" onclick="showForgotPwd();return false;" style="font-size:13px;color:var(--primary);text-decoration:none">Esqueci minha senha</a></div>
+    </div>
+    <div id="tab-forgot" style="display:none">
+      <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px">Informe seu e-mail e enviaremos um link para redefinir sua senha.</p>
+      <div class="lf"><label>Email</label><input type="email" id="forgot-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doForgot()"></div>
+      <button class="btn-login" onclick="doForgot()">Enviar Link de Recupera&ccedil;&atilde;o</button>
+      <div style="text-align:center;margin-top:12px"><a href="#" onclick="showLogin();return false;" style="font-size:13px;color:var(--gray-500);text-decoration:none">&larr; Voltar para o login</a></div>
     </div>
     <div id="tab-register" style="display:none">
       <div class="lf"><label>Nome Completo <span style="color:var(--red)">*</span></label><input type="text" id="r-nome" placeholder="Seu nome completo"></div>
@@ -569,6 +576,25 @@ function showApp(){
 }
 
 // AUTH
+function showForgotPwd(){
+  document.getElementById('tab-login').style.display='none';
+  document.getElementById('tab-register').style.display='none';
+  document.getElementById('tab-forgot').style.display='block';
+  var el=document.getElementById('forgot-email');if(el){el.value=document.getElementById('l-email').value||'';el.focus();}
+}
+function showLogin(){
+  document.getElementById('tab-forgot').style.display='none';
+  document.getElementById('tab-register').style.display='none';
+  document.getElementById('tab-login').style.display='block';
+}
+async function doForgot(){
+  var email=(document.getElementById('forgot-email').value||'').trim();
+  if(!email){toast('⚠️ Informe o e-mail');return;}
+  var r=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://compras-abba.github.io/abba-supply/'});
+  if(r.error){toast('❌ Erro: '+r.error.message);return;}
+  toast('✅ Link enviado! Verifique seu e-mail.');
+  showLogin();
+}
 async function doLogin(){
   var email=document.getElementById('l-email').value.trim();
   var pwd=document.getElementById('l-pwd').value;
