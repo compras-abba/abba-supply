@@ -587,7 +587,13 @@ async function loadProfile(user){
   CU=r.data?{id:user.id,email:user.email,nome:r.data.nome,setor:r.data.setor,role:r.data.role}:{id:user.id,email:user.email,nome:user.email,setor:'',role:'solicitante'};
 }
 
-function showLogin(){document.getElementById('loading-screen').style.display='none';document.getElementById('login-screen').style.display='flex';}
+function showLogin(){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  var tabs=['tab-login','tab-register','tab-forgot','tab-reset'];
+  tabs.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
+  var tl=document.getElementById('tab-login');if(tl)tl.style.display='block';
+}
 function showApp(){
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('login-screen').style.display='none';
@@ -620,11 +626,6 @@ function showForgotPwd(){
   document.getElementById('tab-register').style.display='none';
   document.getElementById('tab-forgot').style.display='block';
   var el=document.getElementById('forgot-email');if(el){el.value=document.getElementById('l-email').value||'';el.focus();}
-}
-function showLogin(){
-  document.getElementById('tab-forgot').style.display='none';
-  document.getElementById('tab-register').style.display='none';
-  document.getElementById('tab-login').style.display='block';
 }
 async function doForgot(){
   var email=(document.getElementById('forgot-email').value||'').trim();
