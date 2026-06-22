@@ -1061,13 +1061,30 @@ function buildModal(s,anexos,comentarios){
     Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div></div>';
 
   var cotItems=(s.cotacoes||[]).map(function(c){
-    return'<div class="cot-item'+(c.escolhida?' chosen':'')+'"'+(canEdit?' onclick="toggleCot('+s.id+','+c.id+','+c.escolhida+')"':'')+'>'+
-      '<div class="cot-head"><span class="cot-forn">'+esc(c.forn)+'</span>'+(c.escolhida?'<span class="chosen-badge">Escolhido</span>':'')+
-      '</div><div class="cot-fields">'+
+    return'<div class="cot-item'+(c.escolhida?' chosen':'')+'" id="cot-item-'+c.id+'">'+
+      '<div class="cot-head" '+(canEdit?'onclick="toggleCot('+s.id+','+c.id+','+c.escolhida+')" style="cursor:pointer"':'')+'>'+
+      '<span class="cot-forn">'+esc(c.forn)+'</span>'+(c.escolhida?'<span class="chosen-badge">Escolhido</span>':'')+
+      (canEdit?'<div style="display:flex;gap:6px;margin-left:auto" onclick="event.stopPropagation()">'+
+      '<button class="btn btn-outline btn-sm" style="padding:3px 8px;font-size:11px" onclick="editCot('+s.id+','+c.id+',\''+esc(c.forn).replace(/'/g,"\\'")+'\',' +c.val+',\''+esc(c.prazo).replace(/'/g,"\\'")+'\',\''+esc(c.cond).replace(/'/g,"\\'")+'\')">✏️ Editar</button>'+
+      '<button class="btn btn-red btn-sm" style="padding:3px 8px;font-size:11px" onclick="deleteCot('+s.id+','+c.id+')">🗑️</button>'+
+      '</div>':'')+
+      '</div><div class="cot-fields" id="cot-fields-'+c.id+'">'+
       '<div><div class="cf-val">R$ '+fmt(c.val)+'</div><div class="cf-lbl">Valor Total</div></div>'+
       '<div><div class="cf-val">'+esc(c.prazo)+'</div><div class="cf-lbl">Prazo</div></div>'+
       '<div><div class="cf-val">'+esc(c.cond)+'</div><div class="cf-lbl">Condição</div></div>'+
-      '</div></div>';
+      '</div>'+
+      '<div id="cot-edit-'+c.id+'" style="display:none;padding:10px 0 4px">'+
+      '<div class="form-2" style="margin-bottom:8px">'+
+      '<div class="fg"><label style="margin-top:0">Fornecedor</label><input id="ce-forn-'+c.id+'" value="'+esc(c.forn)+'"></div>'+
+      '<div class="fg"><label style="margin-top:0">Valor (R$)</label><input type="number" id="ce-val-'+c.id+'" value="'+c.val+'"></div></div>'+
+      '<div class="form-2" style="margin-bottom:8px">'+
+      '<div class="fg"><label style="margin-top:0">Prazo</label><input id="ce-prazo-'+c.id+'" value="'+esc(c.prazo)+'"></div>'+
+      '<div class="fg"><label style="margin-top:0">Condição</label><input id="ce-cond-'+c.id+'" value="'+esc(c.cond)+'"></div></div>'+
+      '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+      '<button class="btn btn-outline btn-sm" onclick="cancelEditCot('+c.id+')">Cancelar</button>'+
+      '<button class="btn btn-primary btn-sm" onclick="saveEditCot('+s.id+','+c.id+')">Salvar</button>'+
+      '</div></div>'+
+      '</div>';
   }).join('');
   var chosen=(s.cotacoes||[]).find(function(c){return c.escolhida;});
   var savingField=canEdit?
@@ -1227,6 +1244,33 @@ async function updStatus(id,status){
     await notifyUsers(['diretor'],'Nova Aprovação Pendente','"'+titulo+'" aguarda sua aprovação.','aprovacao',id);
   }
   sols=[];await openModal(id);render(curPage());
+}
+function editCot(solId,cotId){
+  var fields=document.getElementById('cot-fields-'+cotId);
+  var form=document.getElementById('cot-edit-'+cotId);
+  if(fields)fields.style.display='none';
+  if(form)form.style.display='block';
+}
+function cancelEditCot(cotId){
+  var fields=document.getElementById('cot-fields-'+cotId);
+  var form=document.getElementById('cot-edit-'+cotId);
+  if(fields)fields.style.display='';
+  if(form)form.style.display='none';
+}
+async function saveEditCot(solId,cotId){
+  var forn=(document.getElementById('ce-forn-'+cotId).value||'').trim();
+  var val=parseFloat(document.getElementById('ce-val-'+cotId).value)||0;
+  var prazo=(document.getElementById('ce-prazo-'+cotId).value||'').trim();
+  var cond=(document.getElementById('ce-cond-'+cotId).value||'').trim();
+  if(!forn){toast('⚠️ Informe o fornecedor');return;}
+  var r=await sb.from('cotacoes').update({forn:forn,val:val,prazo:prazo,cond:cond}).eq('id',cotId);
+  if(r.error){toast('❌ Erro ao salvar');return;}
+  sols=[];await openModal(solId);toast('✅ Cotação atualizada!');
+}
+async function deleteCot(solId,cotId){
+  if(!confirm('Excluir esta cotação?'))return;
+  await sb.from('cotacoes').delete().eq('id',cotId);
+  sols=[];await openModal(solId);toast('🗑️ Cotação removida.');
 }
 async function toggleCot(solId,cotId,wasChosen){
   await sb.from('cotacoes').update({escolhida:false}).eq('sol_id',solId);
