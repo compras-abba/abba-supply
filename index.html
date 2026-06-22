@@ -1066,14 +1066,16 @@ function buildModal(s,anexos,comentarios){
       '</div></div>';
   }).join('');
   var chosen=(s.cotacoes||[]).find(function(c){return c.escolhida;});
+  var savingField=canEdit?
+    '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;margin-top:12px">'+
+    '<label style="font-size:12px;font-weight:600;color:#166534;display:block;margin-bottom:6px">💰 Saving Obtido (R$)</label>'+
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+    '<input type="number" id="saving-input-'+s.id+'" placeholder="0,00" value="'+(s.saving||'')+'" style="border:1px solid #BBF7D0;border-radius:8px;padding:7px 10px;font-size:14px;width:160px;background:#fff">'+
+    '<button class="btn btn-outline btn-sm" onclick="salvarSaving('+s.id+')">Salvar Saving</button>'+
+    '<span style="font-size:12px;color:#166534">Valor economizado nesta compra</span>'+
+    '</div></div>':'';
   var enviarApBtn=(canEdit&&s.status==='cotacao'&&chosen)?
     '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-200)">'+
-    '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;margin-bottom:12px">'+
-    '<label style="font-size:12px;font-weight:600;color:#166534;display:block;margin-bottom:6px">💰 Saving Obtido (R$)</label>'+
-    '<div style="display:flex;gap:8px;align-items:center">'+
-    '<input type="number" id="saving-input-'+s.id+'" placeholder="0,00" value="'+(s.saving||'')+'" style="border:1px solid #BBF7D0;border-radius:8px;padding:7px 10px;font-size:14px;width:160px;background:#fff">'+
-    '<span style="font-size:12px;color:#166534">Informe o valor economizado nesta compra</span>'+
-    '</div></div>'+
     '<button class="btn btn-primary" style="width:100%" onclick="enviarAprovacao('+s.id+')">'+
     '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'+
     'Enviar para Aprovação da Diretoria</button></div>':'';
@@ -1081,6 +1083,7 @@ function buildModal(s,anexos,comentarios){
   var cot='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Cotação Externa '+roTag+'</h3>'+
     '<div class="cot-list">'+(cotItems||'<p style="color:var(--gray-400);font-size:13px">Nenhuma cotação adicionada</p>')+'</div>'+
     (canEdit?'<button class="btn-add-cot" onclick="showCotForm('+s.id+')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Adicionar Cotação</button>'+
+    savingField+
     enviarApBtn+
     '<div class="cot-form" id="cf-'+s.id+'">'+
     '<div class="form-2" style="margin-bottom:10px"><div class="fg"><label style="margin-top:0">Fornecedor</label><input id="ci-forn-'+s.id+'" placeholder="Nome"></div>'+
@@ -1167,6 +1170,13 @@ async function updField(id,field,val){
   var upd={};upd[field]=val;
   await sb.from('solicitacoes').update(upd).eq('id',id);
   sols=[];render(curPage());
+}
+async function salvarSaving(id){
+  var el=document.getElementById('saving-input-'+id);
+  var val=el?parseFloat(el.value)||0:0;
+  var r=await sb.from('solicitacoes').update({saving:val}).eq('id',id);
+  if(r.error){toast('❌ Erro ao salvar saving');return;}
+  sols=[];toast('💰 Saving de R$ '+fmt(val)+' salvo!');
 }
 async function enviarAprovacao(id){
   var savingEl=document.getElementById('saving-input-'+id);
