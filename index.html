@@ -570,12 +570,12 @@ async function doLogout(){await sb.auth.signOut();CU=null;sols=[];notifs=[];docu
 function setupNav(){
   var role=CU.role;
   document.getElementById('nav-admin').style.display=(role==='diretor'||role==='admin')?'flex':'none';
-  document.getElementById('nav-kanban').style.display=(role==='diretor'||role==='admin')?'flex':'none';
+  document.getElementById('nav-kanban').style.display=(role==='admin')?'flex':'none';
   document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin')?'flex':'none';
   document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor')?'flex':'none';
   document.getElementById('disp-nome').textContent=CU.nome;
   document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretor':'Solicitante';
-  if(role==='solicitante')go('nova');else go('admin');
+  if(role==='solicitante')go('nova');else if(role==='diretor')go('fila');else go('admin');
 }
 function go(p){
   document.querySelectorAll('.page').forEach(function(e){e.classList.remove('active');});
@@ -811,7 +811,8 @@ async function qAp(id,status){
 function setChip(el,f){chipFilter=f;document.querySelectorAll('#chips .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f===f);});renderMinhas();}
 async function renderMinhas(){
   if(!sols.length)await loadSols();
-  var items=chipFilter?sols.filter(function(s){return s.status===chipFilter;}):sols;
+  var mine=(CU.role==='solicitante'||CU.role==='diretor')?sols.filter(function(s){return s.user_id===CU.id;}):sols;
+  var items=chipFilter?mine.filter(function(s){return s.status===chipFilter;}):mine;
   var el=document.getElementById('req-list');
   if(!items.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-txt">Nenhuma solicitação encontrada</div></div>';return;}
   el.innerHTML=items.map(function(s){
@@ -1200,6 +1201,8 @@ init();
 </script>
 </body>
 </html>
+
+
 
 
 
