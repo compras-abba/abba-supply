@@ -574,7 +574,7 @@ function setupNav(){
   document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin')?'flex':'none';
   document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor')?'flex':'none';
   document.getElementById('disp-nome').textContent=CU.nome;
-  document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretor':'Solicitante';
+  document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':'Solicitante';
   if(role==='solicitante')go('nova');else if(role==='diretor')go('fila');else go('admin');
 }
 function go(p){
@@ -1201,6 +1201,7 @@ init();
 </script>
 </body>
 </html>
+
 
 
 
