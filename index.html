@@ -339,6 +339,12 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
       <button class="btn-login" onclick="doForgot()">Enviar Link de Recupera&ccedil;&atilde;o</button>
       <div style="text-align:center;margin-top:12px"><a href="#" onclick="showLogin();return false;" style="font-size:13px;color:var(--gray-500);text-decoration:none">&larr; Voltar para o login</a></div>
     </div>
+    <div id="tab-reset" style="display:none">
+      <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px">Defina sua nova senha abaixo.</p>
+      <div class="lf"><label>Nova Senha</label><input type="password" id="reset-pwd" placeholder="M&iacute;nimo 6 caracteres" onkeydown="if(event.key==='Enter')doResetPwd()"></div>
+      <div class="lf"><label>Confirmar Senha</label><input type="password" id="reset-pwd2" placeholder="Repita a senha" onkeydown="if(event.key==='Enter')doResetPwd()"></div>
+      <button class="btn-login" onclick="doResetPwd()">Salvar Nova Senha</button>
+    </div>
     <div id="tab-register" style="display:none">
       <div class="lf"><label>Nome Completo <span style="color:var(--red)">*</span></label><input type="text" id="r-nome" placeholder="Seu nome completo"></div>
       <div class="lf"><label>Email <span style="color:var(--red)">*</span></label><input type="email" id="r-email" placeholder="seu@email.com"></div>
@@ -553,11 +559,27 @@ var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação 
 
 // INIT
 async function init(){
+  // Timeout de segurança: se travar por mais de 6s, mostra login
+  var done=false;
+  var timeout=setTimeout(function(){if(!done){done=true;showLogin();}},6000);
   try{
+    // Detecta link de recuperação de senha na URL
+    var hash=window.location.hash;
+    if(hash&&hash.includes('type=recovery')){
+      done=true;clearTimeout(timeout);
+      // Faz logout e mostra tela de redefinição de senha
+      await sb.auth.signOut();
+      showLogin();
+      showResetPwd();
+      return;
+    }
     var s=await sb.auth.getSession();
-    if(s.data&&s.data.session){await loadProfile(s.data.session.user);showApp();}
-    else{showLogin();}
-  }catch(e){showLogin();}
+    if(!done){
+      done=true;clearTimeout(timeout);
+      if(s.data&&s.data.session&&s.data.session.user){await loadProfile(s.data.session.user);showApp();}
+      else{showLogin();}
+    }
+  }catch(e){if(!done){done=true;clearTimeout(timeout);showLogin();}}
 }
 
 async function loadProfile(user){
@@ -576,6 +598,23 @@ function showApp(){
 }
 
 // AUTH
+function showResetPwd(){
+  ['tab-login','tab-register','tab-forgot'].forEach(function(id){document.getElementById(id).style.display='none';});
+  document.getElementById('tab-reset').style.display='block';
+  var el=document.getElementById('reset-pwd');if(el)el.focus();
+}
+async function doResetPwd(){
+  var p1=(document.getElementById('reset-pwd').value||'').trim();
+  var p2=(document.getElementById('reset-pwd2').value||'').trim();
+  if(!p1||p1.length<6){toast('⚠️ Senha deve ter pelo menos 6 caracteres');return;}
+  if(p1!==p2){toast('⚠️ As senhas não coincidem');return;}
+  var r=await sb.auth.updateUser({password:p1});
+  if(r.error){toast('❌ Erro: '+r.error.message);return;}
+  await sb.auth.signOut();
+  toast('✅ Senha atualizada! Faça login com a nova senha.');
+  window.location.hash='';
+  showLogin();
+}
 function showForgotPwd(){
   document.getElementById('tab-login').style.display='none';
   document.getElementById('tab-register').style.display='none';
