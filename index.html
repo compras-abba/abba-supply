@@ -1331,16 +1331,25 @@ function buildAnexSection(solId,anexos,canUpload){
 async function uploadModalFile(solId,input){
   var files=Array.from(input.files);if(!files.length)return;
   toast('📎 Enviando anexo(s)...');
+  var ok=0,fail=0;
   for(var i=0;i<files.length;i++){
     var f=files[i];
-    var path=solId+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    var safeName=f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    var path=solId+'/'+Date.now()+'-'+safeName;
     var r=await sb.storage.from('anexos').upload(path,f,{upsert:true});
-    if(!r.error){
+    if(r.error){
+      console.error('Upload error:',r.error);
+      fail++;
+    } else {
       var url=sb.storage.from('anexos').getPublicUrl(path).data.publicUrl;
-      await sb.from('anexos').insert({sol_id:solId,user_id:CU.id,nome:f.name,url:url,tipo:f.type||''});
+      var ri=await sb.from('anexos').insert({sol_id:solId,user_id:CU.id,nome:f.name,url:url,tipo:f.type||''});
+      if(ri.error){console.error('Insert error:',ri.error);fail++;}else{ok++;}
     }
   }
-  input.value='';sols=[];await openModal(solId);toast('✅ Anexo(s) adicionado(s)!');
+  input.value='';sols=[];await openModal(solId);
+  if(fail>0&&ok===0)toast('❌ Erro ao enviar anexo. Verifique o tamanho e tente novamente.');
+  else if(fail>0)toast('⚠️ '+ok+' enviado(s), '+fail+' com erro.');
+  else toast('✅ Anexo(s) adicionado(s) com sucesso!');
 }
 
 async function deleteAnexo(id,url){
