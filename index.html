@@ -270,6 +270,22 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .k-forn{font-size:11.5px;color:var(--green);font-weight:600;margin-top:4px;padding-top:4px;border-top:1px solid var(--gray-100)}
 .fila-forn{font-size:12.5px;color:var(--green);font-weight:500;margin-top:6px;padding:6px 10px;background:#DCFCE7;border-radius:6px}
 .fila-forn-none{color:var(--amber);background:#FFFBEB}
+.chat-sec{display:flex;flex-direction:column;gap:0}
+.chat-msgs{display:flex;flex-direction:column;gap:10px;max-height:300px;overflow-y:auto;padding:4px 0 12px 0}
+.chat-bubble{display:flex;flex-direction:column;max-width:80%}
+.chat-bubble.mine{align-self:flex-end;align-items:flex-end}
+.chat-bubble.theirs{align-self:flex-start;align-items:flex-start}
+.chat-meta{font-size:11px;color:var(--gray-400);margin-bottom:3px}
+.chat-meta strong{color:var(--gray-600)}
+.chat-text{padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;word-break:break-word}
+.chat-bubble.mine .chat-text{background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.chat-bubble.theirs .chat-text{background:var(--gray-100);color:var(--gray-800);border-bottom-left-radius:4px}
+.chat-input-row{display:flex;gap:8px;margin-top:10px;align-items:flex-end}
+.chat-input-row textarea{flex:1;border:1px solid var(--gray-200);border-radius:10px;padding:9px 12px;font-size:13px;resize:none;min-height:40px;max-height:100px;font-family:inherit;color:var(--gray-800)}
+.chat-input-row textarea:focus{outline:none;border-color:var(--primary)}
+.chat-send{background:var(--primary);color:#fff;border:none;border-radius:10px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.chat-send:hover{background:var(--primary-dark)}
+.chat-empty{color:var(--gray-400);font-size:13px;text-align:center;padding:20px 0}
 #toast{position:fixed;bottom:24px;right:24px;left:24px;max-width:340px;margin:auto;background:var(--gray-900);color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;z-index:9999;display:none;text-align:center;box-shadow:var(--shadow-md)}
 @keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -889,7 +905,8 @@ async function openModal(id){
   document.getElementById('m-sub').textContent='Criado em '+fmtDL(s.created_at);
   document.getElementById('m-badges').innerHTML='<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span><span class="sbadge '+s.status+'">'+SL[s.status]+'</span>';
   var anexos=await loadAnexos(id);
-  document.getElementById('modal-bd').innerHTML=buildModal(s,anexos);
+  var comentarios=await loadComentarios(id);
+  document.getElementById('modal-bd').innerHTML=buildModal(s,anexos,comentarios);
   document.getElementById('btn-del-modal').style.display=CU.role==='admin'?'inline-flex':'none';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -906,8 +923,8 @@ async function deleteSol(id){
 function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';selId=null;}
 function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
 
-function buildModal(s,anexos){
-  anexos=anexos||[];
+function buildModal(s,anexos,comentarios){
+  anexos=anexos||[];comentarios=comentarios||[];
   var canEdit=CU.role==='admin';
   var canApprove=CU.role==='diretor'||CU.role==='admin';
   var roTag=canEdit?'':'<span style="font-size:11px;color:var(--gray-400);font-weight:400">(visualização)</span>';
@@ -1032,10 +1049,12 @@ function buildModal(s,anexos){
     if(s.ap_status==='aprovado')apResSec='<div class="sec"><h3>Aprovação</h3><div class="ap-done aprovado">✅ Aprovado</div>'+(s.ap_obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px">'+esc(s.ap_obs)+'</div>':'')+'</div>';
     else if(s.ap_status==='reprovado')apResSec='<div class="sec"><h3>Aprovação</h3><div class="ap-done reprovado">❌ Reprovado</div>'+(s.ap_obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px">'+esc(s.ap_obs)+'</div>':'')+'</div>';
     else if(s.ap_status==='revisao')apResSec='<div class="sec"><h3>Aprovação</h3><div class="ap-done revisao">🔄 Revisão Solicitada</div>'+(s.ap_obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px">'+esc(s.ap_obs)+'</div>':'')+'</div>';
-    return info+apResSec+pausaSec+entregaSec+anexSec;
+    var chatSec=buildChatSection(s.id,comentarios);
+    return info+apResSec+pausaSec+entregaSec+chatSec+anexSec;
   }
 
-  return info+triagem+cot+apSec+pausaSec+entregaSec+anexSec;
+  var chatSec=buildChatSection(s.id,comentarios);
+  return info+triagem+cot+apSec+pausaSec+entregaSec+chatSec+anexSec;
 }
 
 // MUTAÇÕES
@@ -1246,6 +1265,47 @@ function fileIcon(name){
   return'📎';
 }
 function fmtSize(b){if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return (b/1048576).toFixed(1)+'MB';}
+
+// CHAT
+async function loadComentarios(solId){
+  var r=await sb.from('comentarios').select('*').eq('sol_id',solId).order('created_at',{ascending:true});
+  return r.data||[];
+}
+function buildChatSection(solId,comentarios){
+  var msgs=comentarios.length?comentarios.map(function(c){
+    var mine=c.user_id===CU.id;
+    var role=c.role==='admin'?'Compras':c.role==='diretor'?'Diretoria':'Solicitante';
+    var time=new Date(c.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return'<div class="chat-bubble '+(mine?'mine':'theirs')+'">'+
+      '<div class="chat-meta"><strong>'+esc(c.nome)+'</strong> &bull; '+role+' &bull; '+time+'</div>'+
+      '<div class="chat-text">'+esc(c.mensagem)+'</div></div>';
+  }).join(''):'<div class="chat-empty">Nenhuma mensagem ainda. Inicie a conversa!</div>';
+  return'<div class="sec chat-sec"><h3>&#x1F4AC; Andamento / Mensagens</h3>'+
+    '<div class="chat-msgs" id="chat-msgs-'+solId+'">'+msgs+'</div>'+
+    '<div class="chat-input-row">'+
+    '<textarea id="chat-input-'+solId+'" placeholder="Digite uma mensagem..." rows="1" onkeydown="chatKeydown(event,'+solId+')"></textarea>'+
+    '<button class="chat-send" onclick="sendChat('+solId+')">Enviar</button>'+
+    '</div></div>';
+}
+function chatKeydown(e,solId){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat(solId);}}
+async function sendChat(solId){
+  var el=document.getElementById('chat-input-'+solId);
+  var msg=(el?el.value:'').trim();
+  if(!msg)return;
+  el.value='';
+  var r=await sb.from('comentarios').insert({sol_id:solId,user_id:CU.id,nome:CU.nome||CU.email,role:CU.role,mensagem:msg});
+  if(r.error){toast('❌ Erro ao enviar mensagem');el.value=msg;return;}
+  // Notify the other party
+  if(CU.role==='admin'){
+    await notifySolicitante(solId,'Nova mensagem do Compras','Você recebeu uma atualização sobre sua solicitação.','chat');
+  } else {
+    await notifyUsers(['admin'],'Nova mensagem',''+esc(CU.nome||CU.email)+' enviou uma mensagem na solicitação.','chat',solId);
+  }
+  sols=[];await openModal(solId);
+  // Scroll chat to bottom
+  var chat=document.getElementById('chat-msgs-'+solId);
+  if(chat)chat.scrollTop=chat.scrollHeight;
+}
 
 // UTILS
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
