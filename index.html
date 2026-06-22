@@ -823,14 +823,16 @@ async function renderAdmin(){
     '<div class="kpi"><div class="kpi-icon purple">👥</div><div><div class="kpi-val">'+sets+'</div><div class="kpi-lbl">Setores Ativos</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon amber">⏳</div><div><div class="kpi-val">'+wait+'</div><div class="kpi-lbl">Aguardando Aprovação</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(vol)+'</div><div class="kpi-lbl">Volume Total</div></div></div>';
-  // Saving: usa campo manual se preenchido, senão calcula pela diferença de cotações
-  var totalSaving=s.reduce(function(acc,x){
+  // Saving: apenas aprovadas/concluídas; usa campo manual se preenchido
+  var aprovadas=s.filter(function(x){return x.ap_status==='aprovado'||x.status==='concluido'||x.status==='entrega';});
+  var totalSaving=aprovadas.reduce(function(acc,x){
     if(x.saving&&Number(x.saving)>0)return acc+Number(x.saving);
     var cots=x.cotacoes||[];if(cots.length<2)return acc;
     var chosen=cots.find(function(c){return c.escolhida;});if(!chosen)return acc;
     var maxVal=Math.max.apply(null,cots.map(function(c){return Number(c.val)||0;}));
     return acc+Math.max(0,maxVal-Number(chosen.val));
   },0);
+  var volAprovado=aprovadas.reduce(function(a,x){return a+(x.cotacoes||[]).reduce(function(b,c){return b+(c.escolhida?Number(c.val):0);},0);},0);
 
   // Lead Time: dias entre aprovação e entrega real
   var ltSols=s.filter(function(x){return x.dt_aprovacao&&x.dt_entrega;});
@@ -844,7 +846,7 @@ async function renderAdmin(){
     return new Date(x.dt_entrega)<=new Date(x.dt_prevista);
   }).length/otdSols.length*100):null;
 
-  var savingPct=(vol>0&&totalSaving>0)?Math.round(totalSaving/vol*100*10)/10:null;
+  var savingPct=(volAprovado>0&&totalSaving>0)?Math.round(totalSaving/volAprovado*100*10)/10:null;
   document.getElementById('kpi-row2').innerHTML=
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(totalSaving)+'</div><div class="kpi-lbl">Saving Total (R$)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">📊</div><div><div class="kpi-val">'+(savingPct!==null?savingPct+'%':'—')+'</div><div class="kpi-lbl">Saving Total (%)</div></div></div>'+
@@ -1179,6 +1181,7 @@ async function salvarSaving(id){
   var r=await sb.from('solicitacoes').update({saving:val}).eq('id',id);
   if(r.error){toast('❌ Erro ao salvar saving');return;}
   sols=[];toast('💰 Saving de R$ '+fmt(val)+' salvo!');
+  if(curPage()==='admin')renderAdmin();
 }
 async function enviarAprovacao(id){
   var savingEl=document.getElementById('saving-input-'+id);
