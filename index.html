@@ -478,13 +478,6 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             </div>
             <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo" style="max-width:220px"></div>
           </div>
-          <div class="ff"><label>Aprovador <span class="req-mark">*</span></label>
-            <select id="f-aprov">
-              <option value="">Selecione o aprovador</option>
-              <option value="Christiane">Christiane &mdash; Produtos Uso/Consumo (Administrativo / F&aacute;brica)</option>
-              <option value="Francisco">Francisco &mdash; Demais compras</option>
-            </select>
-          </div>
           <div class="ff">
             <label>Itens da Solicita&ccedil;&atilde;o <span class="req-mark">*</span></label>
             <table class="itens-table" id="itens-table">
@@ -973,15 +966,14 @@ async function criarSolicitacao(){
   var email=(document.getElementById('f-email').value||'').trim();
   var setor=document.getElementById('f-setor').value;
   var cat=document.getElementById('f-cat').value;
-  var aprov=document.getElementById('f-aprov').value;
   var prazo=document.getElementById('f-prazo').value;
   var itens=getItemRows();
   var just=(document.getElementById('f-just').value||'').trim();
-  if(!nome||!setor||!cat||!aprov||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
+  if(!nome||!setor||!cat||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
   var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
   var qtd=itens.length+' item(ns)';
-  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:cat,aprovador:aprov,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
+  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:cat,aprovador:'Francisco',status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
   if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
   var solId=r.data.id;
   if(pendingFiles.length)await uploadAnexos(solId);
@@ -991,7 +983,7 @@ async function criarSolicitacao(){
   var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
   if(itemsToSave.length)await sb.from('itens_solicitacao').insert(itemsToSave);
   sols=[];
-  ['f-prazo','f-just','f-cat','f-aprov'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  ['f-prazo','f-just','f-cat'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
   var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();;
   // Clear items table
   var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
@@ -1058,7 +1050,11 @@ function buildModal(s,anexos,comentarios){
     '<div class="fg"><label>Categoria</label><select '+(canEdit?'onchange="updField('+s.id+',\'categoria\',this.value)"':'disabled')+'>'+
     CATS.map(function(c){return'<option'+(s.categoria===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div>'+
     '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
-    Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div></div>';
+    Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div>'+
+    '<div class="fg"><label>Aprovador</label><select '+(canEdit?'onchange="updField('+s.id+',\'aprovador\',this.value)"':'disabled')+'>'+
+    '<option value="Christiane"'+(s.aprovador==='Christiane'?' selected':'')+'>Christiane &mdash; Uso/Consumo</option>'+
+    '<option value="Francisco"'+(s.aprovador==='Francisco'||!s.aprovador?' selected':'')+'>Francisco &mdash; Demais compras</option>'+
+    '</select></div></div>';
 
   var cotItems=(s.cotacoes||[]).map(function(c){
     return'<div class="cot-item'+(c.escolhida?' chosen':'')+'" id="cot-item-'+c.id+'">'+
