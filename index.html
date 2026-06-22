@@ -844,8 +844,10 @@ async function renderAdmin(){
     return new Date(x.dt_entrega)<=new Date(x.dt_prevista);
   }).length/otdSols.length*100):null;
 
+  var savingPct=(vol>0&&totalSaving>0)?Math.round(totalSaving/vol*100*10)/10:null;
   document.getElementById('kpi-row2').innerHTML=
-    '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(totalSaving)+'</div><div class="kpi-lbl">Saving Total</div></div></div>'+
+    '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(totalSaving)+'</div><div class="kpi-lbl">Saving Total (R$)</div></div></div>'+
+    '<div class="kpi"><div class="kpi-icon emerald">📊</div><div><div class="kpi-val">'+(savingPct!==null?savingPct+'%':'—')+'</div><div class="kpi-lbl">Saving Total (%)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon indigo">⏱️</div><div><div class="kpi-val">'+(avgLt!==null?avgLt+' dias':'—')+'</div><div class="kpi-lbl">Lead Time M&eacute;dio</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon '+(otd===null?'amber':otd>=80?'emerald':'amber')+'">🎯</div><div><div class="kpi-val">'+(otd!==null?otd+'%':'—')+'</div><div class="kpi-lbl">OTD (On Time Delivery)</div></div></div>';
 
