@@ -243,6 +243,17 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .empty-txt{font-size:15px}
 .loading-state{text-align:center;padding:40px;color:var(--gray-400)}
 .loading-state .spin{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+.itens-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px}
+.itens-table th{text-align:left;padding:8px 10px;background:var(--gray-50);border-bottom:2px solid var(--gray-200);font-weight:600;color:var(--gray-600);font-size:12px}
+.itens-table td{padding:7px 6px;border-bottom:1px solid var(--gray-100);vertical-align:middle}
+.itens-table input{border:1px solid var(--gray-200);border-radius:6px;padding:5px 8px;font-size:13px;width:100%;background:#fff;color:var(--gray-800)}
+.itens-table input:focus{outline:none;border-color:var(--primary)}
+.itens-table .td-num{width:32px;text-align:center;color:var(--gray-400);font-weight:600}
+.itens-table .td-del{width:36px;text-align:center}
+.btn-del-item{background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:18px;padding:0;line-height:1}
+.btn-del-item:hover{color:var(--red)}
+.btn-add-item{display:flex;align-items:center;gap:6px;background:none;border:1px dashed var(--gray-300);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--primary);cursor:pointer;width:100%;justify-content:center;margin-top:4px}
+.btn-add-item:hover{background:var(--primary-light);border-color:var(--primary)}
 .upload-area{border:2px dashed var(--gray-300);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:all .15s;display:block}
 .upload-area:hover{border-color:var(--primary);background:var(--primary-light)}
 .upload-area-icon{font-size:26px;margin-bottom:5px}
@@ -423,10 +434,17 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           <div class="ff"><label>Setor <span class="req-mark">*</span></label>
             <select id="f-setor"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option></select>
           </div>
-          <div class="ff"><label>Descri&ccedil;&atilde;o do Item/Servi&ccedil;o <span class="req-mark">*</span></label><textarea id="f-desc" rows="3" placeholder="Descreva o que precisa ser comprado"></textarea></div>
-          <div class="ff-row">
-            <div class="ff"><label>Quantidade e Unidade <span class="req-mark">*</span></label><input type="text" id="f-qtd" placeholder="Ex: 100 pe&ccedil;as, 50 kg"></div>
-            <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo"></div>
+          <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo" style="max-width:220px"></div>
+          <div class="ff">
+            <label>Itens da Solicita&ccedil;&atilde;o <span class="req-mark">*</span></label>
+            <table class="itens-table" id="itens-table">
+              <thead><tr><th class="td-num">#</th><th>Descri&ccedil;&atilde;o do Item/Servi&ccedil;o</th><th style="width:140px">Quantidade</th><th style="width:160px">Observa&ccedil;&atilde;o</th><th class="td-del"></th></tr></thead>
+              <tbody id="itens-tbody"></tbody>
+            </table>
+            <button type="button" class="btn-add-item" onclick="addItemRow()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+              Adicionar Item
+            </button>
           </div>
           <div class="ff"><label>Justificativa/Uso <span class="req-mark">*</span></label><textarea id="f-just" rows="3" placeholder="Explique a finalidade da compra"></textarea></div>
           <div class="ff"><label>Anexos <span style="color:var(--gray-400);font-weight:400">(fotos, documentos)</span></label>
@@ -682,7 +700,7 @@ async function notifySolicitante(solId,titulo,mensagem,tipo){
 
 // ============ DADOS ============
 async function loadSols(){
-  var q=sb.from('solicitacoes').select('*, cotacoes(*)').order('created_at',{ascending:false});
+  var q=sb.from('solicitacoes').select('*, cotacoes(*), itens_solicitacao(*)').order('created_at',{ascending:false});
   if(CU.role==='solicitante')q=q.eq('user_id',CU.id);
   var r=await q;
   if(r.error){sols=[];return;}
@@ -828,7 +846,7 @@ async function renderMinhas(){
 }
 
 // NOVA SOLICITAÇÃO
-function fillForm(){
+function fillForm(){if(document.getElementById('itens-tbody')&&document.getElementById('itens-tbody').children.length===0){itemRowCount=0;addItemRow();}
   var n=document.getElementById('f-nome');var e=document.getElementById('f-email');var st=document.getElementById('f-setor');
   if(n&&CU)n.value=CU.nome;if(e&&CU)e.value=CU.email;
   if(st&&CU&&CU.setor){for(var i=0;i<st.options.length;i++){if(st.options[i].text===CU.setor){st.selectedIndex=i;break;}}}
@@ -837,19 +855,27 @@ async function criarSolicitacao(){
   var nome=(document.getElementById('f-nome').value||'').trim();
   var email=(document.getElementById('f-email').value||'').trim();
   var setor=document.getElementById('f-setor').value;
-  var desc=(document.getElementById('f-desc').value||'').trim();
-  var qtd=(document.getElementById('f-qtd').value||'').trim();
   var prazo=document.getElementById('f-prazo').value;
+  var itens=getItemRows();
   var just=(document.getElementById('f-just').value||'').trim();
-  if(!nome||!setor||!desc||!qtd||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
+  if(!nome||!setor||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
+  if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
+  var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
+  var qtd=itens.length+' item(ns)';
   var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:'Spot',status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
   if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
   var solId=r.data.id;
   if(pendingFiles.length)await uploadAnexos(solId);
   // Notificar admins sobre nova solicitação
   await notifyUsers(['admin'],'Nova Solicitação Recebida',nome+' ('+setor+'): "'+desc.substring(0,50)+'"','nova',solId);
+  // Save individual items
+  var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
+  if(itemsToSave.length)await sb.from('itens_solicitacao').insert(itemsToSave);
   sols=[];
-  ['f-desc','f-qtd','f-prazo','f-just'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  ['f-prazo','f-just'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();;
+  // Clear items table
+  var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
   renderPendingFiles();
   toast('✅ Solicitação enviada com sucesso!');go('minhas');
 }
@@ -896,7 +922,13 @@ function buildModal(s,anexos){
     '<div><div class="ii-lbl">📁 Categoria</div><div class="ii-val">'+esc(s.categoria)+'</div></div>'+
     '</div>'+
     '<div class="just-block"><div class="just-lbl">Descrição</div><p class="just-txt">'+esc(s.descricao||s.titulo||'-')+'</p></div>'+
-    '<div class="just-block" style="margin-top:8px"><div class="just-lbl">Justificativa</div><p class="just-txt">'+esc(s.justificativa||'-')+'</p></div></div>';
+    '<div class="just-block" style="margin-top:8px"><div class="just-lbl">Justificativa</div><p class="just-txt">'+esc(s.justificativa||'-')+'</p></div>'+
+    ((s.itens_solicitacao&&s.itens_solicitacao.length)?
+      '<div class="just-block" style="margin-top:12px"><div class="just-lbl">Itens Solicitados</div>'+
+      '<table class="itens-table" style="margin-top:8px"><thead><tr><th class="td-num">#</th><th>Descrição</th><th style="width:120px">Quantidade</th><th style="width:150px">Observação</th></tr></thead><tbody>'+
+      s.itens_solicitacao.map(function(it,i){return'<tr><td class="td-num">'+(i+1)+'</td><td>'+esc(it.descricao)+'</td><td>'+esc(it.quantidade||'-')+'</td><td>'+esc(it.observacao||'-')+'</td></tr>';}).join('')+
+      '</tbody></table></div>':'')+
+    '</div>';
 
   var triagem='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Triagem e Priorização '+roTag+'</h3>'+
     '<div class="form-2">'+
@@ -1085,6 +1117,45 @@ async function doAp(id,status){
   await notifySolicitante(id,msgs[status].titulo,msgs[status].msg,msgs[status].tipo);
   sols=[];await openModal(id);render(curPage());
   toast(status==='aprovado'?'✅ Aprovado!':status==='reprovado'?'❌ Reprovado.':'🔄 Revisão solicitada.');
+}
+
+// ITENS DA SOLICITACAO
+var itemRowCount = 0;
+function addItemRow(desc, qtd, obs) {
+  itemRowCount++;
+  var n = itemRowCount;
+  var tbody = document.getElementById('itens-tbody');
+  if (!tbody) return;
+  var tr = document.createElement('tr');
+  tr.id = 'item-row-' + n;
+  tr.innerHTML =
+    '<td class="td-num">' + document.getElementById('itens-tbody').children.length + 1 + '</td>' +
+    '<td><input type="text" id="item-desc-' + n + '" placeholder="Descreva o item..." value="' + (desc || '') + '"></td>' +
+    '<td><input type="text" id="item-qtd-' + n + '" placeholder="Ex: 10 unid." value="' + (qtd || '') + '"></td>' +
+    '<td><input type="text" id="item-obs-' + n + '" placeholder="Opcional" value="' + (obs || '') + '"></td>' +
+    '<td class="td-del"><button class="btn-del-item" onclick="removeItemRow(' + n + ')" title="Remover">&times;</button></td>';
+  tbody.appendChild(tr);
+  renumberRows();
+}
+function removeItemRow(n) {
+  var el = document.getElementById('item-row-' + n);
+  if (el) el.remove();
+  renumberRows();
+}
+function renumberRows() {
+  var rows = document.querySelectorAll('#itens-tbody tr');
+  rows.forEach(function(tr, i) { var td = tr.querySelector('.td-num'); if (td) td.textContent = i + 1; });
+}
+function getItemRows() {
+  var rows = document.querySelectorAll('#itens-tbody tr');
+  var items = [];
+  rows.forEach(function(tr) {
+    var inputs = tr.querySelectorAll('input');
+    if (inputs[0] && inputs[0].value.trim()) {
+      items.push({ descricao: inputs[0].value.trim(), quantidade: inputs[1] ? inputs[1].value.trim() : '', observacao: inputs[2] ? inputs[2].value.trim() : '' });
+    }
+  });
+  return items;
 }
 
 // ANEXOS
