@@ -560,6 +560,24 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 var SURL='https://mdiwameqbbguvmugbloh.supabase.co';
 var SKEY='sb_publishable_xriu2k1UP-FcZhULRRowuA_iodzduFq';
 var CODES={diretor:'DIRETORIA',admin:'COMPRAS2026'};
+var DIRECTOR_EMAILS={Christiane:'christiane@abbaquimica.com.br',Francisco:'francisco@abbaquimica.com.br'};
+var COMPRAS_EMAIL='compras@abbaquimica.com.br';
+async function sendEmail(to,subject,html){
+  try{
+    await fetch(SURL+'/functions/v1/send-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SKEY,'Authorization':'Bearer '+SKEY},
+      body:JSON.stringify({to:to,subject:subject,html:html})
+    });
+  }catch(e){console.error('Email error:',e);}
+}
+function emailTpl(titulo,corpo){
+  return'<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">'+
+    '<div style="background:#1f4781;padding:24px 32px"><img src="https://compras-abba.github.io/abba-supply/logo-horizontal-sem-fundo.png" style="height:40px" alt="ABBA Supply"></div>'+
+    '<div style="padding:32px"><h2 style="margin:0 0 16px;color:#1f4781">'+titulo+'</h2>'+corpo+
+    '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">'+
+    '<p style="color:#9ca3af;font-size:12px;margin:0">ABBA Supply &bull; Sistema de Gestão de Compras</p></div></div>';
+}
 var sb=supabase.createClient(SURL,SKEY);
 var CU=null,sols=[],notifs=[],chipFilter='',selId=null;
 
@@ -928,6 +946,14 @@ async function qAp(id,status){
   await sb.from('solicitacoes').update({ap_status:status,status:status==='aprovado'?'entrega':'aprovacao'}).eq('id',id);
   var s=sols.find(function(x){return x.id===id;});
   var titulo=s?s.titulo:'Solicitação';
+  var sol2=sols.find(function(x){return x.id===id;});
+  if(sol2&&sol2.email){
+    var assunto2=status==='aprovado'?'Solicitação Aprovada: '+titulo:'Solicitação Reprovada: '+titulo;
+    var corpo2=status==='aprovado'?
+      '<p>Sua solicitação <strong>'+titulo+'</strong> foi <strong style="color:#10b981">aprovada</strong> pela Diretoria!</p><p>Em breve o Compras entrará em contato sobre a entrega.</p>':
+      '<p>Sua solicitação <strong>'+titulo+'</strong> foi <strong style="color:#ef4444">reprovada</strong> pela Diretoria.</p>'+(obs?'<p><strong>Motivo:</strong> '+obs+'</p>':'');
+    await sendEmail(sol2.email,assunto2,emailTpl(assunto2,corpo2+'<p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Ver no ABBA Supply</a></p>'));
+  }
   await notifySolicitante(id,status==='aprovado'?'Solicitação Aprovada!':'Solicitação Reprovada',
     '"'+titulo+'" foi '+(status==='aprovado'?'aprovada e está em andamento.':'reprovada pela diretoria.'),
     status==='aprovado'?'aprovacao':'reprovado');
@@ -978,6 +1004,8 @@ async function criarSolicitacao(){
   var solId=r.data.id;
   if(pendingFiles.length)await uploadAnexos(solId);
   // Notificar admins sobre nova solicitação
+  await sendEmail(COMPRAS_EMAIL,'Nova Solicitação de Compra: '+desc.substring(0,50),
+    emailTpl('Nova Solicitação Recebida','<p><strong>Solicitante:</strong> '+nome+'</p><p><strong>Setor:</strong> '+setor+'</p><p><strong>Prazo:</strong> '+prazo+'</p><p><strong>Justificativa:</strong> '+just+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
   await notifyUsers(['admin'],'Nova Solicitação Recebida',nome+' ('+setor+'): "'+desc.substring(0,50)+'"','nova',solId);
   // Save individual items
   var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
@@ -1203,6 +1231,9 @@ async function enviarAprovacao(id){
   var r=await sb.from('solicitacoes').update({status:'aprovacao',ap_status:'aguardando',saving:savingVal}).eq('id',id);
   if(r.error){toast('❌ Erro: '+r.error.message);return;}
   var s=sols.find(function(x){return x.id===id;});var titulo=s?s.titulo:'Solicitação';
+  var dirEmail=DIRECTOR_EMAILS[s?s.aprovador:'Francisco']||'francisco@abbaquimica.com.br';
+  await sendEmail(dirEmail,'Aprovação Pendente: '+titulo,
+    emailTpl('Solicitação Aguarda sua Aprovação','<p><strong>Solicitação:</strong> '+titulo+'</p><p><strong>Solicitante:</strong> '+(s?s.nome:'')+'</p><p><strong>Setor:</strong> '+(s?s.setor:'')+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
   await notifyUsers(['diretor'],'Nova Aprovação Pendente','"'+titulo+'" aguarda sua aprovação.','aprovacao',id);
   sols=[];await openModal(id);render(curPage());toast('📋 Enviado para aprovação da Diretoria!');
 }
@@ -1238,7 +1269,10 @@ async function updStatus(id,status){
   await notifySolicitante(id,'Solicitação Atualizada','"'+titulo+'" está agora '+SL_PTBR[status]+'.','status');
   // Se foi para aprovação, notificar diretores
   if(status==='aprovacao'){
-    await notifyUsers(['diretor'],'Nova Aprovação Pendente','"'+titulo+'" aguarda sua aprovação.','aprovacao',id);
+    var dirEmail=DIRECTOR_EMAILS[s?s.aprovador:'Francisco']||'francisco@abbaquimica.com.br';
+  await sendEmail(dirEmail,'Aprovação Pendente: '+titulo,
+    emailTpl('Solicitação Aguarda sua Aprovação','<p><strong>Solicitação:</strong> '+titulo+'</p><p><strong>Solicitante:</strong> '+(s?s.nome:'')+'</p><p><strong>Setor:</strong> '+(s?s.setor:'')+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
+  await notifyUsers(['diretor'],'Nova Aprovação Pendente','"'+titulo+'" aguarda sua aprovação.','aprovacao',id);
   }
   sols=[];await openModal(id);render(curPage());
 }
