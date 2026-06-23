@@ -564,7 +564,7 @@ var DIRECTOR_EMAILS={Christiane:'christiane@abbaquimica.com.br',Francisco:'franc
 var COMPRAS_EMAIL='compras@abbaquimica.com.br';
 async function sendEmail(to,subject,html){
   try{
-    await fetch(SURL+'/functions/v1/send-email',{
+    await fetch(SURL+'/functions/v1/resend-email',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SKEY,'Authorization':'Bearer '+SKEY},
       body:JSON.stringify({to:to,subject:subject,html:html})
