@@ -908,13 +908,14 @@ function kCard(s){
   var stag=ap==='aguardando'?'<span class="k-ap pendente">Pendente</span>':ap==='aprovado'?'<span class="k-ap aprovado">Aprovado</span>':ap==='reprovado'?'<span class="k-ap reprovado">Reprovado</span>':'';
   var chosen=(s.cotacoes||[]).find(function(c){return c.escolhida;});
   var fornTag=chosen?'<div class="k-forn">✅ '+esc(chosen.forn)+' &bull; R$ '+fmt(chosen.val)+'</div>':'';
+  var moveBtn=s.status==='entrega'?'<button class="btn btn-green btn-sm" style="font-size:11px;padding:3px 8px;margin-top:6px;width:100%" onclick="event.stopPropagation();quickConcluir('+s.id+')">✅ Marcar Concluído</button>':'';
   return'<div class="k-card" onclick="openModal('+s.id+')">'+
     '<div class="k-card-top"><span class="k-title">'+esc(s.titulo)+'</span><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade)+'</span></div>'+
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>'+esc(s.setor)+'</div>'+
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+fmtD(s.prazo)+'</div>'+
     fornTag+
     (s.status==='pausado'&&s.motivo_pausa?'<div style="font-size:11px;color:#6B7280;background:#F3F4F6;border-radius:6px;padding:5px 8px;margin-top:4px">&#x23F8;&#xFE0F; '+esc(s.motivo_pausa.substring(0,60))+(s.motivo_pausa.length>60?'...':'')+'</div>':'')+
-    '<div class="k-footer"><div><div class="k-user">'+esc(s.nome)+'</div>'+stag+'</div><span class="k-cat">'+esc(s.categoria)+'</span></div></div>';
+    '<div class="k-footer"><div><div class="k-user">'+esc(s.nome)+'</div>'+stag+'</div><span class="k-cat">'+esc(s.categoria)+'</span></div>'+moveBtn+'</div>';
 }
 
 // FILA
@@ -1178,19 +1179,16 @@ function buildModal(s,anexos,comentarios){
     var dtReal=s.dt_entrega||'';
     var isConcluido=s.status==='concluido';
     entregaSec='<div class="sec"><h3>Entrega</h3>'+
-      (canEdit?
+      (canEdit&&!isConcluido?
         '<div class="form-2">'+
         '<div class="fg"><label>Data Prevista de Entrega</label><input type="date" id="dt-prevista-'+s.id+'" value="'+esc(dtPrevista)+'" style="max-width:220px">'+
         '<button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="saveDtPrevista('+s.id+')">Salvar Previsão</button></div>'+
-        (dtPrevista&&!isConcluido?
-          '<div class="fg"><label>Data Real de Entrega</label><input type="date" id="dt-entrega-'+s.id+'" value="'+esc(dtReal)+'" style="max-width:220px">'+
-          '<button class="btn btn-green btn-sm" style="margin-top:6px" onclick="saveEntrega('+s.id+')">✅ Confirmar Entrega</button></div>':'')
-        +'</div>'+
-        (isConcluido?'<div class="ap-done aprovado" style="margin-top:10px">✅ Entregue em '+fmtD(dtReal)+'</div>':
-        (dtPrevista?'<div class="ap-wait" style="margin-top:8px">📅 Previsão: '+fmtD(dtPrevista)+'</div>':'')):
-        '<div class="ap-wait">'+(dtPrevista?'📅 Previsão de entrega: '+fmtD(dtPrevista):'Aguardando previsão de entrega')+'</div>'+
-        (isConcluido?'<div class="ap-done aprovado" style="margin-top:8px">✅ Entregue em '+fmtD(dtReal)+'</div>':'')
-      )+'</div>';
+        '<div class="fg"><label>Data Real de Entrega</label><input type="date" id="dt-entrega-'+s.id+'" value="'+esc(dtReal)+'" style="max-width:220px">'+
+        '<button class="btn btn-green btn-sm" style="margin-top:6px" onclick="saveEntrega('+s.id+')">✅ Confirmar Entrega</button></div>'+
+        '</div>':'')+
+      (isConcluido?'<div class="ap-done aprovado">✅ Entregue em '+fmtD(dtReal)+'</div>'+(dtPrevista?'<div style="font-size:12px;color:var(--gray-500);margin-top:4px">📅 Previsão era: '+fmtD(dtPrevista)+'</div>':''):
+      (!canEdit?'<div class="ap-wait">'+(dtPrevista?'📅 Previsão de entrega: '+fmtD(dtPrevista):'Aguardando previsão de entrega')+'</div>':''))+
+      '</div>';
   }
 
   var isSol=CU.role==='solicitante';
@@ -1251,6 +1249,13 @@ async function saveDtPrevista(id){
   if(r.error){toast('❌ Erro: '+r.error.message);return;}
   await notifySolicitante(id,'Previsão de Entrega','Sua solicitação tem previsão de entrega para '+fmtD(el.value)+'.','entrega');
   sols=[];await openModal(id);toast('📅 Previsão salva! Solicitante notificado.');
+}
+async function quickConcluir(id){
+  var hoje=new Date().toISOString().split('T')[0];
+  var r=await sb.from('solicitacoes').update({status:'concluido',dt_entrega:hoje}).eq('id',id);
+  if(r.error){toast('❌ Erro: '+r.error.message);return;}
+  await notifySolicitante(id,'Pedido Entregue!','Sua solicitação foi concluída.','entrega');
+  sols=[];renderKanban();toast('✅ Solicitação concluída!');
 }
 async function saveEntrega(id){
   var el=document.getElementById('dt-entrega-'+id);
