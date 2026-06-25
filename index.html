@@ -903,14 +903,10 @@ function drawBars(id,obj,color,lFn){
     var pct=Math.round(v/total*100);
     var barW=Math.round(v/max*100);
     var meta=lFn(v,pct);
-    var fillLbl=barW>14?'<span class="hbar-fill-lbl">'+pct+'%</span>':'';
-    var outsidePct=barW<=14?'<span style="font-size:11px;font-weight:600;color:#6b7280;margin-left:6px;white-space:nowrap">'+pct+'%</span>':'';
     return '<div class="hbar-row">'+
       '<span class="hbar-lbl" title="'+l+'">'+l+'</span>'+
-      '<div style="display:flex;align-items:center;flex:1;min-width:0">'+
-      '<div class="hbar-track" style="flex:1"><div class="hbar-fill" style="width:'+barW+'%;background:'+color+'">'+fillLbl+'</div></div>'+
-      outsidePct+
-      '</div>'+
+      '<div class="hbar-track"><div class="hbar-fill" style="width:'+barW+'%;background:'+color+'"></div></div>'+
+      '<span style="font-size:12px;font-weight:700;color:#374151;min-width:38px;text-align:right">'+pct+'%</span>'+
       '<div class="hbar-meta"><span class="hbar-val">'+meta.val+'</span><span class="hbar-pct">'+meta.pct+' do total</span></div>'+
       '</div>';
   }).join('');
