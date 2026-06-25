@@ -1163,7 +1163,18 @@ function buildModal(s,anexos,comentarios){
     '<div><div class="ii-lbl">⚡ Prioridade</div><div class="ii-val"><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade||'media')+'</span></div></div>'+
     '<div><div class="ii-lbl">👤 Aprovador</div><div class="ii-val">'+esc(s.aprovador||'-')+'</div></div>'+
     '</div>'+
-    ((!s.itens_solicitacao||!s.itens_solicitacao.length)?'<div class="just-block"><div class="just-lbl">Descrição</div><p class="just-txt">'+esc(s.descricao||s.titulo||'-')+'</p></div>':'')+
+    ((!s.itens_solicitacao||!s.itens_solicitacao.length)?(function(){
+      var desc=s.descricao||s.titulo||'-';
+      var linhas=desc.split(/\n/).map(function(l){return l.trim();}).filter(function(l){return l;});
+      var html=linhas.length>1?
+        '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">'+linhas.map(function(l,i){
+          return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:'+(i%2===0?'#f8fafc':'#fff')+';border-radius:6px;border:1px solid #e5e7eb">'+
+            '<span style="font-weight:700;color:#1f4781;font-size:13px;flex-shrink:0">'+(i+1)+'.</span>'+
+            '<span style="font-size:13px;color:#111827">'+esc(l.replace(/^\d+\.\s*/,''))+'</span></div>';
+        }).join('')+'</div>':
+        '<p class="just-txt">'+esc(desc)+'</p>';
+      return '<div class="just-block"><div class="just-lbl">Descrição</div>'+html+'</div>';
+    })():'')+
     '<div class="just-block" style="margin-top:8px"><div class="just-lbl">Justificativa</div><p class="just-txt">'+esc(s.justificativa||'-')+'</p></div>'+
     ((s.itens_solicitacao&&s.itens_solicitacao.length)?
       '<div class="just-block" style="margin-top:12px"><div class="just-lbl">Itens Solicitados ('+s.itens_solicitacao.length+')</div>'+
