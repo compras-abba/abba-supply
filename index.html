@@ -1166,6 +1166,7 @@ function buildModal(s,anexos,comentarios){
     ((!s.itens_solicitacao||!s.itens_solicitacao.length)?(function(){
       var desc=s.descricao||s.titulo||'-';
       var linhas=desc.split(/\n/).map(function(l){return l.trim();}).filter(function(l){return l;});
+      if(linhas.length<=1)linhas=desc.split(/(?=\s\d+\.\s)/).map(function(l){return l.trim();}).filter(function(l){return l;});
       var html=linhas.length>1?
         '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">'+linhas.map(function(l,i){
           return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:'+(i%2===0?'#f8fafc':'#fff')+';border-radius:6px;border:1px solid #e5e7eb">'+
