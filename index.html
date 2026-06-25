@@ -1169,9 +1169,15 @@ function buildModal(s,anexos,comentarios){
       if(linhas.length<=1)linhas=desc.split(/(?=\s\d+\.\s)/).map(function(l){return l.trim();}).filter(function(l){return l;});
       var html=linhas.length>1?
         '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">'+linhas.map(function(l,i){
-          return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:'+(i%2===0?'#f8fafc':'#fff')+';border-radius:6px;border:1px solid #e5e7eb">'+
-            '<span style="font-weight:700;color:#1f4781;font-size:13px;flex-shrink:0">'+(i+1)+'.</span>'+
-            '<span style="font-size:13px;color:#111827">'+esc(l.replace(/^\d+\.\s*/,''))+'</span></div>';
+          var txt=l.replace(/^\d+\.\s*/,'');
+          var m=txt.match(/^(.*?)\s+-\s+([^(]+?)(\s*\(.*\))?\s*$/);
+          var itemDesc=m?m[1].trim():txt;
+          var qtd=m?(m[2].trim()+(m[3]?m[3].trim():'')):null;
+          return '<div style="display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:10px 12px;background:'+(i%2===0?'#f8fafc':'#fff')+';border-radius:8px;border:1px solid #e5e7eb">'+
+            '<span style="font-weight:700;color:#1f4781;font-size:13px">'+(i+1)+'.</span>'+
+            '<span style="font-size:13px;font-weight:500;color:#111827">'+esc(itemDesc)+'</span>'+
+            (qtd?'<span style="font-size:12px;font-weight:600;color:#374151;white-space:nowrap;background:#e5e7eb;padding:2px 8px;border-radius:99px">'+esc(qtd)+'</span>':'<span></span>')+
+            '</div>';
         }).join('')+'</div>':
         '<p class="just-txt">'+esc(desc)+'</p>';
       return '<div class="just-block"><div class="just-lbl">Descrição</div>'+html+'</div>';
