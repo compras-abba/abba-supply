@@ -481,7 +481,12 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             <div class="ff"><label>Categoria <span class="req-mark">*</span></label>
               <select id="f-cat"><option value="">Selecione a categoria</option><option>Consumo</option><option>Revenda</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;o</option><option>Ativo/Equipamento</option><option>TI</option><option>Outros</option></select>
             </div>
-            <div class="ff"><label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo" style="max-width:220px"></div>
+            <div class="ff"><label>Prioridade <span class="req-mark">*</span></label>
+              <select id="f-prio"><option value="baixa">↓ Baixa</option><option value="media" selected>→ M&eacute;dia</option><option value="alta">↑ Alta</option><option value="urgente">↑↑ Urgente</option></select>
+            </div>
+          </div>
+          <div class="ff">
+            <label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo">
           </div>
           <div class="ff">
             <label>Itens da Solicita&ccedil;&atilde;o <span class="req-mark">*</span></label>
@@ -1010,6 +1015,7 @@ async function criarSolicitacao(){
   var email=(document.getElementById('f-email').value||'').trim();
   var setor=document.getElementById('f-setor').value;
   var cat=document.getElementById('f-cat').value;
+  var prio=document.getElementById('f-prio').value||'media';
   var prazo=document.getElementById('f-prazo').value;
   var itens=getItemRows();
   var just=(document.getElementById('f-just').value||'').trim();
@@ -1017,7 +1023,7 @@ async function criarSolicitacao(){
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
   var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
   var qtd=itens.length+' item(ns)';
-  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:'media',categoria:cat,aprovador:'Francisco',status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
+  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,aprovador:'Francisco',status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
   if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
   var solId=r.data.id;
   if(pendingFiles.length)await uploadAnexos(solId);
@@ -1029,7 +1035,7 @@ async function criarSolicitacao(){
   var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
   if(itemsToSave.length)await sb.from('itens_solicitacao').insert(itemsToSave);
   sols=[];
-  ['f-prazo','f-just','f-cat'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  ['f-prazo','f-just','f-cat'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});var ep=document.getElementById('f-prio');if(ep)ep.value='media';
   var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();;
   // Clear items table
   var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
@@ -1078,21 +1084,33 @@ function buildModal(s,anexos,comentarios){
     '<div><div class="ii-lbl">📦 Quantidade</div><div class="ii-val">'+esc(s.quantidade)+'</div></div>'+
     '<div><div class="ii-lbl">📅 Prazo</div><div class="ii-val">'+fmtD(s.prazo)+'</div></div>'+
     '<div><div class="ii-lbl">📁 Categoria</div><div class="ii-val">'+esc(s.categoria)+'</div></div>'+
+    '<div><div class="ii-lbl">🏭 Empresa</div><div class="ii-val">'+esc(s.empresa||'ABBA Química')+'</div></div>'+
+    '<div><div class="ii-lbl">⚡ Prioridade</div><div class="ii-val"><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade||'media')+'</span></div></div>'+
     '<div><div class="ii-lbl">👤 Aprovador</div><div class="ii-val">'+esc(s.aprovador||'-')+'</div></div>'+
     '</div>'+
-    '<div class="just-block"><div class="just-lbl">Descrição</div><p class="just-txt">'+esc(s.descricao||s.titulo||'-')+'</p></div>'+
+    ((!s.itens_solicitacao||!s.itens_solicitacao.length)?'<div class="just-block"><div class="just-lbl">Descrição</div><p class="just-txt">'+esc(s.descricao||s.titulo||'-')+'</p></div>':'')+
     '<div class="just-block" style="margin-top:8px"><div class="just-lbl">Justificativa</div><p class="just-txt">'+esc(s.justificativa||'-')+'</p></div>'+
     ((s.itens_solicitacao&&s.itens_solicitacao.length)?
-      '<div class="just-block" style="margin-top:12px"><div class="just-lbl">Itens Solicitados</div>'+
-      '<table class="itens-table" style="margin-top:8px"><thead><tr><th class="td-num">#</th><th>Descrição</th><th style="width:120px">Quantidade</th><th style="width:150px">Observação</th></tr></thead><tbody>'+
-      s.itens_solicitacao.map(function(it,i){return'<tr><td class="td-num">'+(i+1)+'</td><td>'+esc(it.descricao)+'</td><td>'+esc(it.quantidade||'-')+'</td><td>'+esc(it.observacao||'-')+'</td></tr>';}).join('')+
-      '</tbody></table></div>':'')+
+      '<div class="just-block" style="margin-top:12px"><div class="just-lbl">Itens Solicitados ('+s.itens_solicitacao.length+')</div>'+
+      '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">'+
+      s.itens_solicitacao.map(function(it,i){
+        return '<div style="display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:start;padding:10px 12px;background:'+(i%2===0?'#f8fafc':'#fff')+';border-radius:8px;border:1px solid #e5e7eb">'+
+          '<span style="font-weight:700;color:#1f4781;font-size:13px">'+(i+1)+'.</span>'+
+          '<div><div style="font-size:13px;font-weight:500;color:#111827">'+esc(it.descricao)+'</div>'+
+          (it.observacao?'<div style="font-size:11.5px;color:#6b7280;margin-top:2px">'+esc(it.observacao)+'</div>':'')+
+          '</div>'+
+          '<span style="font-size:12px;font-weight:600;color:#374151;white-space:nowrap;background:#e5e7eb;padding:2px 8px;border-radius:99px">'+esc(it.quantidade||'—')+'</span>'+
+          '</div>';
+      }).join('')+
+      '</div></div>':'')+
     '</div>';
 
   var triagem='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Triagem e Priorização '+roTag+'</h3>'+
     '<div class="form-2">'+
-    '<div class="fg"><label>Prioridade</label><select '+(canEdit?'onchange="updField('+s.id+',\'prioridade\',this.value)"':'disabled')+'>'+
-    PRIOS.map(function(p){return'<option value="'+p+'"'+(s.prioridade===p?' selected':'')+'>'+cap(p)+'</option>';}).join('')+'</select></div>'+
+    '<div class="fg"><label>Empresa</label><select '+(canEdit?'onchange="updField('+s.id+',\'empresa\',this.value)"':'disabled')+'>'+
+    '<option value="ABBA Química"'+((!s.empresa||s.empresa==="ABBA Química")?' selected':'')+'>ABBA Química</option>'+
+    '<option value="ABBA Comércio"'+(s.empresa==="ABBA Comércio"?' selected':'')+'>ABBA Comércio</option>'+
+    '</select></div>'+
     '<div class="fg"><label>Categoria</label><select '+(canEdit?'onchange="updField('+s.id+',\'categoria\',this.value)"':'disabled')+'>'+
     CATS.map(function(c){return'<option'+(s.categoria===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div>'+
     '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
