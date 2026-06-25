@@ -1109,7 +1109,7 @@ function buildModal(s,anexos,comentarios){
     '<div class="form-2">'+
     '<div class="fg"><label>Empresa</label><select '+(canEdit?'onchange="updField('+s.id+',\'empresa\',this.value)"':'disabled')+'>'+
     '<option value="ABBA Química"'+((!s.empresa||s.empresa==="ABBA Química")?' selected':'')+'>ABBA Química</option>'+
-    '<option value="ABBA Comércio"'+(s.empresa==="ABBA Comércio"?' selected':'')+'>ABBA Comércio</option>'+
+    '<option value="ABBA Especialidades"'+(s.empresa==="ABBA Especialidades"?' selected':'')+'>ABBA Especialidades</option>'+
     '</select></div>'+
     '<div class="fg"><label>Categoria</label><select '+(canEdit?'onchange="updField('+s.id+',\'categoria\',this.value)"':'disabled')+'>'+
     CATS.map(function(c){return'<option'+(s.categoria===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div>'+
