@@ -499,7 +499,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           </div>
           <div class="ff-row">
             <div class="ff"><label>Categoria <span class="req-mark">*</span></label>
-              <select id="f-cat"><option value="">Selecione a categoria</option><option>Consumo</option><option>Revenda</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;o</option><option>Ativo/Equipamento</option><option>TI</option><option>Outros</option></select>
+              <select id="f-cat" onchange="toggleServico()" ><option value="">Selecione a categoria</option><option>Consumo</option><option>Revenda</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;o</option><option>Ativo/Equipamento</option><option>TI</option><option>Outros</option></select>
             </div>
             <div class="ff"><label>Prioridade <span class="req-mark">*</span></label>
               <select id="f-prio"><option value="baixa">↓ Baixa</option><option value="media" selected>→ M&eacute;dia</option><option value="alta">↑ Alta</option><option value="urgente">↑↑ Urgente</option></select>
@@ -507,6 +507,10 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           </div>
           <div class="ff">
             <label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo">
+          </div>
+          <div class="ff-row" id="servico-datas" style="display:none">
+            <div class="ff"><label>Previs&atilde;o de In&iacute;cio do Servi&ccedil;o</label><input type="date" id="f-serv-inicio"></div>
+            <div class="ff"><label>Previs&atilde;o de Finaliza&ccedil;&atilde;o do Servi&ccedil;o</label><input type="date" id="f-serv-fim"></div>
           </div>
           <div class="ff">
             <label>Itens da Solicita&ccedil;&atilde;o <span class="req-mark">*</span></label>
@@ -1080,6 +1084,11 @@ async function renderMinhas(){
 }
 
 // NOVA SOLICITAÇÃO
+function toggleServico(){
+  var cat=document.getElementById('f-cat');
+  var bloco=document.getElementById('servico-datas');
+  if(cat&&bloco)bloco.style.display=(cat.value==='Serviço')?'grid':'none';
+}
 function fillForm(){if(document.getElementById('itens-tbody')&&document.getElementById('itens-tbody').children.length===0){itemRowCount=0;addItemRow();}
   var n=document.getElementById('f-nome');var e=document.getElementById('f-email');var st=document.getElementById('f-setor');
   if(n&&CU)n.value=CU.nome;if(e&&CU)e.value=CU.email;
@@ -1092,13 +1101,15 @@ async function criarSolicitacao(){
   var cat=document.getElementById('f-cat').value;
   var prio=document.getElementById('f-prio').value||'media';
   var prazo=document.getElementById('f-prazo').value;
+  var servInicio=document.getElementById('f-serv-inicio').value||null;
+  var servFim=document.getElementById('f-serv-fim').value||null;
   var itens=getItemRows();
   var just=(document.getElementById('f-just').value||'').trim();
   if(!nome||!setor||!cat||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
   var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
   var qtd=itens.length+' item(ns)';
-  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,aprovador:'Francisco',status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
+  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
   if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
   var solId=r.data.id;
   if(pendingFiles.length)await uploadAnexos(solId);
@@ -1110,7 +1121,7 @@ async function criarSolicitacao(){
   var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
   if(itemsToSave.length)await sb.from('itens_solicitacao').insert(itemsToSave);
   sols=[];
-  ['f-prazo','f-just','f-cat'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});var ep=document.getElementById('f-prio');if(ep)ep.value='media';
+  ['f-prazo','f-just','f-cat','f-serv-inicio','f-serv-fim'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});var ep=document.getElementById('f-prio');if(ep)ep.value='media';var sd=document.getElementById('servico-datas');if(sd)sd.style.display='none';
   var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();;
   // Clear items table
   var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
@@ -1163,6 +1174,11 @@ function buildModal(s,anexos,comentarios){
     '<div><div class="ii-lbl">⚡ Prioridade</div><div class="ii-val"><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade||'media')+'</span></div></div>'+
     '<div><div class="ii-lbl">👤 Aprovador</div><div class="ii-val">'+esc(s.aprovador||'-')+'</div></div>'+
     '</div>'+
+    (s.categoria==='Serviço'?
+      '<div style="margin-top:12px;padding:12px 14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+      '<div><div class="ii-lbl" style="color:#1D4ED8">🔧 Previsão de Início do Serviço</div><div class="ii-val">'+(s.serv_inicio?fmtD(s.serv_inicio):'Não informado')+'</div></div>'+
+      '<div><div class="ii-lbl" style="color:#1D4ED8">✅ Previsão de Finalização</div><div class="ii-val">'+(s.serv_fim?fmtD(s.serv_fim):'Não informado')+'</div></div>'+
+      '</div>':'')+
     ((!s.itens_solicitacao||!s.itens_solicitacao.length)?(function(){
       var desc=s.descricao||s.titulo||'-';
       var linhas=desc.split(/\n/).map(function(l){return l.trim();}).filter(function(l){return l;});
@@ -1211,7 +1227,19 @@ function buildModal(s,anexos,comentarios){
     '<div class="fg"><label>Aprovador</label><select '+(canEdit?'onchange="updField('+s.id+',\'aprovador\',this.value)"':'disabled')+'>'+
     '<option value="Christiane"'+(s.aprovador==='Christiane'?' selected':'')+'>Christiane &mdash; Uso/Consumo</option>'+
     '<option value="Francisco"'+(s.aprovador==='Francisco'||!s.aprovador?' selected':'')+'>Francisco &mdash; Demais compras</option>'+
-    '</select></div></div>';
+    '</select></div></div>'+
+    (s.categoria==='Serviço'?
+      '<div style="margin-top:12px;padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px">'+
+      '<div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:10px">🔧 Datas do Serviço</div>'+
+      '<div class="form-2">'+
+      '<div class="fg"><label>Previsão de Início</label>'+
+      (canEdit?'<input type="date" value="'+(s.serv_inicio||'')+'" onchange="updField('+s.id+',\'serv_inicio\',this.value)">':
+      '<div class="ii-val">'+(s.serv_inicio?fmtD(s.serv_inicio):'—')+'</div>')+
+      '</div>'+
+      '<div class="fg"><label>Previsão de Finalização</label>'+
+      (canEdit?'<input type="date" value="'+(s.serv_fim||'')+'" onchange="updField('+s.id+',\'serv_fim\',this.value)">':
+      '<div class="ii-val">'+(s.serv_fim?fmtD(s.serv_fim):'—')+'</div>')+
+      '</div></div></div>':'');
 
   var cotItems=(s.cotacoes||[]).map(function(c){
     return'<div class="cot-item'+(c.escolhida?' chosen':'')+'" id="cot-item-'+c.id+'">'+
