@@ -858,7 +858,7 @@ async function loadSols(){
 // ADMIN
 async function renderAdmin(){
   document.getElementById('kpi-row').innerHTML='<div class="loading-state" style="grid-column:1/-1"><div class="spin"></div></div>';
-  await loadSols();
+  sols=[];await loadSols();
   var s=sols;
   var wait=s.filter(function(x){return x.ap_status==='aguardando'&&x.status==='aprovacao';}).length;
   var sets=new Set(s.map(function(x){return x.setor;})).size;
@@ -904,12 +904,20 @@ async function renderAdmin(){
   drawDonut('chart-setor-qtd',pst,['#4F46E5','#8B5CF6','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#6366F1','#14B8A6','#F97316']);
   var ps={};s.forEach(function(x){var v=(x.cotacoes||[]).reduce(function(a,c){return a+(c.escolhida?Number(c.val):0);},0);if(v)ps[x.setor]=(ps[x.setor]||0)+v;});
   drawBars('chart-setor',ps,'#8B5CF6',function(v,pct){return{val:'R$ '+fmt(v),sub:pct+'% do total'};});
-  var pf={};s.forEach(function(x){
-    var cots=x.cotacoes||[];if(cots.length<2)return;
-    var chosen=cots.find(function(c){return c.escolhida;});if(!chosen)return;
-    var maxVal=Math.max.apply(null,cots.map(function(c){return Number(c.val)||0;}));
-    var sv=Math.max(0,maxVal-Number(chosen.val));
-    if(sv>0)pf[chosen.forn]=(pf[chosen.forn]||0)+sv;
+  var pf={};aprovadas.forEach(function(x){
+    var sv=0;
+    if(x.saving&&Number(x.saving)>0){
+      var chosen2=(x.cotacoes||[]).find(function(c){return c.escolhida;});
+      sv=Number(x.saving);
+      var forn2=chosen2?chosen2.forn:(x.setor||'Manual');
+      if(sv>0)pf[forn2]=(pf[forn2]||0)+sv;
+    } else {
+      var cots=x.cotacoes||[];if(cots.length<2)return;
+      var chosen=cots.find(function(c){return c.escolhida;});if(!chosen)return;
+      var maxVal=Math.max.apply(null,cots.map(function(c){return Number(c.val)||0;}));
+      sv=Math.max(0,maxVal-Number(chosen.val));
+      if(sv>0)pf[chosen.forn]=(pf[chosen.forn]||0)+sv;
+    }
   });
   drawBars('chart-saving',pf,'#10B981',function(v,pct){return{val:'R$ '+fmt(v),sub:pct+'% do total'};});
 }
