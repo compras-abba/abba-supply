@@ -1206,7 +1206,7 @@ function buildModal(s,anexos,comentarios){
     '<div><div class="ii-lbl">📁 Categoria</div><div class="ii-val">'+esc(s.categoria)+'</div></div>'+
     '<div><div class="ii-lbl">🏭 Empresa</div><div class="ii-val">'+esc(s.empresa||'ABBA Química')+'</div></div>'+
     '<div><div class="ii-lbl">⚡ Prioridade</div><div class="ii-val"><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade||'media')+'</span></div></div>'+
-    '<div><div class="ii-lbl">👤 Aprovador</div><div class="ii-val">'+esc(s.aprovador||'-')+'</div></div>'+
+    (CU.role!=='solicitante'?'<div><div class="ii-lbl">👤 Aprovador</div><div class="ii-val">'+esc(s.aprovador||'-')+'</div></div>':'')+
     '</div>'+
     (s.categoria==='Serviço'?
       '<div style="margin-top:12px;padding:12px 14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
