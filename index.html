@@ -608,12 +608,16 @@ var DIRECTOR_EMAILS={Christiane:'christiane@abbaquimica.com.br',Francisco:'franc
 var COMPRAS_EMAIL='compras@abbaquimica.com.br';
 async function sendEmail(to,subject,html){
   try{
-    await fetch(SURL+'/functions/v1/resend-email',{
+    toast('📧 Enviando email...');
+    var resp=await fetch(SURL+'/functions/v1/resend-email',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SKEY,'Authorization':'Bearer '+SKEY},
       body:JSON.stringify({to:to,subject:subject,html:html})
     });
-  }catch(e){console.error('Email error:',e);}
+    var data=await resp.json().catch(function(){return{};});
+    if(resp.ok){toast('✅ Email enviado para '+to);}
+    else{toast('❌ Email falhou ('+resp.status+'): '+(data.error||'erro desconhecido'));}
+  }catch(e){toast('❌ Email erro de rede: '+e.message);}
 }
 function emailTpl(titulo,corpo){
   return'<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">'+
