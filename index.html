@@ -1634,7 +1634,7 @@ async function uploadModalFile(solId,input){
     var path=solId+'/'+Date.now()+'-'+safeName;
     var r=await sb.storage.from('anexos').upload(path,f,{upsert:true});
     if(r.error){
-      console.error('Upload error:',r.error);
+      toast('❌ Erro: '+r.error.message+' | '+r.error.statusCode);
       fail++;
     } else {
       var url=sb.storage.from('anexos').getPublicUrl(path).data.publicUrl;
