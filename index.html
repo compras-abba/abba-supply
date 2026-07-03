@@ -864,7 +864,9 @@ async function loadSols(){
   if(CU.role==='solicitante')q=q.eq('user_id',CU.id);
   var r=await q;
   if(r.error){sols=[];return;}
-  sols=(r.data||[]).map(function(s){return Object.assign({},s,{titulo:s.titulo||s.descricao||'',aprovacao:{status:s.ap_status||'aguardando',obs:s.ap_obs||''},arquivos:[]});});
+  var seen={};
+  var data=(r.data||[]).filter(function(s){if(seen[s.id])return false;seen[s.id]=true;return true;});
+  sols=data.map(function(s){return Object.assign({},s,{titulo:s.titulo||s.descricao||'',aprovacao:{status:s.ap_status||'aguardando',obs:s.ap_obs||''},arquivos:[]});});
 }
 
 // ADMIN
