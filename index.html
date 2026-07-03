@@ -608,16 +608,12 @@ var DIRECTOR_EMAILS={Christiane:'christiane@abbaquimica.com.br',Francisco:'franc
 var COMPRAS_EMAIL='compras@abbaquimica.com.br';
 async function sendEmail(to,subject,html){
   try{
-    toast('📧 Enviando email...');
     var resp=await fetch(SURL+'/functions/v1/resend-email',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SKEY,'Authorization':'Bearer '+SKEY},
       body:JSON.stringify({to:to,subject:subject,html:html})
     });
-    var data=await resp.json().catch(function(){return{};});
-    if(resp.ok){toast('✅ Email enviado para '+to);}
-    else{toast('❌ Email falhou ('+resp.status+'): '+(data.error||'erro desconhecido'));}
-  }catch(e){toast('❌ Email erro de rede: '+e.message);}
+  }catch(e){console.error('Email erro:',e.message);}
 }
 function emailTpl(titulo,corpo){
   return'<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">'+
@@ -629,13 +625,13 @@ function emailTpl(titulo,corpo){
 var sb=supabase.createClient(SURL,SKEY);
 var CU=null,sols=[],notifs=[],chipFilter='',selId=null;
 
-var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',aprovacao:'Aprovação da Diretoria',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By'};
-var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',aprovacao:'aguardando Aprovação',entrega:'em Entrega',concluido:'Concluído'};
-var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',aprovacao:'#F59E0B',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280'};
+var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By'};
+var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído'};
+var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',aprovacao:'#F59E0B',emissao_oc:'#EC4899',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280'};
 var CATS=['Capex','Matéria-prima','Consumo','Spot','Serviço','Outro'];
 var PRIOS=['baixa','media','alta','urgente'];
 var PA={alta:'↑',urgente:'↑↑',media:'→',baixa:'↓'};
-var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'}];
+var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'emissao_oc',l:'Emissão da OC'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'}];
 
 // INIT
 async function init(){
@@ -857,7 +853,9 @@ async function notifyUsers(roles,titulo,mensagem,tipo,solId){
 
 async function notifySolicitante(solId,titulo,mensagem,tipo){
   var s=sols.find(function(x){return x.id===solId;});
-  if(s&&s.user_id)await sb.from('notificacoes').insert({user_id:s.user_id,titulo:titulo,mensagem:mensagem,tipo:tipo,sol_id:solId,lida:false});
+  if(!s)return;
+  if(s.user_id)await sb.from('notificacoes').insert({user_id:s.user_id,titulo:titulo,mensagem:mensagem,tipo:tipo,sol_id:solId,lida:false});
+  if(s.email)await sendEmail(s.email,titulo,emailTpl(titulo,'<p>'+mensagem+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Ver no ABBA Supply</a></p>'));
 }
 
 // ============ DADOS ============
@@ -899,7 +897,7 @@ async function renderAdmin(){
     '<div class="kpi"><div class="kpi-icon amber">⏳</div><div><div class="kpi-val">'+wait+'</div><div class="kpi-lbl">Aguardando Aprovação</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(vol)+'</div><div class="kpi-lbl">Volume Total</div></div></div>';
   // Saving: apenas aprovadas/concluídas; usa campo manual se preenchido
-  var aprovadas=s.filter(function(x){return x.ap_status==='aprovado'||x.status==='concluido'||x.status==='entrega';});
+  var aprovadas=s.filter(function(x){return x.ap_status==='aprovado'||x.status==='concluido'||x.status==='entrega'||x.status==='emissao_oc';});
   var totalSaving=aprovadas.reduce(function(acc,x){
     if(x.saving&&Number(x.saving)>0)return acc+Number(x.saving);
     var cots=x.cotacoes||[];if(cots.length<2)return acc;
@@ -1047,7 +1045,7 @@ function kCard(s){
   var stag=ap==='aguardando'?'<span class="k-ap pendente">Pendente</span>':ap==='aprovado'?'<span class="k-ap aprovado">Aprovado</span>':ap==='reprovado'?'<span class="k-ap reprovado">Reprovado</span>':'';
   var chosen=(s.cotacoes||[]).find(function(c){return c.escolhida;});
   var fornTag=chosen?'<div class="k-forn">✅ '+esc(chosen.forn)+' &bull; R$ '+fmt(chosen.val)+'</div>':'';
-  var moveBtn=s.status==='entrega'?'<button class="btn btn-green btn-sm" style="font-size:11px;padding:3px 8px;margin-top:6px;width:100%" onclick="event.stopPropagation();quickConcluir('+s.id+')">✅ Marcar Concluído</button>':'';
+  var moveBtn=s.status==='emissao_oc'?'<button class="btn btn-orange btn-sm" style="font-size:11px;padding:3px 8px;margin-top:6px;width:100%" onclick="event.stopPropagation();updStatus('+s.id+',\'entrega\')">📦 Mover para Entrega</button>':s.status==='entrega'?'<button class="btn btn-green btn-sm" style="font-size:11px;padding:3px 8px;margin-top:6px;width:100%" onclick="event.stopPropagation();quickConcluir('+s.id+')">✅ Marcar Concluído</button>':'';
   return'<div class="k-card" onclick="openModal('+s.id+')">'+
     '<div class="k-card-top"><span class="k-title">'+esc(s.titulo)+'</span><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade)+'</span></div>'+
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>'+esc(s.setor)+'</div>'+
@@ -1083,7 +1081,7 @@ async function renderFila(){
   }).join('');
 }
 async function qAp(id,status){
-  await sb.from('solicitacoes').update({ap_status:status,status:status==='aprovado'?'entrega':'aprovacao'}).eq('id',id);
+  await sb.from('solicitacoes').update({ap_status:status,status:status==='aprovado'?'emissao_oc':'aprovacao'}).eq('id',id);
   var s=sols.find(function(x){return x.id===id;});
   var titulo=s?s.titulo:'Solicitação';
   var sol2=sols.find(function(x){return x.id===id;});
@@ -1521,7 +1519,7 @@ async function saveCot(id){
 async function doAp(id,status){
   var obs=(document.getElementById('ap-obs-'+id)?document.getElementById('ap-obs-'+id).value:'').trim();
   var upd={ap_status:status,ap_obs:obs};
-  if(status==='aprovado'){upd.status='entrega';upd.dt_aprovacao=new Date().toISOString().split('T')[0];}
+  if(status==='aprovado'){upd.status='emissao_oc';upd.dt_aprovacao=new Date().toISOString().split('T')[0];}
   if(status==='reprovado')upd.status='concluido';
   if(status==='revisao')upd.status='triagem';
   await sb.from('solicitacoes').update(upd).eq('id',id);
