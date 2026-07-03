@@ -1591,9 +1591,9 @@ async function uploadAnexos(solId){
   for(var i=0;i<pendingFiles.length;i++){
     var f=pendingFiles[i];
     var path=solId+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    var r=await sb.storage.from('anexos').upload(path,f,{upsert:true});
+    var r=await sb.storage.from('Anexos').upload(path,f,{upsert:true});
     if(!r.error){
-      var url=sb.storage.from('anexos').getPublicUrl(path).data.publicUrl;
+      var url=sb.storage.from('Anexos').getPublicUrl(path).data.publicUrl;
       await sb.from('anexos').insert({sol_id:solId,user_id:CU.id,nome:f.name,url:url,tipo:f.type||''});
     }
   }
@@ -1632,12 +1632,12 @@ async function uploadModalFile(solId,input){
     var f=files[i];
     var safeName=f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
     var path=solId+'/'+Date.now()+'-'+safeName;
-    var r=await sb.storage.from('anexos').upload(path,f,{upsert:true});
+    var r=await sb.storage.from('Anexos').upload(path,f,{upsert:true});
     if(r.error){
       toast('❌ Erro: '+r.error.message+' | '+r.error.statusCode);
       fail++;
     } else {
-      var url=sb.storage.from('anexos').getPublicUrl(path).data.publicUrl;
+      var url=sb.storage.from('Anexos').getPublicUrl(path).data.publicUrl;
       var ri=await sb.from('anexos').insert({sol_id:solId,user_id:CU.id,nome:f.name,url:url,tipo:f.type||''});
       if(ri.error){console.error('Insert error:',ri.error);fail++;}else{ok++;}
     }
@@ -1651,7 +1651,7 @@ async function uploadModalFile(solId,input){
 async function deleteAnexo(id,url){
   if(!confirm('Remover este anexo?'))return;
   var path=url.split('/object/public/anexos/')[1];
-  if(path)await sb.storage.from('anexos').remove([decodeURIComponent(path)]);
+  if(path)await sb.storage.from('Anexos').remove([decodeURIComponent(path)]);
   await sb.from('anexos').delete().eq('id',id);
   sols=[];await openModal(selId);toast('🗑️ Anexo removido.');
 }
