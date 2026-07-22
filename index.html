@@ -1358,6 +1358,20 @@ function buildModal(s,anexos,comentarios){
   else if(ap.status==='aprovado')apSt='<div class="ap-done aprovado">✅ Aprovado</div>';
   else if(ap.status==='reprovado')apSt='<div class="ap-done reprovado">❌ Reprovado</div>';
   else if(ap.status==='revisao')apSt='<div class="ap-done revisao">🔄 Revisão Solicitada</div>';
+  var preApSec='';
+  if(s.status==='pre_aprovacao'){
+    if(CU.role==='gerente'){
+      preApSec='<div class="sec"><h3>Pré-Aprovação do Gerente</h3>'+
+        '<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Motivo da Recusa (obrigatório ao recusar)</label>'+
+        '<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Informe o motivo caso recuse..." style="width:100%;padding:10px 13px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:14px;outline:none">'+
+        '</div><div class="btn-row">'+
+        '<button class="btn btn-green" onclick="qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
+        '<button class="btn btn-red" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
+        '</div></div>';
+    } else {
+      preApSec='<div class="sec"><h3>Pré-Aprovação do Gerente</h3><div class="ap-wait"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Aguardando Pré-Aprovação do Gerente</div></div>';
+    }
+  }
   var showApBtn=canApprove&&ap.status==='aguardando'&&s.status==='aprovacao';
   var apSec='<div class="sec"><h3>Aprovação da Diretoria</h3>'+apSt+
     (ap.obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700);margin-bottom:12px">'+esc(ap.obs)+'</div>':'')+
@@ -1418,7 +1432,7 @@ function buildModal(s,anexos,comentarios){
   }
 
   var chatSec=buildChatSection(s.id,comentarios);
-  return info+triagem+cot+apSec+pausaSec+entregaSec+chatSec+anexSec;
+  return info+triagem+cot+preApSec+apSec+pausaSec+entregaSec+chatSec+anexSec;
 }
 
 // MUTAÇÕES
