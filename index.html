@@ -1070,12 +1070,11 @@ async function renderFila(){
         '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
         '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
-        '</div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center" onclick="event.stopPropagation()">'+
-        '<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa (opcional)" style="flex:1;min-width:180px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
-        '</div>'+
-        '<div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
-        '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
-        '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
+        '</div><div class="fila-actions" onclick="event.stopPropagation()">'+
+        '<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
+        '<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa..." style="width:200px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
+        '<button class="btn btn-green btn-sm" onclick="qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
+        '<button class="btn btn-red btn-sm" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
         '</div></div>';
     }).join('');
   } else {
