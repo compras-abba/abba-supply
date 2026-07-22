@@ -1070,7 +1070,10 @@ async function renderFila(){
         '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
         '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
-        '</div><div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
+        '</div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center" onclick="event.stopPropagation()">'+
+        '<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa (opcional)" style="flex:1;min-width:180px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
+        '</div>'+
+        '<div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
         '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
         '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
         '</div></div>';
@@ -1447,6 +1450,8 @@ async function enviarAprovacao(id){
 async function qPreAp(id,status){
   var s=sols.find(function(x){return x.id===id;});
   var titulo=s?s.titulo:'Solicitação';
+  var motivoEl=document.getElementById('motivo-recusa-'+id);
+  var motivo=(motivoEl?motivoEl.value:'').trim();
   if(status==='aprovado'){
     await sb.from('solicitacoes').update({status:'aprovacao',ap_status:'aguardando'}).eq('id',id);
     var dirEmail=DIRECTOR_EMAILS[s?s.aprovador:'Francisco']||'francisco@abbaquimica.com.br';
@@ -1456,9 +1461,10 @@ async function qPreAp(id,status){
     await notifySolicitante(id,'Solicitação Pré-Aprovada','"'+titulo+'" foi pré-aprovada pelo Gerente e segue para a Diretoria.','status');
     toast('✅ Pré-aprovado! Enviado para a Diretoria.');
   } else {
+    if(!motivo){toast('⚠️ Informe o motivo da recusa.');return;}
     await sb.from('solicitacoes').update({status:'triagem',ap_status:'aguardando'}).eq('id',id);
-    await sendEmail(COMPRAS_EMAIL,'Pré-Aprovação Recusada: '+titulo,emailTpl('Solicitação Recusada pelo Gerente','<p>"'+titulo+'" foi recusada na pré-aprovação.</p>'));
-    await notifySolicitante(id,'Solicitação Recusada pelo Gerente','"'+titulo+'" foi recusada pelo Gerente e retornou para Triagem.','reprovado');
+    await sendEmail(COMPRAS_EMAIL,'Pré-Aprovação Recusada: '+titulo,emailTpl('Solicitação Recusada pelo Gerente','<p>"'+titulo+'" foi recusada na pré-aprovação.</p>'+(motivo?'<p><strong>Motivo:</strong> '+motivo+'</p>':'')));
+    await notifySolicitante(id,'Solicitação Recusada pelo Gerente','"'+titulo+'" foi recusada pelo Gerente e retornou para Triagem.'+(motivo?' Motivo: '+motivo:''),'reprovado');
     toast('❌ Recusado. Retornou para Triagem.');
   }
   sols=[];await renderFila();
