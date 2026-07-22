@@ -381,7 +381,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
         <select id="r-setor"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Compras/Revenda</option><option>Compras Consumo</option></select>
       </div>
       <div class="lf"><label>Tipo de Acesso <span style="color:var(--red)">*</span></label>
-        <select id="r-role" onchange="toggleCode()"><option value="solicitante">Solicitante</option><option value="diretor">Diretor</option><option value="admin">Administrador (Compras)</option></select>
+        <select id="r-role" onchange="toggleCode()"><option value="solicitante">Solicitante</option><option value="gerente">Gerente</option><option value="diretor">Diretor</option><option value="admin">Administrador (Compras)</option></select>
       </div>
       <div class="lf" id="code-wrap" style="display:none"><label>C&oacute;digo de Acesso <span style="color:var(--red)">*</span></label><input type="password" id="r-code" placeholder="C&oacute;digo fornecido pelo administrador"></div>
       <button class="btn-login" onclick="doRegister()">Criar Conta</button>
@@ -603,9 +603,10 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 <script>
 var SURL='https://mdiwameqbbguvmugbloh.supabase.co';
 var SKEY='sb_publishable_xriu2k1UP-FcZhULRRowuA_iodzduFq';
-var CODES={diretor:'DIRETORIA',admin:'COMPRAS2026'};
+var CODES={diretor:'DIRETORIA',admin:'COMPRAS2026',gerente:'GERENTE2026'};
 var DIRECTOR_EMAILS={Christiane:'christiane@abbaquimica.com.br',Francisco:'francisco@abbaquimica.com.br'};
 var COMPRAS_EMAIL='compras@abbaquimica.com.br';
+var GERENTE_EMAIL='bruno@abbaquimica.com.br';
 async function sendEmail(to,subject,html){
   try{
     var resp=await fetch(SURL+'/functions/v1/resend-email',{
@@ -625,13 +626,13 @@ function emailTpl(titulo,corpo){
 var sb=supabase.createClient(SURL,SKEY);
 var CU=null,sols=[],notifs=[],chipFilter='',selId=null;
 
-var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By'};
-var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído'};
-var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',aprovacao:'#F59E0B',emissao_oc:'#EC4899',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280'};
+var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',pre_aprovacao:'Pré-Aprovação Gerente',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By'};
+var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',pre_aprovacao:'em Pré-Aprovação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído'};
+var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',pre_aprovacao:'#06B6D4',aprovacao:'#F59E0B',emissao_oc:'#EC4899',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280'};
 var CATS=['Capex','Matéria-prima','Consumo','Spot','Serviço','Outro'];
 var PRIOS=['baixa','media','alta','urgente'];
 var PA={alta:'↑',urgente:'↑↑',media:'→',baixa:'↓'};
-var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'emissao_oc',l:'Emissão da OC'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'}];
+var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'pre_aprovacao',l:'Pré-Aprovação Gerente'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'emissao_oc',l:'Emissão da OC'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'}];
 
 // INIT
 async function init(){
@@ -747,11 +748,11 @@ function setupNav(){
   var role=CU.role;
   document.getElementById('nav-admin').style.display=(role==='diretor'||role==='admin')?'flex':'none';
   document.getElementById('nav-kanban').style.display=(role==='admin')?'flex':'none';
-  document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin')?'flex':'none';
+  document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin'||role==='gerente')?'flex':'none';
   document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor')?'flex':'none';
   document.getElementById('disp-nome').textContent=CU.nome;
-  document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':'Solicitante';
-  if(role==='solicitante')go('nova');else if(role==='diretor')go('fila');else go('admin');
+  document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':role==='gerente'?'Gerente':'Solicitante';
+  if(role==='solicitante')go('nova');else if(role==='diretor'||role==='gerente')go('fila');else go('admin');
 }
 function go(p){
   document.querySelectorAll('.page').forEach(function(e){e.classList.remove('active');});
@@ -1060,27 +1061,42 @@ function kCard(s){
 // FILA
 async function renderFila(){
   if(!sols.length)await loadSols();
-  var fila=sols.filter(function(s){
-    if(s.status!=='aprovacao'||s.ap_status!=='aguardando')return false;
-    if(CU.role==='diretor'){
-      // Filtra apenas as solicitações destinadas a este diretor
-      var aprov=(s.aprovador||'').toLowerCase();
-      var nome=(CU.nome||'').toLowerCase();
-      return aprov&&nome&&(aprov===nome||nome.includes(aprov)||aprov.includes(nome.split(' ')[0]));
-    }
-    return true;
-  });
   var el=document.getElementById('fila-list');
-  if(!fila.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma solicitação aguardando aprovação</div></div>';return;}
-  el.innerHTML=fila.map(function(s){
-    return'<div class="fila-item" onclick="openModal('+s.id+')">'+
-      '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
-      '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+(function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
-      '</div><div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
-      '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
-      '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'reprovado\')">❌ Reprovar</button>'+
-      '</div></div>';
-  }).join('');
+  if(CU.role==='gerente'){
+    var fila=sols.filter(function(s){return s.status==='pre_aprovacao';});
+    if(!fila.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma solicitação aguardando pré-aprovação</div></div>';return;}
+    el.innerHTML=fila.map(function(s){
+      return'<div class="fila-item" onclick="openModal('+s.id+')">'+
+        '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
+        '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
+        (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
+        '</div><div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
+        '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
+        '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
+        '</div></div>';
+    }).join('');
+  } else {
+    var fila=sols.filter(function(s){
+      if(s.status!=='aprovacao'||s.ap_status!=='aguardando')return false;
+      if(CU.role==='diretor'){
+        var aprov=(s.aprovador||'').toLowerCase();
+        var nome=(CU.nome||'').toLowerCase();
+        return aprov&&nome&&(aprov===nome||nome.includes(aprov)||aprov.includes(nome.split(' ')[0]));
+      }
+      return true;
+    });
+    if(!fila.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma solicitação aguardando aprovação</div></div>';return;}
+    el.innerHTML=fila.map(function(s){
+      return'<div class="fila-item" onclick="openModal('+s.id+')">'+
+        '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
+        '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
+        (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
+        '</div><div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
+        '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
+        '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'reprovado\')">❌ Reprovar</button>'+
+        '</div></div>';
+    }).join('');
+  }
 }
 async function qAp(id,status){
   await sb.from('solicitacoes').update({ap_status:status,status:status==='aprovado'?'emissao_oc':'aprovacao'}).eq('id',id);
@@ -1420,14 +1436,32 @@ async function salvarSaving(id){
 async function enviarAprovacao(id){
   var savingEl=document.getElementById('saving-input-'+id);
   var savingVal=savingEl?parseFloat(savingEl.value)||0:0;
-  var r=await sb.from('solicitacoes').update({status:'aprovacao',ap_status:'aguardando',saving:savingVal}).eq('id',id);
+  var r=await sb.from('solicitacoes').update({status:'pre_aprovacao',ap_status:'aguardando',saving:savingVal}).eq('id',id);
   if(r.error){toast('❌ Erro: '+r.error.message);return;}
   var s=sols.find(function(x){return x.id===id;});var titulo=s?s.titulo:'Solicitação';
-  var dirEmail=DIRECTOR_EMAILS[s?s.aprovador:'Francisco']||'francisco@abbaquimica.com.br';
-  await sendEmail(dirEmail,'Aprovação Pendente: '+titulo,
-    emailTpl('Solicitação Aguarda sua Aprovação','<p><strong>Solicitação:</strong> '+titulo+'</p><p><strong>Solicitante:</strong> '+(s?s.nome:'')+'</p><p><strong>Setor:</strong> '+(s?s.setor:'')+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
-  await notifyUsers(['diretor'],'Nova Aprovação Pendente','"'+titulo+'" aguarda sua aprovação.','aprovacao',id);
-  sols=[];await openModal(id);render(curPage());toast('📋 Enviado para aprovação da Diretoria!');
+  await sendEmail(GERENTE_EMAIL,'Pré-Aprovação Pendente: '+titulo,
+    emailTpl('Solicitação Aguarda sua Pré-Aprovação','<p><strong>Solicitação:</strong> '+titulo+'</p><p><strong>Solicitante:</strong> '+(s?s.nome:'')+'</p><p><strong>Setor:</strong> '+(s?s.setor:'')+'</p><p><strong>Prazo:</strong> '+(s?fmtD(s.prazo):'')+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
+  await notifyUsers(['gerente'],'Nova Pré-Aprovação Pendente','"'+titulo+'" aguarda sua pré-aprovação.','aprovacao',id);
+  sols=[];await openModal(id);render(curPage());toast('📋 Enviado para pré-aprovação do Gerente!');
+}
+async function qPreAp(id,status){
+  var s=sols.find(function(x){return x.id===id;});
+  var titulo=s?s.titulo:'Solicitação';
+  if(status==='aprovado'){
+    await sb.from('solicitacoes').update({status:'aprovacao',ap_status:'aguardando'}).eq('id',id);
+    var dirEmail=DIRECTOR_EMAILS[s?s.aprovador:'Francisco']||'francisco@abbaquimica.com.br';
+    await sendEmail(dirEmail,'Aprovação Pendente: '+titulo,
+      emailTpl('Solicitação Aguarda sua Aprovação','<p><strong>Solicitação:</strong> '+titulo+'</p><p><strong>Solicitante:</strong> '+(s?s.nome:'')+'</p><p><strong>Setor:</strong> '+(s?s.setor:'')+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
+    await notifyUsers(['diretor'],'Nova Aprovação Pendente','"'+titulo+'" aguarda aprovação da Diretoria.','aprovacao',id);
+    await notifySolicitante(id,'Solicitação Pré-Aprovada','"'+titulo+'" foi pré-aprovada pelo Gerente e segue para a Diretoria.','status');
+    toast('✅ Pré-aprovado! Enviado para a Diretoria.');
+  } else {
+    await sb.from('solicitacoes').update({status:'triagem',ap_status:'aguardando'}).eq('id',id);
+    await sendEmail(COMPRAS_EMAIL,'Pré-Aprovação Recusada: '+titulo,emailTpl('Solicitação Recusada pelo Gerente','<p>"'+titulo+'" foi recusada na pré-aprovação.</p>'));
+    await notifySolicitante(id,'Solicitação Recusada pelo Gerente','"'+titulo+'" foi recusada pelo Gerente e retornou para Triagem.','reprovado');
+    toast('❌ Recusado. Retornou para Triagem.');
+  }
+  sols=[];await renderFila();
 }
 async function salvarMotivoPausa(id){
   var el=document.getElementById('motivo-pausa-'+id);
