@@ -1373,7 +1373,11 @@ function buildModal(s,anexos,comentarios){
     }
   }
   var showApBtn=canApprove&&ap.status==='aguardando'&&s.status==='aprovacao';
-  var apSec='<div class="sec"><h3>Aprovação da Diretoria</h3>'+apSt+
+  var preApBadge=(s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'||s.status==='concluido')?
+    '<div style="display:flex;align-items:center;gap:6px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:8px 12px;font-size:13px;color:#065f46;margin-bottom:12px">'+
+    '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'+
+    'Pré-aprovado pela Gerência</div>':'';
+  var apSec='<div class="sec"><h3>Aprovação da Diretoria</h3>'+preApBadge+apSt+
     (ap.obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700);margin-bottom:12px">'+esc(ap.obs)+'</div>':'')+
     (showApBtn?'<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Observações/Parecer</label>'+
     '<textarea id="ap-obs-'+s.id+'" placeholder="Insira seu parecer...">'+esc(ap.obs)+'</textarea></div>'+
