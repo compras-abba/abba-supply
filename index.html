@@ -615,7 +615,10 @@ async function sendEmail(to,subject,html){
       headers:{'Content-Type':'application/json','apikey':SKEY,'Authorization':'Bearer '+SKEY},
       body:JSON.stringify({to:to,subject:subject,html:html})
     });
-  }catch(e){console.error('Email erro:',e.message);}
+    var data=await resp.json().catch(function(){return{};});
+    if(resp.ok){toast('✅ Email enviado para '+to);}
+    else{toast('❌ Email falhou: '+(data.error||resp.status));}
+  }catch(e){toast('❌ Email erro: '+e.message);}
 }
 function emailTpl(titulo,corpo){
   return'<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">'+
