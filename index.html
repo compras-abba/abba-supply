@@ -165,13 +165,14 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);pointer-events:none}
 .search-icon svg{width:14px;height:14px}
 .kanban-topbar select{padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none;background:#fff}
-.kanban-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;min-height:300px}
-.kanban-col{min-width:230px;width:230px;flex-shrink:0}
-.col-head{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.kanban-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;align-items:flex-start;height:calc(100vh - 220px)}
+.kanban-col{min-width:240px;width:240px;flex-shrink:0;display:flex;flex-direction:column;max-height:100%}
+.col-head{display:flex;align-items:center;gap:7px;margin-bottom:10px;flex-shrink:0}
 .col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .col-name{font-size:12.5px;font-weight:600;flex:1}
 .col-cnt{font-size:12px;color:var(--gray-400)}
-.col-body{display:flex;flex-direction:column;gap:8px}
+.col-body{display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;padding-right:3px}
+.col-body::-webkit-scrollbar{width:4px}.col-body::-webkit-scrollbar-track{background:transparent}.col-body::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:4px}
 .col-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--gray-200);border-radius:10px;padding:28px 10px;color:var(--gray-300);font-size:12px;min-height:100px}
 .k-card{background:#fff;border-radius:10px;padding:13px;box-shadow:var(--shadow);cursor:pointer;border:1px solid var(--gray-100);transition:box-shadow .15s,transform .1s}
 .k-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
