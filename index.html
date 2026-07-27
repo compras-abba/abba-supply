@@ -749,7 +749,7 @@ function setupNav(){
   document.getElementById('nav-admin').style.display=(role==='diretor'||role==='admin')?'flex':'none';
   document.getElementById('nav-kanban').style.display=(role==='admin')?'flex':'none';
   document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin'||role==='gerente')?'flex':'none';
-  document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor')?'flex':'none';
+  document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor'||role==='gerente')?'flex':'none';
   document.getElementById('disp-nome').textContent=CU.nome;
   document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':role==='gerente'?'Gerente':'Solicitante';
   if(role==='solicitante')go('nova');else if(role==='diretor'||role==='gerente')go('fila');else go('admin');
@@ -1123,7 +1123,7 @@ async function qAp(id,status){
 function setChip(el,f){chipFilter=f;document.querySelectorAll('#chips .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f===f);});renderMinhas();}
 async function renderMinhas(){
   if(!sols.length)await loadSols();
-  var mine=(CU.role==='solicitante'||CU.role==='diretor')?sols.filter(function(s){return s.user_id===CU.id;}):sols;
+  var mine=(CU.role==='solicitante'||CU.role==='diretor'||CU.role==='gerente')?sols.filter(function(s){return s.user_id===CU.id;}):sols;
   var items=chipFilter?mine.filter(function(s){return s.status===chipFilter;}):mine;
   var el=document.getElementById('req-list');
   if(!items.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-txt">Nenhuma solicitação encontrada</div></div>';return;}
