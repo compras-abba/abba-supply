@@ -792,7 +792,7 @@ function setupNav(){
   document.getElementById('nav-admin').style.display=(role==='diretor'||role==='admin')?'flex':'none';
   document.getElementById('nav-kanban').style.display=(role==='admin')?'flex':'none';
   document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin'||role==='gerente')?'flex':'none';
-  document.getElementById('nav-fornecedores').style.display=(role==='admin'||role==='gerente')?'flex':'none';
+  document.getElementById('nav-fornecedores').style.display=(role==='admin')?'flex':'none';
   document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor'||role==='gerente')?'flex':'none';
   document.getElementById('disp-nome').textContent=CU.nome;
   document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':role==='gerente'?'Gerente':'Solicitante';
