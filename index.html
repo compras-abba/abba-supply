@@ -543,6 +543,15 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           <input type="text" id="forn-search" placeholder="Buscar por nome, CNPJ..." oninput="renderFornList()" style="flex:1;min-width:180px;padding:9px 13px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none">
           <select id="forn-cat-filter" onchange="renderFornList()" style="padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none;background:#fff"><option value="">Todos os subgrupos</option><option>Insumos</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;os</option></select>
         </div>
+        <div id="forn-sel-bar" style="display:none;align-items:center;gap:10px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;margin-bottom:10px">
+          <input type="checkbox" id="forn-sel-all" onchange="toggleSelectAllForns(this.checked)" style="width:16px;height:16px;cursor:pointer">
+          <span id="forn-sel-count" style="font-size:13px;font-weight:600;color:var(--gray-700)">0 selecionados</span>
+          <button class="btn btn-red btn-sm" onclick="deleteSelectedForns()" style="margin-left:auto">🗑️ Excluir Selecionados</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleFornSelMode(false)">Cancelar</button>
+        </div>
+        <div style="margin-bottom:8px">
+          <button class="btn btn-outline btn-sm" id="forn-sel-mode-btn" onclick="toggleFornSelMode(true)">☑️ Selecionar para excluir</button>
+        </div>
         <div id="forn-list"></div>
       </div>
     </div>
@@ -677,7 +686,7 @@ function emailTpl(titulo,corpo){
     '<p style="color:#9ca3af;font-size:12px;margin:0">ABBA Supply &bull; Sistema de Gestão de Compras</p></div></div>';
 }
 var sb=supabase.createClient(SURL,SKEY);
-var CU=null,sols=[],notifs=[],chipFilter='',selId=null,forns=[],editFornId=null;
+var CU=null,sols=[],notifs=[],chipFilter='',selId=null,forns=[],editFornId=null,fornSelMode=false,fornSelected=new Set();
 
 var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',pre_aprovacao:'Pré-Aprovação Gerente',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By'};
 var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',pre_aprovacao:'em Pré-Aprovação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído'};
@@ -1801,7 +1810,10 @@ function renderFornList(){
   var el=document.getElementById('forn-list');
   if(!list.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏭</div><div class="empty-txt">Nenhum fornecedor cadastrado</div></div>';return;}
   el.innerHTML=list.map(function(f){
-    return'<div class="forn-item">'+
+    var checked=fornSelected.has(f.id);
+    var selStyle=checked?'border-color:#EF4444;background:#FEF2F2;':'';
+    return'<div class="forn-item" id="forn-row-'+f.id+'" style="'+selStyle+'">'+
+      (fornSelMode?'<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleFornCheck('+f.id+',this.checked)" style="width:16px;height:16px;flex-shrink:0;cursor:pointer;margin-right:4px">':'')+
       '<div class="forn-info">'+
         '<div class="forn-nome">'+esc(f.nome)+(f.nome_fantasia?' <span style="font-weight:400;color:var(--gray-500)">/ '+esc(f.nome_fantasia)+'</span>':'')+(f.subgrupo?' <span class="forn-cat">'+esc(f.subgrupo)+'</span>':'')+'</div>'+
         '<div class="forn-meta">'+
@@ -1812,7 +1824,7 @@ function renderFornList(){
         '</div>'+
       '</div>'+
       '<div class="forn-actions">'+
-        '<button class="btn btn-outline btn-sm" onclick="startEditForn('+f.id+')">✏️ Editar</button>'+
+        (!fornSelMode?'<button class="btn btn-outline btn-sm" onclick="startEditForn('+f.id+')">✏️ Editar</button>':'')+
         '<button class="btn btn-red btn-sm" onclick="deleteForn('+f.id+')">🗑️</button>'+
       '</div>'+
     '</div>';
@@ -1872,6 +1884,44 @@ function cancelEditForn(){
   var fs=document.getElementById('ff-subgrupo');if(fs)fs.value='';
   document.getElementById('forn-form-title').textContent='Novo Fornecedor';
   document.getElementById('forn-cancel-btn').style.display='none';
+}
+function toggleFornSelMode(on){
+  fornSelMode=on;
+  fornSelected.clear();
+  var bar=document.getElementById('forn-sel-bar');
+  var btn=document.getElementById('forn-sel-mode-btn');
+  if(bar)bar.style.display=on?'flex':'none';
+  if(btn)btn.style.display=on?'none':'inline-flex';
+  renderFornList();
+}
+function toggleFornCheck(id,checked){
+  if(checked)fornSelected.add(id);else fornSelected.delete(id);
+  var row=document.getElementById('forn-row-'+id);
+  if(row)row.style.cssText=checked?'border-color:#EF4444;background:#FEF2F2;':'';
+  var cnt=document.getElementById('forn-sel-count');
+  if(cnt)cnt.textContent=fornSelected.size+' selecionado'+(fornSelected.size!==1?'s':'');
+  var all=document.getElementById('forn-sel-all');
+  if(all){var boxes=document.querySelectorAll('#forn-list input[type=checkbox]');all.checked=boxes.length>0&&[...boxes].every(function(b){return b.checked;});}
+}
+function toggleSelectAllForns(checked){
+  document.querySelectorAll('#forn-list input[type=checkbox]').forEach(function(cb){
+    cb.checked=checked;
+    var idMatch=cb.getAttribute('onchange').match(/\d+/);
+    if(idMatch){var id=parseInt(idMatch[0]);if(checked)fornSelected.add(id);else fornSelected.delete(id);}
+    var row=cb.closest('.forn-item');if(row)row.style.cssText=checked?'border-color:#EF4444;background:#FEF2F2;':'';
+  });
+  var cnt=document.getElementById('forn-sel-count');
+  if(cnt)cnt.textContent=fornSelected.size+' selecionado'+(fornSelected.size!==1?'s':'');
+}
+async function deleteSelectedForns(){
+  if(!fornSelected.size){toast('⚠️ Nenhum fornecedor selecionado');return;}
+  if(!confirm('Excluir '+fornSelected.size+' fornecedor(es) selecionado(s)?'))return;
+  var ids=Array.from(fornSelected);
+  var r=await sb.from('fornecedores').delete().in('id',ids);
+  if(r.error){toast('❌ Erro: '+r.error.message);return;}
+  toast('✅ '+ids.length+' fornecedor(es) excluído(s)!');
+  toggleFornSelMode(false);
+  await renderFornecedores();
 }
 async function importFornCSV(input){
   var file=input.files[0];if(!file)return;
