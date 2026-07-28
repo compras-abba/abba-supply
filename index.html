@@ -613,10 +613,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
       <div class="page-body">
         <div class="chips" id="chips">
           <div class="chip active" onclick="setChip(this,'')" data-f="">Todas</div>
-          <div class="chip" onclick="setChip(this,'triagem')" data-f="triagem">Triagem</div>
-          <div class="chip" onclick="setChip(this,'cotacao')" data-f="cotacao">Cota&ccedil;&atilde;o</div>
-          <div class="chip" onclick="setChip(this,'aprovacao')" data-f="aprovacao">Aprova&ccedil;&atilde;o</div>
-          <div class="chip" onclick="setChip(this,'entrega')" data-f="entrega">Entrega</div>
+          <div class="chip" onclick="setChip(this,'andamento')" data-f="andamento">Em andamento</div>
           <div class="chip" onclick="setChip(this,'concluido')" data-f="concluido">Conclu&iacute;do</div>
         </div>
         <div class="req-list" id="req-list"></div>
@@ -1188,13 +1185,24 @@ function setChip(el,f){chipFilter=f;document.querySelectorAll('#chips .chip').fo
 async function renderMinhas(){
   if(!sols.length)await loadSols();
   var mine=(CU.role==='solicitante'||CU.role==='diretor'||CU.role==='gerente')?sols.filter(function(s){return s.user_id===CU.id;}):sols;
-  var items=chipFilter?mine.filter(function(s){return s.status===chipFilter;}):mine;
+  var items=mine.filter(function(s){
+    if(chipFilter==='andamento')return s.status!=='concluido'&&s.status!=='pausado';
+    if(chipFilter==='concluido')return s.status==='concluido';
+    return true;
+  });
   var el=document.getElementById('req-list');
   if(!items.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-txt">Nenhuma solicitação encontrada</div></div>';return;}
   el.innerHTML=items.map(function(s){
+    var concluido=s.status==='concluido';
+    var pausado=s.status==='pausado';
+    var statusBadge=concluido
+      ?'<span class="sbadge concluido">Concluído</span>'
+      :pausado
+        ?'<span class="sbadge pausado">Pausado</span>'
+        :'<span style="display:inline-flex;align-items:center;gap:5px;background:#EEF2FF;color:#4F46E5;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">Em andamento <span style="background:#4F46E5;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px">'+esc(SL[s.status])+'</span></span>';
     return'<div class="req-item" onclick="openModal('+s.id+')">'+
       '<div class="req-item-top"><span class="req-title">'+esc(s.titulo)+'</span>'+
-      '<div class="req-badges"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span><span class="sbadge '+s.status+'">'+SL[s.status]+'</span></div></div>'+
+      '<div class="req-badges"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+statusBadge+'</div></div>'+
       '<div class="req-meta">'+
       '<span><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>'+esc(s.nome)+'</span>'+
       '<span><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>'+esc(s.setor)+'</span>'+
