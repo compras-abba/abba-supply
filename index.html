@@ -612,9 +612,9 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
       <div class="page-header"><h1>Minhas Solicita&ccedil;&otilde;es</h1><p>Acompanhe suas solicita&ccedil;&otilde;es</p></div>
       <div class="page-body">
         <div class="chips" id="chips">
-          <div class="chip active" onclick="setChip(this,'')" data-f="">Todas</div>
-          <div class="chip" onclick="setChip(this,'andamento')" data-f="andamento">Em andamento</div>
+          <div class="chip active" onclick="setChip(this,'andamento')" data-f="andamento">Em andamento</div>
           <div class="chip" onclick="setChip(this,'concluido')" data-f="concluido">Conclu&iacute;do</div>
+          <div class="chip" onclick="setChip(this,'')" data-f="">Todas</div>
         </div>
         <div class="req-list" id="req-list"></div>
       </div>
@@ -683,7 +683,7 @@ function emailTpl(titulo,corpo){
     '<p style="color:#9ca3af;font-size:12px;margin:0">ABBA Supply &bull; Sistema de Gestão de Compras</p></div></div>';
 }
 var sb=supabase.createClient(SURL,SKEY);
-var CU=null,sols=[],notifs=[],chipFilter='',selId=null,forns=[],editFornId=null,fornSelMode=false,fornSelected=new Set();
+var CU=null,sols=[],notifs=[],chipFilter='andamento',selId=null,forns=[],editFornId=null,fornSelMode=false,fornSelected=new Set();
 
 var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',pre_aprovacao:'Pré-Aprovação Gerente',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By'};
 var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',pre_aprovacao:'em Pré-Aprovação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído'};
