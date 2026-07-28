@@ -533,9 +533,10 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             <div class="fg"><label>Grupo de Fornecedor</label><input id="ff-grupo" placeholder="Ex: Qu&iacute;micos, Embalagens..."></div>
             <div class="fg"><label>Subgrupo</label><select id="ff-subgrupo"><option value="">Selecione...</option><option>Insumos</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;os</option></select></div>
           </div>
-          <div style="display:flex;gap:10px;margin-top:8px">
+          <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
             <button class="btn btn-primary" onclick="saveFornecedor()">Salvar Fornecedor</button>
             <button class="btn btn-outline" onclick="cancelEditForn()" id="forn-cancel-btn" style="display:none">Cancelar</button>
+            <label class="btn btn-outline" style="cursor:pointer;margin-left:auto">📥 Importar CSV <input type="file" accept=".csv" style="display:none" onchange="importFornCSV(this)"></label>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
@@ -1871,6 +1872,46 @@ function cancelEditForn(){
   var fs=document.getElementById('ff-subgrupo');if(fs)fs.value='';
   document.getElementById('forn-form-title').textContent='Novo Fornecedor';
   document.getElementById('forn-cancel-btn').style.display='none';
+}
+async function importFornCSV(input){
+  var file=input.files[0];if(!file)return;
+  var text=await file.text();
+  var lines=text.split('\n').slice(2); // skip 2 header rows
+  var records=[];
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i].trim();if(!l)continue;
+    var c=l.split(';');
+    if(c.length<5)continue;
+    var nome=(c[3]||'').trim();if(!nome)continue;
+    var uf=(c[17]||'').trim();if(uf.length>2)uf='';
+    records.push({
+      cpf_cnpj:(c[2]||'').trim(),
+      nome:nome,
+      nome_fantasia:(c[4]||'').trim(),
+      inscricao_estadual:(c[5]||'').trim(),
+      cep:(c[11]||'').trim(),
+      endereco:(c[12]||'').trim(),
+      numero:(c[13]||'').trim(),
+      bairro:(c[15]||'').trim(),
+      pais:(c[16]||'').trim(),
+      uf:uf,
+      telefone:(c[21]||'').trim(),
+      grupo:(c[27]||'').trim()
+    });
+  }
+  if(!records.length){toast('⚠️ Nenhum registro encontrado no CSV');return;}
+  toast('⏳ Importando '+records.length+' fornecedores...');
+  var errors=0;
+  var batchSize=100;
+  for(var j=0;j<records.length;j+=batchSize){
+    var batch=records.slice(j,j+batchSize);
+    var r=await sb.from('fornecedores').insert(batch);
+    if(r.error){errors++;console.error(r.error);}
+  }
+  input.value='';
+  await renderFornecedores();
+  if(errors)toast('⚠️ Importado com '+errors+' erros. Verifique o console.');
+  else toast('✅ '+records.length+' fornecedores importados com sucesso!');
 }
 async function deleteForn(id){
   if(!confirm('Excluir este fornecedor?'))return;
