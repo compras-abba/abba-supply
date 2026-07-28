@@ -536,7 +536,15 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
             <button class="btn btn-primary" onclick="saveFornecedor()">Salvar Fornecedor</button>
             <button class="btn btn-outline" onclick="cancelEditForn()" id="forn-cancel-btn" style="display:none">Cancelar</button>
-            <label class="btn btn-outline" style="cursor:pointer;margin-left:auto">📥 Importar CSV <input type="file" accept=".csv" style="display:none" onchange="importFornCSV(this)"></label>
+            <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+              <select id="import-subgrupo" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none;background:#fff">
+                <option value="">Subgrupo ao importar</option>
+                <option>Insumos</option>
+                <option>Matéria-Prima</option>
+                <option>Serviços</option>
+              </select>
+              <label class="btn btn-outline" style="cursor:pointer">📥 Importar CSV <input type="file" accept=".csv" style="display:none" onchange="importFornCSV(this)"></label>
+            </div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
@@ -1933,6 +1941,8 @@ async function deleteSelectedForns(){
 }
 async function importFornCSV(input){
   var file=input.files[0];if(!file)return;
+  var subgrupo=(document.getElementById('import-subgrupo')||{}).value||'';
+  if(!subgrupo){toast('⚠️ Selecione o subgrupo antes de importar');input.value='';return;}
   var text=await file.text();
   var lines=text.split('\n').slice(2); // skip 2 header rows
   var records=[];
@@ -1954,7 +1964,8 @@ async function importFornCSV(input){
       pais:(c[16]||'').trim(),
       uf:uf,
       telefone:(c[21]||'').trim(),
-      grupo:(c[27]||'').trim()
+      grupo:(c[27]||'').trim(),
+      subgrupo:subgrupo
     });
   }
   if(!records.length){toast('⚠️ Nenhum registro encontrado no CSV');return;}
