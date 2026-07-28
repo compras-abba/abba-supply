@@ -510,28 +510,37 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
     <div class="page" id="page-fornecedores">
       <div class="page-header"><h1>Fornecedores</h1><p>Cadastro de fornecedores homologados</p></div>
       <div class="page-body">
-        <div style="background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:20px;border:1px solid var(--gray-100)">
-          <h3 style="margin:0 0 16px;font-size:15px;color:var(--gray-700)" id="forn-form-title">Novo Fornecedor</h3>
+        <div style="background:#fff;border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-bottom:20px;border:1px solid var(--gray-100)">
+          <h3 style="margin:0 0 18px;font-size:15px;color:var(--gray-700)" id="forn-form-title">Novo Fornecedor</h3>
           <div class="ff-row">
-            <div class="fg"><label>Nome <span class="req-mark">*</span></label><input id="ff-nome" placeholder="Razão social ou nome fantasia"></div>
-            <div class="fg"><label>Contato</label><input id="ff-contato" placeholder="Nome do responsável"></div>
+            <div class="fg"><label>CPF / CNPJ <span class="req-mark">*</span></label><input id="ff-cpfcnpj" placeholder="00.000.000/0000-00"></div>
+            <div class="fg"><label>Raz&atilde;o Social / Nome <span class="req-mark">*</span></label><input id="ff-razao" placeholder="Raz&atilde;o social"></div>
+            <div class="fg"><label>Nome Fantasia</label><input id="ff-fantasia" placeholder="Nome fantasia"></div>
           </div>
           <div class="ff-row">
-            <div class="fg"><label>Email</label><input type="email" id="ff-email" placeholder="email@fornecedor.com"></div>
+            <div class="fg"><label>Inscri&ccedil;&atilde;o Estadual</label><input id="ff-ie" placeholder="000.000.000.000"></div>
             <div class="fg"><label>Telefone</label><input id="ff-tel" placeholder="(00) 00000-0000"></div>
+            <div class="fg"><label>CEP</label><input id="ff-cep" placeholder="00000-000"></div>
           </div>
           <div class="ff-row">
-            <div class="fg"><label>Categoria</label><select id="ff-cat"><option value="">Selecione...</option><option>Matéria-prima</option><option>Consumo</option><option>Serviço</option><option>Capex</option><option>Logística</option><option>TI</option><option>Outro</option></select></div>
-            <div class="fg"><label>Observação</label><input id="ff-obs" placeholder="Informações adicionais"></div>
+            <div class="fg" style="flex:2"><label>Endere&ccedil;o</label><input id="ff-endereco" placeholder="Rua, Avenida..."></div>
+            <div class="fg"><label>N&uacute;mero</label><input id="ff-numero" placeholder="123"></div>
+            <div class="fg"><label>Bairro</label><input id="ff-bairro" placeholder="Bairro"></div>
           </div>
-          <div style="display:flex;gap:10px;margin-top:4px">
+          <div class="ff-row">
+            <div class="fg"><label>Pa&iacute;s</label><input id="ff-pais" placeholder="Brasil" value="Brasil"></div>
+            <div class="fg"><label>UF</label><select id="ff-uf"><option value="">Selecione...</option><option>AC</option><option>AL</option><option>AM</option><option>AP</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MG</option><option>MS</option><option>MT</option><option>PA</option><option>PB</option><option>PE</option><option>PI</option><option>PR</option><option>RJ</option><option>RN</option><option>RO</option><option>RR</option><option>RS</option><option>SC</option><option>SE</option><option>SP</option><option>TO</option></select></div>
+            <div class="fg"><label>Grupo de Fornecedor</label><input id="ff-grupo" placeholder="Ex: Qu&iacute;micos, Embalagens..."></div>
+            <div class="fg"><label>Subgrupo</label><select id="ff-subgrupo"><option value="">Selecione...</option><option>Insumos</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;os</option></select></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px">
             <button class="btn btn-primary" onclick="saveFornecedor()">Salvar Fornecedor</button>
             <button class="btn btn-outline" onclick="cancelEditForn()" id="forn-cancel-btn" style="display:none">Cancelar</button>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <input type="text" id="forn-search" placeholder="Buscar fornecedor..." oninput="renderFornList()" style="flex:1;padding:9px 13px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none">
-          <select id="forn-cat-filter" onchange="renderFornList()" style="padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none;background:#fff"><option value="">Todas categorias</option><option>Matéria-prima</option><option>Consumo</option><option>Serviço</option><option>Capex</option><option>Logística</option><option>TI</option><option>Outro</option></select>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <input type="text" id="forn-search" placeholder="Buscar por nome, CNPJ..." oninput="renderFornList()" style="flex:1;min-width:180px;padding:9px 13px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none">
+          <select id="forn-cat-filter" onchange="renderFornList()" style="padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;outline:none;background:#fff"><option value="">Todos os subgrupos</option><option>Insumos</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;os</option></select>
         </div>
         <div id="forn-list"></div>
       </div>
@@ -1782,10 +1791,10 @@ async function renderFornecedores(){
 }
 function renderFornList(){
   var q=(document.getElementById('forn-search')?document.getElementById('forn-search').value:'').toLowerCase();
-  var cat=document.getElementById('forn-cat-filter')?document.getElementById('forn-cat-filter').value:'';
+  var sub=document.getElementById('forn-cat-filter')?document.getElementById('forn-cat-filter').value:'';
   var list=forns.filter(function(f){
-    if(cat&&f.categoria!==cat)return false;
-    if(q&&!(f.nome||'').toLowerCase().includes(q)&&!(f.contato||'').toLowerCase().includes(q))return false;
+    if(sub&&f.subgrupo!==sub)return false;
+    if(q&&!(f.nome||'').toLowerCase().includes(q)&&!(f.cpf_cnpj||'').toLowerCase().includes(q)&&!(f.nome_fantasia||'').toLowerCase().includes(q))return false;
     return true;
   });
   var el=document.getElementById('forn-list');
@@ -1793,12 +1802,12 @@ function renderFornList(){
   el.innerHTML=list.map(function(f){
     return'<div class="forn-item">'+
       '<div class="forn-info">'+
-        '<div class="forn-nome">'+esc(f.nome)+(f.categoria?' <span class="forn-cat">'+esc(f.categoria)+'</span>':'')+'</div>'+
+        '<div class="forn-nome">'+esc(f.nome)+(f.nome_fantasia?' <span style="font-weight:400;color:var(--gray-500)">/ '+esc(f.nome_fantasia)+'</span>':'')+(f.subgrupo?' <span class="forn-cat">'+esc(f.subgrupo)+'</span>':'')+'</div>'+
         '<div class="forn-meta">'+
-          (f.contato?'<span>👤 '+esc(f.contato)+'</span>':'')+
-          (f.email?'<span>✉️ '+esc(f.email)+'</span>':'')+
+          (f.cpf_cnpj?'<span>🪪 '+esc(f.cpf_cnpj)+'</span>':'')+
           (f.telefone?'<span>📞 '+esc(f.telefone)+'</span>':'')+
-          (f.observacao?'<span>📝 '+esc(f.observacao)+'</span>':'')+
+          (f.uf?'<span>📍 '+esc(f.uf)+'</span>':'')+
+          (f.grupo?'<span>🏷️ '+esc(f.grupo)+'</span>':'')+
         '</div>'+
       '</div>'+
       '<div class="forn-actions">'+
@@ -1809,9 +1818,24 @@ function renderFornList(){
   }).join('');
 }
 async function saveFornecedor(){
-  var nome=(document.getElementById('ff-nome').value||'').trim();
-  if(!nome){toast('⚠️ Informe o nome do fornecedor');return;}
-  var data={nome:nome,contato:document.getElementById('ff-contato').value.trim(),email:document.getElementById('ff-email').value.trim(),telefone:document.getElementById('ff-tel').value.trim(),categoria:document.getElementById('ff-cat').value,observacao:document.getElementById('ff-obs').value.trim()};
+  var razao=(document.getElementById('ff-razao').value||'').trim();
+  var cpfcnpj=(document.getElementById('ff-cpfcnpj').value||'').trim();
+  if(!razao||!cpfcnpj){toast('⚠️ CPF/CNPJ e Razão Social são obrigatórios');return;}
+  var data={
+    nome:razao,
+    cpf_cnpj:cpfcnpj,
+    nome_fantasia:document.getElementById('ff-fantasia').value.trim(),
+    inscricao_estadual:document.getElementById('ff-ie').value.trim(),
+    telefone:document.getElementById('ff-tel').value.trim(),
+    cep:document.getElementById('ff-cep').value.trim(),
+    endereco:document.getElementById('ff-endereco').value.trim(),
+    numero:document.getElementById('ff-numero').value.trim(),
+    bairro:document.getElementById('ff-bairro').value.trim(),
+    pais:document.getElementById('ff-pais').value.trim()||'Brasil',
+    uf:document.getElementById('ff-uf').value,
+    grupo:document.getElementById('ff-grupo').value.trim(),
+    subgrupo:document.getElementById('ff-subgrupo').value
+  };
   var r=editFornId?await sb.from('fornecedores').update(data).eq('id',editFornId):await sb.from('fornecedores').insert(data);
   if(r.error){toast('❌ Erro: '+r.error.message);return;}
   toast(editFornId?'✅ Fornecedor atualizado!':'✅ Fornecedor cadastrado!');
@@ -1822,20 +1846,29 @@ function startEditForn(id){
   var f=forns.find(function(x){return x.id===id;});
   if(!f)return;
   editFornId=id;
-  document.getElementById('ff-nome').value=f.nome||'';
-  document.getElementById('ff-contato').value=f.contato||'';
-  document.getElementById('ff-email').value=f.email||'';
+  document.getElementById('ff-cpfcnpj').value=f.cpf_cnpj||'';
+  document.getElementById('ff-razao').value=f.nome||'';
+  document.getElementById('ff-fantasia').value=f.nome_fantasia||'';
+  document.getElementById('ff-ie').value=f.inscricao_estadual||'';
   document.getElementById('ff-tel').value=f.telefone||'';
-  document.getElementById('ff-cat').value=f.categoria||'';
-  document.getElementById('ff-obs').value=f.observacao||'';
+  document.getElementById('ff-cep').value=f.cep||'';
+  document.getElementById('ff-endereco').value=f.endereco||'';
+  document.getElementById('ff-numero').value=f.numero||'';
+  document.getElementById('ff-bairro').value=f.bairro||'';
+  document.getElementById('ff-pais').value=f.pais||'Brasil';
+  document.getElementById('ff-uf').value=f.uf||'';
+  document.getElementById('ff-grupo').value=f.grupo||'';
+  document.getElementById('ff-subgrupo').value=f.subgrupo||'';
   document.getElementById('forn-form-title').textContent='Editar Fornecedor';
   document.getElementById('forn-cancel-btn').style.display='inline-flex';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function cancelEditForn(){
   editFornId=null;
-  ['ff-nome','ff-contato','ff-email','ff-tel','ff-obs'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-  var fc=document.getElementById('ff-cat');if(fc)fc.value='';
+  ['ff-cpfcnpj','ff-razao','ff-fantasia','ff-ie','ff-tel','ff-cep','ff-endereco','ff-numero','ff-bairro','ff-grupo'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  var fp=document.getElementById('ff-pais');if(fp)fp.value='Brasil';
+  var fu=document.getElementById('ff-uf');if(fu)fu.value='';
+  var fs=document.getElementById('ff-subgrupo');if(fs)fs.value='';
   document.getElementById('forn-form-title').textContent='Novo Fornecedor';
   document.getElementById('forn-cancel-btn').style.display='none';
 }
