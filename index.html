@@ -1378,7 +1378,8 @@ function buildModal(s,anexos,comentarios){
       '<div class="ii-val">'+(s.serv_fim?fmtD(s.serv_fim):'—')+'</div>')+
       '</div></div></div>':'');
 
-  var cotItems=(s.cotacoes||[]).map(function(c){
+  var isSolicitante=CU.role==='solicitante';
+  var cotItems=isSolicitante?'':(s.cotacoes||[]).map(function(c){
     return'<div class="cot-item'+(c.escolhida?' chosen':'')+'" id="cot-item-'+c.id+'">'+
       '<div class="cot-head" '+(canEdit?'onclick="toggleCot('+s.id+','+c.id+','+c.escolhida+')" style="cursor:pointer"':'')+'>'+
       '<span class="cot-forn">'+esc(c.forn)+'</span>'+(c.escolhida?'<span class="chosen-badge">Escolhido</span>':'')+
@@ -1419,6 +1420,16 @@ function buildModal(s,anexos,comentarios){
     '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'+
     'Enviar para Aprovação da Diretoria</button></div>':'';
 
+  // Para solicitante: mostra apenas status da aprovação, sem preços nem fornecedores
+  if(isSolicitante){
+    var apStatus=s.ap_status||'aguardando';
+    var apLabel=s.status==='concluido'?'<div class="ap-done aprovado">✅ Solicitação concluída</div>':
+      s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'?'<div class="ap-done aprovado">✅ Aprovada pela Diretoria — em andamento</div>':
+      s.status==='pre_aprovacao'?'<div class="ap-wait">⏳ Aguardando aprovação da Gerência</div>':
+      s.status==='triagem'&&apStatus==='reprovado'?'<div class="ap-done reprovado">❌ Recusada'+(s.ap_obs?' — '+esc(s.ap_obs):'')+'</div>':
+      '<div class="ap-wait">⏳ Em análise pelo time de Compras</div>';
+    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+apLabel+'</div>';
+  } else {
   var cot='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Cotação Externa '+roTag+'</h3>'+
     '<div class="cot-list">'+(cotItems||'<p style="color:var(--gray-400);font-size:13px">Nenhuma cotação adicionada</p>')+'</div>'+
     (canEdit?'<button class="btn-add-cot" onclick="showCotForm('+s.id+')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Adicionar Cotação</button>'+
@@ -1432,6 +1443,7 @@ function buildModal(s,anexos,comentarios){
     '<div style="display:flex;gap:8px;justify-content:flex-end">'+
     '<button class="btn btn-outline btn-sm" onclick="hideCotForm('+s.id+')">Cancelar</button>'+
     '<button class="btn btn-primary btn-sm" onclick="saveCot('+s.id+')">Salvar</button></div></div>':'')+'</div>';
+  } // end else (não solicitante)
 
   var ap=s.aprovacao;
   var apSt='';
