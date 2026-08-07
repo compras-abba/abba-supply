@@ -1359,6 +1359,7 @@ function buildModal(s,anexos,comentarios){
   anexos=anexos||[];comentarios=comentarios||[];
   var canEdit=CU.role==='admin';
   var canApprove=CU.role==='diretor'||CU.role==='admin';
+  var isComercial=s.setor==='Comercial'||s.categoria==='Compra Revenda';
   var roTag=canEdit?'':'<span style="font-size:11px;color:var(--gray-400);font-weight:400">(visualização)</span>';
 
   var info='<div class="sec"><h3>Informações da Solicitação</h3>'+
@@ -1423,10 +1424,10 @@ function buildModal(s,anexos,comentarios){
     '<option value="">Selecione</option>'+CATS.map(function(c){return'<option'+(s.cat_interna===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'+
     '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
     Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div>'+
-    '<div class="fg"><label>Aprovador</label><select '+(canEdit?'onchange="updField('+s.id+',\'aprovador\',this.value)"':'disabled')+'>'+
+    (!isComercial?'<div class="fg"><label>Aprovador</label><select '+(canEdit?'onchange="updField('+s.id+',\'aprovador\',this.value)"':'disabled')+'>'+
     '<option value="Christiane"'+(s.aprovador==='Christiane'?' selected':'')+'>Christiane &mdash; Uso/Consumo</option>'+
     '<option value="Francisco"'+(s.aprovador==='Francisco'||!s.aprovador?' selected':'')+'>Francisco &mdash; Demais compras</option>'+
-    '</select></div></div>'+
+    '</select></div>':'')+'</div>'+
     (s.categoria==='Serviço'?
       '<div style="margin-top:12px;padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px">'+
       '<div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:10px">🔧 Datas do Serviço</div>'+
@@ -1476,7 +1477,7 @@ function buildModal(s,anexos,comentarios){
     '<button class="btn btn-outline btn-sm" onclick="salvarSaving('+s.id+')">Salvar Saving</button>'+
     '<span style="font-size:12px;color:#166534">Valor economizado nesta compra</span>'+
     '</div></div>':'';
-  var enviarApBtn=(canEdit&&s.status==='cotacao'&&chosen)?
+  var enviarApBtn=(canEdit&&!isComercial&&s.status==='cotacao'&&chosen)?
     '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-200)">'+
     '<button class="btn btn-primary" style="width:100%" onclick="enviarAprovacao('+s.id+')">'+
     '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'+
@@ -1553,7 +1554,7 @@ function buildModal(s,anexos,comentarios){
     '<div style="display:flex;align-items:center;gap:6px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:8px 12px;font-size:13px;color:#065f46;margin-bottom:12px">'+
     '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'+
     'Pré-aprovado pela Gerência</div>':'';
-  var apSec='<div class="sec"><h3>Aprovação da Diretoria</h3>'+preApBadge+apSt+
+  var apSec=isComercial?'':'<div class="sec"><h3>Aprovação da Diretoria</h3>'+preApBadge+apSt+
     (ap.obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700);margin-bottom:12px">'+esc(ap.obs)+'</div>':'')+
     (showApBtn?'<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Observações/Parecer</label>'+
     '<textarea id="ap-obs-'+s.id+'" placeholder="Insira seu parecer...">'+esc(ap.obs)+'</textarea></div>'+
