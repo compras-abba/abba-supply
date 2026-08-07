@@ -572,8 +572,9 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             <div class="ff"><label>Email</label><input type="email" id="f-email" placeholder="seu@email.com"></div>
           </div>
           <div class="ff"><label>Setor <span class="req-mark">*</span></label>
-            <select id="f-setor"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Compras/Revenda</option><option>Compras Consumo</option></select>
+            <select id="f-setor" onchange="toggleCliente()"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Compras/Revenda</option><option>Compras Consumo</option></select>
           </div>
+          <div class="ff" id="f-cliente-row" style="display:none"><label>Cliente <span class="req-mark">*</span></label><input type="text" id="f-cliente" placeholder="Nome do cliente"></div>
           <div class="ff-row">
             <div class="ff"><label>Empresa <span class="req-mark">*</span></label>
               <select id="f-empresa"><option value="ABBA Química">ABBA Química</option><option value="ABBA Especialidades">ABBA Especialidades</option></select>
@@ -1229,8 +1230,11 @@ async function renderMinhas(){
 }
 
 // NOVA SOLICITAÇÃO
-function toggleServico(){
-  // datas de serviço não se aplicam mais aos novos tipos
+function toggleServico(){}
+function toggleCliente(){
+  var setor=document.getElementById('f-setor').value;
+  var row=document.getElementById('f-cliente-row');
+  if(row)row.style.display=(setor==='Comercial')?'':'none';
 }
 function fillForm(){if(document.getElementById('itens-tbody')&&document.getElementById('itens-tbody').children.length===0){itemRowCount=0;addItemRow();}
   var n=document.getElementById('f-nome');var e=document.getElementById('f-email');var st=document.getElementById('f-setor');
@@ -1251,13 +1255,15 @@ async function criarSolicitacao(){
   var servFim=document.getElementById('f-serv-fim').value||null;
   var itens=getItemRows();
   var just=(document.getElementById('f-just').value||'').trim();
+  var cliente=(document.getElementById('f-cliente')&&setor==='Comercial')?(document.getElementById('f-cliente').value||'').trim():'';
   if(!nome||!setor||!cat||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
+  if(setor==='Comercial'&&!cliente){toast('⚠️ Informe o nome do cliente');return;}
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
   if(btn){btn.disabled=true;btn.innerHTML='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Enviando...';}
   try{
     var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
     var qtd=itens.length+' item(ns)';
-    var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,empresa:empresa,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
+    var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,empresa:empresa,cliente:cliente||null,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
     if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
     var solId=r.data.id;
     if(pendingFiles.length)await uploadAnexos(solId);
@@ -1371,6 +1377,7 @@ function buildModal(s,anexos,comentarios){
     '<div><div class="ii-lbl">📅 Prazo</div><div class="ii-val">'+fmtD(s.prazo)+'</div></div>'+
     '<div><div class="ii-lbl">📁 Categoria</div><div class="ii-val">'+esc(s.categoria)+'</div></div>'+
     '<div><div class="ii-lbl">🏭 Empresa</div><div class="ii-val">'+esc(s.empresa||'ABBA Química')+'</div></div>'+
+    (s.cliente?'<div><div class="ii-lbl">🤝 Cliente</div><div class="ii-val">'+esc(s.cliente)+'</div></div>':'')+
     '<div><div class="ii-lbl">⚡ Prioridade</div><div class="ii-val"><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade||'media')+'</span></div></div>'+
     (CU.role!=='solicitante'?'<div><div class="ii-lbl">👤 Aprovador</div><div class="ii-val">'+esc(s.aprovador||'-')+'</div></div>':'')+
     '</div>'+
@@ -1612,11 +1619,11 @@ function buildModal(s,anexos,comentarios){
     else if(s.ap_status==='reprovado')apResSec='<div class="sec"><h3>Aprovação</h3><div class="ap-done reprovado">❌ Reprovado</div>'+(s.ap_obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px">'+esc(s.ap_obs)+'</div>':'')+'</div>';
     else if(s.ap_status==='revisao')apResSec='<div class="sec"><h3>Aprovação</h3><div class="ap-done revisao">🔄 Revisão Solicitada</div>'+(s.ap_obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px">'+esc(s.ap_obs)+'</div>':'')+'</div>';
     var chatSec=buildChatSection(s.id,comentarios);
-    return info+cot+apResSec+pausaSec+entregaSec+chatSec+anexSec;
+    return info+cot+apResSec+pausaSec+(isComercialSol?'':entregaSec)+(isComercialSol?'':chatSec)+anexSec;
   }
 
   var chatSec=buildChatSection(s.id,comentarios);
-  return info+triagem+cot+preApSec+apSec+pausaSec+entregaSec+chatSec+anexSec;
+  return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec;
 }
 
 // MUTAÇÕES
@@ -2137,7 +2144,7 @@ function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/<
 function cap(s){return s?s[0].toUpperCase()+s.slice(1):'';}
 function fmtD(d){if(!d)return'-';try{var p=String(d).split('T')[0].split('-');return p[2]+'/'+p[1]+'/'+p[0];}catch(e){return d;}}
 function fmtDL(d){if(!d)return'-';try{return new Date(d).toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}}
-function fmt(v){return Number(v).toLocaleString('pt-BR');}
+function fmt(v){return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function timeAgo(d){
   try{
     var diff=Math.floor((Date.now()-new Date(d).getTime())/1000);
