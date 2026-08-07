@@ -1240,6 +1240,7 @@ function fillForm(){if(document.getElementById('itens-tbody')&&document.getEleme
   var n=document.getElementById('f-nome');var e=document.getElementById('f-email');var st=document.getElementById('f-setor');
   if(n&&CU)n.value=CU.nome;if(e&&CU)e.value=CU.email;
   if(st&&CU&&CU.setor){for(var i=0;i<st.options.length;i++){if(st.options[i].text===CU.setor){st.selectedIndex=i;break;}}}
+  toggleCliente();
 }
 async function criarSolicitacao(){
   var btn=document.getElementById('btn-enviar-sol');
