@@ -1362,7 +1362,7 @@ function buildModal(s,anexos,comentarios){
 
   var triagem='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Triagem e Priorização '+roTag+'</h3>'+
     '<div class="form-2">'+
-    '<div class="fg"><label>Empresa</label><div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">🏭 '+esc(s.empresa||'ABBA Química')+'</div></div>'+
+    '<div class="fg"><label>Empresa</label>'+(canEdit?'<select onchange="updField('+s.id+',\'empresa\',this.value)"><option value="ABBA Química"'+((!s.empresa||s.empresa==="ABBA Química")?' selected':'')+'>ABBA Química</option><option value="ABBA Especialidades"'+(s.empresa==="ABBA Especialidades"?' selected':'')+'>ABBA Especialidades</option></select>':'<div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">🏭 '+esc(s.empresa||'ABBA Química')+'</div>')+'</div>'+
     '<div class="fg"><label>Tipo de Compra</label><div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">'+(s.categoria||'—')+'</div></div>'+
     '</div>'+
     '<div class="form-2">'+
