@@ -706,7 +706,7 @@ var CU=null,sols=[],notifs=[],chipFilter='andamento',selId=null,forns=[],editFor
 var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',pre_aprovacao:'Pré-Aprovação Gerente',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By'};
 var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',pre_aprovacao:'em Pré-Aprovação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído'};
 var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',pre_aprovacao:'#06B6D4',aprovacao:'#F59E0B',emissao_oc:'#EC4899',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280'};
-var CATS=['Cotação','Compra Interna','Compra Revenda','Reposição de Estoque'];
+var CATS=['Consumo','Revenda','Matéria-prima','Serviço','Ativo ou Equipamento','Outros'];
 var PRIOS=['baixa','media','alta','urgente'];
 var PA={alta:'↑',urgente:'↑↑',media:'→',baixa:'↓'};
 var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'pre_aprovacao',l:'Pré-Aprovação Gerente'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'emissao_oc',l:'Emissão da OC'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'}];
@@ -1428,8 +1428,9 @@ function buildModal(s,anexos,comentarios){
     '<div class="fg"><label>Tipo de Compra</label><div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">'+(s.categoria||'—')+'</div></div>'+
     '</div>'+
     '<div class="form-2">'+
-    '<div class="fg"><label>Categoria Interna</label><select '+(canEdit?'onchange="updField('+s.id+',\'cat_interna\',this.value)"':'disabled')+'>'+
-    '<option value="">Selecione</option>'+CATS.map(function(c){return'<option'+(s.cat_interna===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div class="fg"><label>Categoria Interna</label><select id="cat-interna-sel-'+s.id+'" '+(canEdit?'onchange="onCatInterna('+s.id+',this.value)"':'disabled')+'>'+
+    '<option value="">Selecione</option>'+CATS.map(function(c){return'<option'+(s.cat_interna===c||s.cat_interna&&s.cat_interna.startsWith('Outros:')?c==='Outros':false?' selected':s.cat_interna===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'+
+    (canEdit?'<input type="text" id="cat-interna-outros-'+s.id+'" placeholder="Especifique..." style="margin-top:6px;width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;display:'+(s.cat_interna&&s.cat_interna.startsWith('Outros:')?'block':'none')+'" value="'+esc(s.cat_interna&&s.cat_interna.startsWith('Outros:')?s.cat_interna.replace('Outros:','').trim():'')+'">':'')+'</div>'+
     '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
     Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div>'+
     (!isComercial?'<div class="fg"><label>Aprovador</label><select '+(canEdit?'onchange="updField('+s.id+',\'aprovador\',this.value)"':'disabled')+'>'+
@@ -1628,6 +1629,12 @@ function buildModal(s,anexos,comentarios){
 }
 
 // MUTAÇÕES
+function onCatInterna(id,val){
+  var inp=document.getElementById('cat-interna-outros-'+id);
+  if(inp){inp.style.display=val==='Outros'?'block':'none';inp.value='';}
+  if(val!=='Outros')updField(id,'cat_interna',val);
+  else if(inp){inp.oninput=function(){clearTimeout(inp._t);inp._t=setTimeout(function(){if(inp.value.trim())updField(id,'cat_interna','Outros: '+inp.value.trim());},700);};}
+}
 async function updField(id,field,val){
   var upd={};upd[field]=val;
   await sb.from('solicitacoes').update(upd).eq('id',id);
