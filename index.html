@@ -575,9 +575,14 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             <select id="f-setor"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Compras/Revenda</option><option>Compras Consumo</option></select>
           </div>
           <div class="ff-row">
+            <div class="ff"><label>Empresa <span class="req-mark">*</span></label>
+              <select id="f-empresa"><option value="ABBA Química">ABBA Química</option><option value="ABBA Especialidades">ABBA Especialidades</option></select>
+            </div>
             <div class="ff"><label>Categoria <span class="req-mark">*</span></label>
               <select id="f-cat" onchange="toggleServico()"><option value="">Selecione o tipo</option><option>Cotação</option><option>Compra Interna</option><option>Compra Revenda</option><option>Reposição de Estoque</option></select>
             </div>
+          </div>
+          <div class="ff-row">
             <div class="ff"><label>Prioridade <span class="req-mark">*</span></label>
               <select id="f-prio"><option value="baixa">↓ Baixa</option><option value="media" selected>→ M&eacute;dia</option><option value="alta">↑ Alta</option><option value="urgente">↑↑ Urgente</option></select>
             </div>
@@ -1234,6 +1239,7 @@ async function criarSolicitacao(){
   var nome=(document.getElementById('f-nome').value||'').trim();
   var email=(document.getElementById('f-email').value||'').trim();
   var setor=document.getElementById('f-setor').value;
+  var empresa=(document.getElementById('f-empresa')||{}).value||'ABBA Química';
   var cat=document.getElementById('f-cat').value;
   var prio=document.getElementById('f-prio').value||'media';
   var prazo=document.getElementById('f-prazo').value;
@@ -1247,7 +1253,7 @@ async function criarSolicitacao(){
   try{
     var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
     var qtd=itens.length+' item(ns)';
-    var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
+    var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,empresa:empresa,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
     if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
     var solId=r.data.id;
     if(pendingFiles.length)await uploadAnexos(solId);
@@ -1356,10 +1362,7 @@ function buildModal(s,anexos,comentarios){
 
   var triagem='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Triagem e Priorização '+roTag+'</h3>'+
     '<div class="form-2">'+
-    '<div class="fg"><label>Empresa</label><select '+(canEdit?'onchange="updField('+s.id+',\'empresa\',this.value)"':'disabled')+'>'+
-    '<option value="ABBA Química"'+((!s.empresa||s.empresa==="ABBA Química")?' selected':'')+'>ABBA Química</option>'+
-    '<option value="ABBA Especialidades"'+(s.empresa==="ABBA Especialidades"?' selected':'')+'>ABBA Especialidades</option>'+
-    '</select></div>'+
+    '<div class="fg"><label>Empresa</label><div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">🏭 '+esc(s.empresa||'ABBA Química')+'</div></div>'+
     '<div class="fg"><label>Tipo de Compra</label><div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">'+(s.categoria||'—')+'</div></div>'+
     '</div>'+
     '<div class="form-2">'+
