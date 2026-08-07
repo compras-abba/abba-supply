@@ -576,7 +576,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           </div>
           <div class="ff-row">
             <div class="ff"><label>Categoria <span class="req-mark">*</span></label>
-              <select id="f-cat" onchange="toggleServico()" ><option value="">Selecione a categoria</option><option>Consumo</option><option>Revenda</option><option>Mat&eacute;ria-Prima</option><option>Servi&ccedil;o</option><option>Ativo/Equipamento</option><option>TI</option><option>Outros</option></select>
+              <select id="f-cat" onchange="toggleServico()"><option value="">Selecione o tipo</option><option>Cotação</option><option>Compra Interna</option><option>Compra Revenda</option><option>Reposição de Estoque</option></select>
             </div>
             <div class="ff"><label>Prioridade <span class="req-mark">*</span></label>
               <select id="f-prio"><option value="baixa">↓ Baixa</option><option value="media" selected>→ M&eacute;dia</option><option value="alta">↑ Alta</option><option value="urgente">↑↑ Urgente</option></select>
@@ -609,7 +609,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             </label>
             <div class="file-list" id="pending-files"></div>
           </div>
-          <button class="btn-primary-full" onclick="criarSolicitacao()">
+          <button class="btn-primary-full" id="btn-enviar-sol" onclick="criarSolicitacao()">
             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
             Enviar Solicita&ccedil;&atilde;o
           </button>
@@ -697,6 +697,7 @@ var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',pre_aprova
 var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',pre_aprovacao:'em Pré-Aprovação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído'};
 var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',pre_aprovacao:'#06B6D4',aprovacao:'#F59E0B',emissao_oc:'#EC4899',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280'};
 var CATS=['Capex','Matéria-prima','Consumo','Spot','Serviço','Outro'];
+var TIPOS_COMPRA=['Cotação','Compra Interna','Compra Revenda','Reposição de Estoque'];
 var PRIOS=['baixa','media','alta','urgente'];
 var PA={alta:'↑',urgente:'↑↑',media:'→',baixa:'↓'};
 var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'pre_aprovacao',l:'Pré-Aprovação Gerente'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'emissao_oc',l:'Emissão da OC'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'}];
@@ -1221,9 +1222,7 @@ async function renderMinhas(){
 
 // NOVA SOLICITAÇÃO
 function toggleServico(){
-  var cat=document.getElementById('f-cat');
-  var bloco=document.getElementById('servico-datas');
-  if(cat&&bloco)bloco.style.display=(cat.value==='Serviço')?'grid':'none';
+  // datas de serviço não se aplicam mais aos novos tipos
 }
 function fillForm(){if(document.getElementById('itens-tbody')&&document.getElementById('itens-tbody').children.length===0){itemRowCount=0;addItemRow();}
   var n=document.getElementById('f-nome');var e=document.getElementById('f-email');var st=document.getElementById('f-setor');
@@ -1231,6 +1230,8 @@ function fillForm(){if(document.getElementById('itens-tbody')&&document.getEleme
   if(st&&CU&&CU.setor){for(var i=0;i<st.options.length;i++){if(st.options[i].text===CU.setor){st.selectedIndex=i;break;}}}
 }
 async function criarSolicitacao(){
+  var btn=document.getElementById('btn-enviar-sol');
+  if(btn&&btn.disabled)return;
   var nome=(document.getElementById('f-nome').value||'').trim();
   var email=(document.getElementById('f-email').value||'').trim();
   var setor=document.getElementById('f-setor').value;
@@ -1243,26 +1244,29 @@ async function criarSolicitacao(){
   var just=(document.getElementById('f-just').value||'').trim();
   if(!nome||!setor||!cat||!prazo||!just){toast('⚠️ Preencha todos os campos obrigatórios');return;}
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
-  var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
-  var qtd=itens.length+' item(ns)';
-  var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
-  if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
-  var solId=r.data.id;
-  if(pendingFiles.length)await uploadAnexos(solId);
-  // Notificar admins sobre nova solicitação
-  await sendEmail(COMPRAS_EMAIL,'Nova Solicitação de Compra: '+desc.substring(0,50),
-    emailTpl('Nova Solicitação Recebida','<p><strong>Solicitante:</strong> '+nome+'</p><p><strong>Setor:</strong> '+setor+'</p><p><strong>Prazo:</strong> '+prazo+'</p><p><strong>Justificativa:</strong> '+just+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
-  await notifyUsers(['admin'],'Nova Solicitação Recebida',nome+' ('+setor+'): "'+desc.substring(0,50)+'"','nova',solId);
-  // Save individual items
-  var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
-  if(itemsToSave.length)await sb.from('itens_solicitacao').insert(itemsToSave);
-  sols=[];
-  ['f-prazo','f-just','f-cat','f-serv-inicio','f-serv-fim'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});var ep=document.getElementById('f-prio');if(ep)ep.value='media';var sd=document.getElementById('servico-datas');if(sd)sd.style.display='none';
-  var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();;
-  // Clear items table
-  var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
-  renderPendingFiles();
-  toast('✅ Solicitação enviada com sucesso!');go('minhas');
+  if(btn){btn.disabled=true;btn.innerHTML='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Enviando...';}
+  try{
+    var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
+    var qtd=itens.length+' item(ns)';
+    var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
+    if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
+    var solId=r.data.id;
+    if(pendingFiles.length)await uploadAnexos(solId);
+    await sendEmail(COMPRAS_EMAIL,'Nova Solicitação de Compra: '+desc.substring(0,50),
+      emailTpl('Nova Solicitação Recebida','<p><strong>Solicitante:</strong> '+nome+'</p><p><strong>Setor:</strong> '+setor+'</p><p><strong>Prazo:</strong> '+prazo+'</p><p><strong>Justificativa:</strong> '+just+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
+    await notifyUsers(['admin'],'Nova Solicitação Recebida',nome+' ('+setor+'): "'+desc.substring(0,50)+'"','nova',solId);
+    var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
+    if(itemsToSave.length)await sb.from('itens_solicitacao').insert(itemsToSave);
+    sols=[];
+    ['f-prazo','f-just','f-cat','f-serv-inicio','f-serv-fim'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    var ep=document.getElementById('f-prio');if(ep)ep.value='media';
+    var sd=document.getElementById('servico-datas');if(sd)sd.style.display='none';
+    var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
+    renderPendingFiles();
+    toast('✅ Solicitação enviada com sucesso!');go('minhas');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Enviar Solicitação';}
+  }
 }
 
 // MODAL
@@ -1357,8 +1361,11 @@ function buildModal(s,anexos,comentarios){
     '<option value="ABBA Química"'+((!s.empresa||s.empresa==="ABBA Química")?' selected':'')+'>ABBA Química</option>'+
     '<option value="ABBA Especialidades"'+(s.empresa==="ABBA Especialidades"?' selected':'')+'>ABBA Especialidades</option>'+
     '</select></div>'+
-    '<div class="fg"><label>Categoria</label><select '+(canEdit?'onchange="updField('+s.id+',\'categoria\',this.value)"':'disabled')+'>'+
-    CATS.map(function(c){return'<option'+(s.categoria===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div>'+
+    '<div class="fg"><label>Tipo de Compra</label><div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">'+(s.categoria||'—')+'</div></div>'+
+    '</div>'+
+    '<div class="form-2">'+
+    '<div class="fg"><label>Categoria Interna</label><select '+(canEdit?'onchange="updField('+s.id+',\'cat_interna\',this.value)"':'disabled')+'>'+
+    '<option value="">Selecione</option>'+CATS.map(function(c){return'<option'+(s.cat_interna===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'+
     '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
     Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div>'+
     '<div class="fg"><label>Aprovador</label><select '+(canEdit?'onchange="updField('+s.id+',\'aprovador\',this.value)"':'disabled')+'>'+
@@ -1420,15 +1427,25 @@ function buildModal(s,anexos,comentarios){
     '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'+
     'Enviar para Aprovação da Diretoria</button></div>':'';
 
-  // Para solicitante: mostra apenas status da aprovação, sem preços nem fornecedores
+  // Para solicitante: visão simplificada sem preços/fornecedores
   if(isSolicitante){
     var apStatus=s.ap_status||'aguardando';
-    var apLabel=s.status==='concluido'?'<div class="ap-done aprovado">✅ Solicitação concluída</div>':
-      s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'?'<div class="ap-done aprovado">✅ Aprovada pela Diretoria — em andamento</div>':
+    var isCotacao=s.categoria==='Cotação';
+    var etapaLabel=s.status==='concluido'?'<div class="ap-done aprovado">✅ Solicitação concluída</div>':
+      s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'?'<div class="ap-done aprovado">✅ Aprovada — em andamento</div>':
       s.status==='pre_aprovacao'?'<div class="ap-wait">⏳ Aguardando aprovação da Gerência</div>':
       s.status==='triagem'&&apStatus==='reprovado'?'<div class="ap-done reprovado">❌ Recusada'+(s.ap_obs?' — '+esc(s.ap_obs):'')+'</div>':
       '<div class="ap-wait">⏳ Em análise pelo time de Compras</div>';
-    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+apLabel+'</div>';
+    var valorCotacao='';
+    if(isCotacao&&chosen&&(s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'||s.status==='concluido')){
+      valorCotacao='<div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:10px;padding:12px 14px;margin-top:10px">'+
+        '<div style="font-size:12px;font-weight:600;color:#4338CA;margin-bottom:4px">💰 Valor da Cotação</div>'+
+        '<div style="font-size:18px;font-weight:700;color:#1E1B4B">R$ '+fmt(chosen.val)+'</div>'+
+        (chosen.prazo?'<div style="font-size:12px;color:#6B7280;margin-top:4px">Prazo: '+esc(chosen.prazo)+'</div>':'')+
+      '</div>';
+    }
+    var tipoTag='<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Tipo: <strong>'+esc(s.categoria||'—')+'</strong></div>';
+    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+valorCotacao+'</div>';
   } else {
   var cot='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Cotação Externa '+roTag+'</h3>'+
     '<div class="cot-list">'+(cotItems||'<p style="color:var(--gray-400);font-size:13px">Nenhuma cotação adicionada</p>')+'</div>'+
