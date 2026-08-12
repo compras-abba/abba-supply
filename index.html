@@ -989,16 +989,17 @@ async function renderAdmin(){
   },0);
   var volAprovado=aprovadas.reduce(function(a,x){return a+(x.cotacoes||[]).reduce(function(b,c){return b+(c.escolhida?Number(c.val):0);},0);},0);
 
-  // Lead Time: dias entre aprovação e entrega real
-  var ltSols=s.filter(function(x){return x.dt_aprovacao&&x.dt_entrega;});
+  // Lead Time: dias entre criação e entrega real
+  var ltSols=s.filter(function(x){return x.created_at&&x.dt_entrega;});
   var avgLt=ltSols.length?Math.round(ltSols.reduce(function(acc,x){
-    return acc+Math.round((new Date(x.dt_entrega)-new Date(x.dt_aprovacao))/86400000);
+    return acc+Math.round((new Date(x.dt_entrega)-new Date(x.created_at))/86400000);
   },0)/ltSols.length):null;
 
-  // OTD: % entregues até a data prevista
-  var otdSols=s.filter(function(x){return x.dt_prevista&&x.dt_entrega;});
+  // OTD: % entregues até o prazo solicitado (ou dt_prevista se definida)
+  var otdSols=s.filter(function(x){return (x.prazo||x.dt_prevista)&&x.dt_entrega;});
   var otd=otdSols.length?Math.round(otdSols.filter(function(x){
-    return new Date(x.dt_entrega)<=new Date(x.dt_prevista);
+    var ref=x.dt_prevista||x.prazo;
+    return new Date(x.dt_entrega)<=new Date(ref);
   }).length/otdSols.length*100):null;
 
   var savingPct=(volAprovado>0&&totalSaving>0)?Math.round(totalSaving/volAprovado*100*10)/10:null;
@@ -1697,11 +1698,32 @@ async function saveDtPrevista(id){
   sols=[];await openModal(id);toast('📅 Previsão salva! Solicitante notificado.');
 }
 async function quickConcluir(id){
+  pedirDataConclusao(id,function(){renderKanban();});
+}
+function pedirDataConclusao(id,cb){
   var hoje=new Date().toISOString().split('T')[0];
-  var r=await sb.from('solicitacoes').update({status:'concluido',dt_entrega:hoje}).eq('id',id);
-  if(r.error){toast('❌ Erro: '+r.error.message);return;}
-  await notifySolicitante(id,'Pedido Entregue!','Sua solicitação foi concluída.','entrega');
-  sols=[];renderKanban();toast('✅ Solicitação concluída!');
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML='<div style="background:#fff;border-radius:12px;padding:28px 28px 22px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2)">'
+    +'<div style="font-size:17px;font-weight:700;color:#111;margin-bottom:6px">✅ Concluir Solicitação</div>'
+    +'<div style="font-size:13px;color:#6b7280;margin-bottom:18px">Informe a data real de conclusão para registrar no indicador de OTD e Lead Time.</div>'
+    +'<label style="font-size:12px;font-weight:600;color:#374151;letter-spacing:.04em;text-transform:uppercase">Data de Conclusão</label>'
+    +'<input type="date" id="inp-dt-conclusao" value="'+hoje+'" style="width:100%;margin-top:6px;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none">'
+    +'<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">'
+    +'<button id="btn-concluir-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>'
+    +'<button id="btn-concluir-ok" style="padding:9px 20px;border-radius:8px;border:none;background:#1f4781;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Confirmar</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('btn-concluir-cancel').onclick=function(){document.body.removeChild(overlay);};
+  document.getElementById('btn-concluir-ok').onclick=async function(){
+    var dt=document.getElementById('inp-dt-conclusao').value;
+    if(!dt){toast('⚠️ Selecione a data');return;}
+    document.body.removeChild(overlay);
+    var r=await sb.from('solicitacoes').update({status:'concluido',dt_entrega:dt}).eq('id',id);
+    if(r.error){toast('❌ Erro: '+r.error.message);return;}
+    await notifySolicitante(id,'Pedido Entregue!','Sua solicitação foi concluída em '+fmtD(dt)+'.','entrega');
+    sols=[];if(cb)cb();else await openModal(id);toast('✅ Solicitação concluída!');
+  };
 }
 async function saveEntrega(id){
   var el=document.getElementById('dt-entrega-'+id);
@@ -1714,6 +1736,7 @@ async function saveEntrega(id){
 }
 
 async function updStatus(id,status){
+  if(status==='concluido'){pedirDataConclusao(id,function(){render(curPage());});return;}
   await sb.from('solicitacoes').update({status:status}).eq('id',id);
   var s=sols.find(function(x){return x.id===id;});var titulo=s?s.titulo:'Solicitação';
   // Notificar solicitante
