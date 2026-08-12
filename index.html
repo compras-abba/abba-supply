@@ -1353,12 +1353,39 @@ async function saveEditSol(id){
   sols=[];await openModal(id);render(curPage());
 }
 async function deleteSol(id){
-  if(!confirm('Excluir esta solicitação permanentemente?'))return;
-  await sb.from('cotacoes').delete().eq('sol_id',id);
-  await sb.from('notificacoes').delete().eq('sol_id',id);
-  var r=await sb.from('solicitacoes').delete().eq('id',id);
-  if(r.error){toast('❌ Erro ao excluir: '+r.error.message);return;}
-  closeModal();sols=[];render(curPage());toast('🗑️ Solicitação excluída.');
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML='<div style="background:#fff;border-radius:12px;padding:28px 28px 22px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2)">'
+    +'<div style="font-size:17px;font-weight:700;color:#111;margin-bottom:6px">🗑️ Excluir Solicitação</div>'
+    +'<div style="font-size:13px;color:#6b7280;margin-bottom:16px">Essa ação é permanente. Informe o motivo da exclusão.</div>'
+    +'<label style="font-size:12px;font-weight:600;color:#374151;letter-spacing:.04em;text-transform:uppercase">Motivo</label>'
+    +'<select id="del-motivo-sel" onchange="document.getElementById(\'del-motivo-outro\').style.display=this.value===\'Outro\'?\'block\':\'none\'" style="width:100%;margin-top:6px;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none">'
+    +'<option value="">Selecione o motivo</option>'
+    +'<option>Duplicidade</option>'
+    +'<option>Solicitação incorreta</option>'
+    +'<option>Cancelado pelo solicitante</option>'
+    +'<option>Compra não autorizada</option>'
+    +'<option>Outro</option>'
+    +'</select>'
+    +'<input type="text" id="del-motivo-outro" placeholder="Descreva o motivo..." style="display:none;width:100%;margin-top:8px;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none">'
+    +'<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">'
+    +'<button id="btn-del-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>'
+    +'<button id="btn-del-ok" style="padding:9px 20px;border-radius:8px;border:none;background:#dc2626;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Excluir</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('btn-del-cancel').onclick=function(){document.body.removeChild(overlay);};
+  document.getElementById('btn-del-ok').onclick=async function(){
+    var sel=document.getElementById('del-motivo-sel').value;
+    var outro=document.getElementById('del-motivo-outro').value.trim();
+    var motivo=sel==='Outro'?(outro||'Outro'):sel;
+    if(!motivo){toast('⚠️ Selecione o motivo da exclusão');return;}
+    document.body.removeChild(overlay);
+    await sb.from('cotacoes').delete().eq('sol_id',id);
+    await sb.from('notificacoes').delete().eq('sol_id',id);
+    var r=await sb.from('solicitacoes').delete().eq('id',id);
+    if(r.error){toast('❌ Erro ao excluir: '+r.error.message);return;}
+    closeModal();sols=[];render(curPage());toast('🗑️ Excluído: '+motivo);
+  };
 }
 function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';selId=null;}
 function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
