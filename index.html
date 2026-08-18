@@ -1531,15 +1531,6 @@ function buildModal(s,anexos,comentarios){
       '<div class="ap-wait">⏳ Em análise pelo time de Compras</div>';
     var valorCotacao='';
     var isComercialSol=(s.setor==='Comercial'||s.categoria==='Compra Revenda');
-    var cotRef=chosen||(isComercialSol&&(s.cotacoes||[]).length?(s.cotacoes[s.cotacoes.length-1]):null);
-    if((isCotacao||isComercialSol)&&cotRef&&(s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'||s.status==='concluido')){
-      valorCotacao='<div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:10px;padding:12px 14px;margin-top:10px">'+
-        '<div style="font-size:12px;font-weight:600;color:#4338CA;margin-bottom:4px">💰 Valor da Cotação</div>'+
-        '<div style="font-size:18px;font-weight:700;color:#1E1B4B">R$ '+fmt(cotRef.val)+'</div>'+
-        (cotRef.prazo?'<div style="font-size:12px;color:#6B7280;margin-top:4px">Prazo: '+esc(cotRef.prazo)+'</div>':'')+
-        (cotRef.cond?'<div style="font-size:12px;color:#6B7280;margin-top:2px">ICMS: '+esc(cotRef.cond)+'</div>':'')+
-      '</div>';
-    }
     var tipoTag='<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Tipo: <strong>'+esc(s.categoria||'—')+'</strong></div>';
     var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+valorCotacao+'</div>';
   } else {
@@ -1639,8 +1630,8 @@ function buildModal(s,anexos,comentarios){
   }
 
   var isSol=CU.role==='solicitante';
-  var canUpload=CU.role==='admin'||CU.role==='solicitante';
-  var anexSec=buildAnexSection(s.id,anexos,canUpload);
+  var canUpload=CU.role==='admin';
+  var anexSec=CU.role==='solicitante'?'':buildAnexSection(s.id,anexos,canUpload);
 
   // Solicitante vê apenas: info, etapa atual, aprovação (resultado) e entrega
   if(isSol){
