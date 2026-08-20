@@ -1563,9 +1563,9 @@ function buildModal(s,anexos,comentarios){
   var ap=s.aprovacao;
   var apSt='';
   if(ap.status==='aguardando')apSt='<div class="ap-wait"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Aguardando Aprovação</div>';
-  else if(ap.status==='aprovado')apSt='<div class="ap-done aprovado">✅ Aprovado</div>';
-  else if(ap.status==='reprovado')apSt='<div class="ap-done reprovado">❌ Reprovado</div>';
-  else if(ap.status==='revisao')apSt='<div class="ap-done revisao">🔄 Revisão Solicitada</div>';
+  else if(ap.status==='aprovado')apSt='<div class="ap-done aprovado">✅ Aprovado'+histTag(hist,'ap_aprovado')+'</div>';
+  else if(ap.status==='reprovado')apSt='<div class="ap-done reprovado">❌ Reprovado'+histTag(hist,'ap_reprovado')+'</div>';
+  else if(ap.status==='revisao')apSt='<div class="ap-done revisao">🔄 Revisão Solicitada'+histTag(hist,'ap_revisao')+'</div>';
   var preApSec='';
   if(s.status==='pre_aprovacao'){
     if(CU.role==='gerente'){
@@ -1581,10 +1581,11 @@ function buildModal(s,anexos,comentarios){
     }
   }
   var showApBtn=canApprove&&ap.status==='aguardando'&&s.status==='aprovacao';
+  var hist=s.historico||{};
   var preApBadge=(s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'||s.status==='concluido')?
     '<div style="display:flex;align-items:center;gap:6px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:8px 12px;font-size:13px;color:#065f46;margin-bottom:12px">'+
     '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'+
-    'Pré-aprovado pela Gerência</div>':'';
+    'Pré-aprovado pela Gerência'+histTag(hist,'pre_ap_aprovado')+'</div>':'';
   var apSec=isComercial?'':'<div class="sec"><h3>Aprovação da Diretoria</h3>'+preApBadge+apSt+
     (ap.obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700);margin-bottom:12px">'+esc(ap.obs)+'</div>':'')+
     (showApBtn?'<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Observações/Parecer</label>'+
@@ -1685,6 +1686,7 @@ async function qPreAp(id,status){
   var motivo=(motivoEl?motivoEl.value:'').trim();
   if(status==='aprovado'){
     await sb.from('solicitacoes').update({status:'aprovacao',ap_status:'aguardando'}).eq('id',id);
+    await registrarHistorico(id,'pre_ap_aprovado');
     var dirEmail=DIRECTOR_EMAILS[s?s.aprovador:'Francisco']||'francisco@abbaquimica.com.br';
     await sendEmail(dirEmail,'Aprovação Pendente: '+titulo,
       emailTpl('Solicitação Aguarda sua Aprovação','<p><strong>Solicitação:</strong> '+titulo+'</p><p><strong>Solicitante:</strong> '+(s?s.nome:'')+'</p><p><strong>Setor:</strong> '+(s?s.setor:'')+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
@@ -1739,6 +1741,7 @@ function pedirDataConclusao(id,cb){
     document.body.removeChild(overlay);
     var r=await sb.from('solicitacoes').update({status:'concluido',dt_entrega:dt}).eq('id',id);
     if(r.error){toast('❌ Erro: '+r.error.message);return;}
+    await registrarHistorico(id,'concluido');
     await notifySolicitante(id,'Pedido Entregue!','Sua solicitação foi concluída em '+fmtD(dt)+'.','entrega');
     sols=[];if(cb)cb();else await openModal(id);toast('✅ Solicitação concluída!');
   };
@@ -1756,6 +1759,7 @@ async function saveEntrega(id){
 async function updStatus(id,status){
   if(status==='concluido'){pedirDataConclusao(id,function(){render(curPage());});return;}
   await sb.from('solicitacoes').update({status:status}).eq('id',id);
+  await registrarHistorico(id,status);
   var s=sols.find(function(x){return x.id===id;});var titulo=s?s.titulo:'Solicitação';
   // Notificar solicitante
   await notifySolicitante(id,'Solicitação Atualizada','"'+titulo+'" está agora '+SL_PTBR[status]+'.','status');
@@ -1821,6 +1825,7 @@ async function doAp(id,status){
   if(status==='reprovado')upd.status='concluido';
   if(status==='revisao')upd.status='triagem';
   await sb.from('solicitacoes').update(upd).eq('id',id);
+  await registrarHistorico(id,'ap_'+status);
   var s=sols.find(function(x){return x.id===id;});var titulo=s?s.titulo:'Solicitação';
   var msgs={aprovado:{titulo:'Solicitação Aprovada! ✅',msg:'"'+titulo+'" foi aprovada e está em andamento.',tipo:'aprovacao'},
     reprovado:{titulo:'Solicitação Reprovada',msg:'"'+titulo+'" foi reprovada.'+(obs?' Motivo: '+obs:''),tipo:'reprovado'},
@@ -2193,6 +2198,14 @@ function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/<
 function cap(s){return s?s[0].toUpperCase()+s.slice(1):'';}
 function fmtD(d){if(!d)return'-';try{var p=String(d).split('T')[0].split('-');return p[2]+'/'+p[1]+'/'+p[0];}catch(e){return d;}}
 function fmtDL(d){if(!d)return'-';try{return new Date(d).toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}}
+function fmtDT(d){if(!d)return'';try{return new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
+function histTag(hist,chave){var v=hist&&hist[chave];return v?'<span style="font-size:11px;color:#6b7280;font-weight:400;margin-left:8px">'+fmtDT(v)+'</span>':'';}
+async function registrarHistorico(id,chave){
+  var r=await sb.from('solicitacoes').select('historico').eq('id',id).single();
+  var hist=(r.data&&r.data.historico)||{};
+  hist[chave]=new Date().toISOString();
+  await sb.from('solicitacoes').update({historico:hist}).eq('id',id);
+}
 function fmt(v){return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function timeAgo(d){
   try{
