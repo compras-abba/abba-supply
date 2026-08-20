@@ -1462,10 +1462,7 @@ function buildModal(s,anexos,comentarios){
     (canEdit?'<input type="text" id="cat-interna-outros-'+s.id+'" placeholder="Especifique..." style="margin-top:6px;width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;display:'+(s.cat_interna&&s.cat_interna.startsWith('Outros:')?'block':'none')+'" value="'+esc(s.cat_interna&&s.cat_interna.startsWith('Outros:')?s.cat_interna.replace('Outros:','').trim():'')+'">':'')+'</div>'+
     '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
     Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div>'+
-    (!isComercial?'<div class="fg"><label>Aprovador</label><select '+(canEdit?'onchange="updField('+s.id+',\'aprovador\',this.value)"':'disabled')+'>'+
-    '<option value="Christiane"'+(s.aprovador==='Christiane'?' selected':'')+'>Christiane &mdash; Uso/Consumo</option>'+
-    '<option value="Francisco"'+(s.aprovador==='Francisco'||!s.aprovador?' selected':'')+'>Francisco &mdash; Demais compras</option>'+
-    '</select></div>':'')+'</div>'+
+    (!isComercial&&s.aprovador?'<div class="fg"><label>Aprovador</label><div class="ii-val">'+esc(s.aprovador)+'</div></div>':'')+'</div>'+
     (s.categoria==='Serviço'?
       '<div style="margin-top:12px;padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px">'+
       '<div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:10px">🔧 Datas do Serviço</div>'+
@@ -1720,14 +1717,38 @@ async function qPreAp(id,status){
   var motivoEl=document.getElementById('motivo-recusa-'+id);
   var motivo=(motivoEl?motivoEl.value:'').trim();
   if(status==='aprovado'){
-    await sb.from('solicitacoes').update({status:'aprovacao',ap_status:'aguardando'}).eq('id',id);
-    await registrarHistorico(id,'pre_ap_aprovado');
-    var dirEmail=DIRECTOR_EMAILS[s?s.aprovador:'Francisco']||'francisco@abbaquimica.com.br';
-    await sendEmail(dirEmail,'Aprovação Pendente: '+titulo,
-      emailTpl('Solicitação Aguarda sua Aprovação','<p><strong>Solicitação:</strong> '+titulo+'</p><p><strong>Solicitante:</strong> '+(s?s.nome:'')+'</p><p><strong>Setor:</strong> '+(s?s.setor:'')+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
-    await notifyUsers(['diretor'],'Nova Aprovação Pendente','"'+titulo+'" aguarda aprovação da Diretoria.','aprovacao',id);
-    await notifySolicitante(id,'Solicitação Pré-Aprovada','"'+titulo+'" foi pré-aprovada pelo Gerente e segue para a Diretoria.','status');
-    toast('✅ Pré-aprovado! Enviado para a Diretoria.');
+    // Gerente escolhe o aprovador antes de enviar
+    var overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML='<div style="background:#fff;border-radius:12px;padding:28px 28px 22px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2)">'
+      +'<div style="font-size:17px;font-weight:700;color:#111;margin-bottom:6px">✅ Pré-Aprovar</div>'
+      +'<div style="font-size:13px;color:#6b7280;margin-bottom:18px">Selecione quem irá aprovar essa solicitação na Diretoria.</div>'
+      +'<label style="font-size:12px;font-weight:600;color:#374151;letter-spacing:.04em;text-transform:uppercase">Aprovador</label>'
+      +'<select id="preap-aprovador" style="width:100%;margin-top:6px;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none">'
+      +'<option value="">Selecione</option>'
+      +'<option value="Christiane">Christiane</option>'
+      +'<option value="Francisco">Francisco</option>'
+      +'</select>'
+      +'<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">'
+      +'<button id="preap-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>'
+      +'<button id="preap-ok" style="padding:9px 20px;border-radius:8px;border:none;background:#1f4781;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Enviar para Diretoria</button>'
+      +'</div></div>';
+    document.body.appendChild(overlay);
+    document.getElementById('preap-cancel').onclick=function(){document.body.removeChild(overlay);};
+    document.getElementById('preap-ok').onclick=async function(){
+      var aprovador=document.getElementById('preap-aprovador').value;
+      if(!aprovador){toast('⚠️ Selecione o aprovador');return;}
+      document.body.removeChild(overlay);
+      await sb.from('solicitacoes').update({status:'aprovacao',ap_status:'aguardando',aprovador:aprovador}).eq('id',id);
+      await registrarHistorico(id,'pre_ap_aprovado');
+      var dirEmail=DIRECTOR_EMAILS[aprovador]||'francisco@abbaquimica.com.br';
+      await sendEmail(dirEmail,'Aprovação Pendente: '+titulo,
+        emailTpl('Solicitação Aguarda sua Aprovação','<p><strong>Solicitação:</strong> '+titulo+'</p><p><strong>Solicitante:</strong> '+(s?s.nome:'')+'</p><p><strong>Setor:</strong> '+(s?s.setor:'')+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
+      await notifyUsers(['diretor'],'Nova Aprovação Pendente','"'+titulo+'" aguarda aprovação de '+aprovador+'.','aprovacao',id);
+      await notifySolicitante(id,'Solicitação Pré-Aprovada','"'+titulo+'" foi pré-aprovada e segue para a Diretoria.','status');
+      sols=[];await openModal(id);render(curPage());toast('✅ Pré-aprovado! Enviado para '+aprovador+'.');
+    };
+    return;
   } else {
     if(!motivo){toast('⚠️ Informe o motivo da recusa.');return;}
     await sb.from('solicitacoes').update({status:'reprovado',ap_status:'aguardando'}).eq('id',id);
