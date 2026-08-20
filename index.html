@@ -1660,14 +1660,25 @@ function buildModal(s,anexos,comentarios){
   ];
   var histSec='';
   if(!isSol){
-    var histRows=ETAPAS.filter(function(e){return hist[e.k];}).map(function(e){
-      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100)">'
-        +'<div style="width:8px;height:8px;border-radius:50%;background:#1f4781;flex-shrink:0"></div>'
-        +'<div style="font-size:13px;font-weight:600;color:var(--gray-700);flex:1">'+e.l+'</div>'
-        +'<div style="font-size:12px;color:var(--gray-500)">'+fmtDT(hist[e.k])+'</div>'
-        +'</div>';
-    }).join('');
-    if(histRows)histSec='<div class="sec"><h3>📋 Histórico de Etapas</h3>'+histRows+'</div>';
+    var histFiltered=ETAPAS.filter(function(e){return hist[e.k];});
+    if(histFiltered.length){
+      var histRows=histFiltered.map(function(e,i){
+        var isLast=(i===histFiltered.length-1);
+        var dotColor=isLast?'#1f4781':'#10b981';
+        var dotShadow=isLast?'0 0 0 3px rgba(31,71,129,0.15)':'0 0 0 3px rgba(16,185,129,0.15)';
+        var labelColor=isLast?'#1f4781':'#374151';
+        var rowBg=isLast?'background:#eef3fb;margin:0 -16px;padding:9px 16px;border-radius:6px;':'padding:8px 0;border-bottom:1px solid #e5e9f2;';
+        return '<div style="display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:10px;'+rowBg+'">'
+          +'<div style="display:flex;justify-content:center"><div style="width:10px;height:10px;border-radius:50%;background:'+dotColor+';box-shadow:'+dotShadow+';flex-shrink:0"></div></div>'
+          +'<div style="font-size:13px;font-weight:'+(isLast?'700':'600')+';color:'+labelColor+'">'+e.l+'</div>'
+          +'<div style="font-size:11.5px;color:#6b7280;font-variant-numeric:tabular-nums;white-space:nowrap">'+fmtDT(hist[e.k])+'</div>'
+          +'</div>';
+      }).join('');
+      histSec='<div class="sec"><div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">'
+        +'<h3 style="margin:0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-500)">Histórico de Etapas</h3>'
+        +'<div style="flex:1;height:1px;background:var(--gray-200)"></div></div>'
+        +histRows+'</div>';
+    }
   }
   return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
 }
