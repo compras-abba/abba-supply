@@ -196,7 +196,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 .k-ap.pendente{background:#FEF9C3;color:#854D0E}.k-ap.aprovado{background:#DCFCE7;color:#15803D}.k-ap.reprovado{background:#FEE2E2;color:#991B1B}
 .sbadge{display:inline-flex;align-items:center;font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px}
 .sbadge.triagem{background:#E0F2FE;color:#0369A1}.sbadge.cotacao{background:#F3E8FF;color:#7C3AED}
-.sbadge.aprovacao{background:#FEF9C3;color:#854D0E}.sbadge.entrega{background:#FED7AA;color:#C2410C}.sbadge.concluido{background:#DCFCE7;color:#15803D}
+.sbadge.aprovacao{background:#FEF9C3;color:#854D0E}.sbadge.entrega{background:#FED7AA;color:#C2410C}.sbadge.concluido{background:#DCFCE7;color:#15803D}.sbadge.reprovado{background:#FEE2E2;color:#991B1B}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;overflow-y:auto;padding:20px}
 .overlay.open{display:flex;align-items:flex-start;justify-content:center}
 .modal{background:#fff;border-radius:16px;width:100%;max-width:680px;margin:auto;overflow:hidden}
@@ -703,13 +703,13 @@ function emailTpl(titulo,corpo){
 var sb=supabase.createClient(SURL,SKEY);
 var CU=null,sols=[],notifs=[],chipFilter='andamento',selId=null,forns=[],editFornId=null,fornSelMode=false,fornSelected=new Set();
 
-var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',pre_aprovacao:'Pré-Aprovação Gerente',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By'};
-var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',pre_aprovacao:'em Pré-Aprovação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído'};
-var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',pre_aprovacao:'#06B6D4',aprovacao:'#F59E0B',emissao_oc:'#EC4899',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280'};
+var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',pre_aprovacao:'Pré-Aprovação Gerente',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By',reprovado:'Reprovado'};
+var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',pre_aprovacao:'em Pré-Aprovação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído',reprovado:'Reprovado'};
+var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',pre_aprovacao:'#06B6D4',aprovacao:'#F59E0B',emissao_oc:'#EC4899',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280',reprovado:'#DC2626'};
 var CATS=['Consumo','Revenda','Matéria-prima','Serviço','Ativo ou Equipamento','Outros'];
 var PRIOS=['baixa','media','alta','urgente'];
 var PA={alta:'↑',urgente:'↑↑',media:'→',baixa:'↓'};
-var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'pre_aprovacao',l:'Pré-Aprovação Gerente'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'emissao_oc',l:'Emissão da OC'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'}];
+var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'pre_aprovacao',l:'Pré-Aprovação Gerente'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'emissao_oc',l:'Emissão da OC'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'},{id:'reprovado',l:'Reprovado'}];
 
 // INIT
 async function init(){
@@ -1730,10 +1730,11 @@ async function qPreAp(id,status){
     toast('✅ Pré-aprovado! Enviado para a Diretoria.');
   } else {
     if(!motivo){toast('⚠️ Informe o motivo da recusa.');return;}
-    await sb.from('solicitacoes').update({status:'triagem',ap_status:'aguardando'}).eq('id',id);
+    await sb.from('solicitacoes').update({status:'reprovado',ap_status:'aguardando'}).eq('id',id);
+    await registrarHistorico(id,'reprovado');
     await sendEmail(COMPRAS_EMAIL,'Pré-Aprovação Recusada: '+titulo,emailTpl('Solicitação Recusada pelo Gerente','<p>"'+titulo+'" foi recusada na pré-aprovação.</p>'+(motivo?'<p><strong>Motivo:</strong> '+motivo+'</p>':'')));
-    await notifySolicitante(id,'Solicitação Recusada pelo Gerente','"'+titulo+'" foi recusada pelo Gerente e retornou para Triagem.'+(motivo?' Motivo: '+motivo:''),'reprovado');
-    toast('❌ Recusado. Retornou para Triagem.');
+    await notifySolicitante(id,'Solicitação Reprovada','"'+titulo+'" foi reprovada pelo Gerente.'+(motivo?' Motivo: '+motivo:''),'reprovado');
+    toast('❌ Reprovado.');
   }
   sols=[];await renderFila();
 }
@@ -1857,7 +1858,7 @@ async function doAp(id,status){
   var obs=(document.getElementById('ap-obs-'+id)?document.getElementById('ap-obs-'+id).value:'').trim();
   var upd={ap_status:status,ap_obs:obs};
   if(status==='aprovado'){upd.status='emissao_oc';upd.dt_aprovacao=new Date().toISOString().split('T')[0];}
-  if(status==='reprovado')upd.status='concluido';
+  if(status==='reprovado')upd.status='reprovado';
   if(status==='revisao')upd.status='triagem';
   await sb.from('solicitacoes').update(upd).eq('id',id);
   await registrarHistorico(id,'ap_'+status);
