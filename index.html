@@ -1268,6 +1268,7 @@ async function criarSolicitacao(){
     var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:desc.substring(0,60),nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,empresa:empresa,cliente:cliente||null,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
     if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
     var solId=r.data.id;
+    await registrarHistorico(solId,'triagem');
     if(pendingFiles.length)await uploadAnexos(solId);
     await sendEmail(COMPRAS_EMAIL,'Nova Solicitação de Compra: '+desc.substring(0,50),
       emailTpl('Nova Solicitação Recebida','<p><strong>Solicitante:</strong> '+nome+'</p><p><strong>Setor:</strong> '+setor+'</p><p><strong>Prazo:</strong> '+prazo+'</p><p><strong>Justificativa:</strong> '+just+'</p><p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Abrir ABBA Supply</a></p>'));
@@ -1645,7 +1646,30 @@ function buildModal(s,anexos,comentarios){
   }
 
   var chatSec=buildChatSection(s.id,comentarios);
-  return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec;
+  // Histórico de etapas
+  var ETAPAS=[
+    {k:'triagem',l:'Triagem'},
+    {k:'cotacao',l:'Cotação Externa'},
+    {k:'pre_ap_aprovado',l:'Pré-Aprovação Gerência'},
+    {k:'aprovacao',l:'Enviado p/ Diretoria'},
+    {k:'ap_aprovado',l:'Aprovado Diretoria'},
+    {k:'ap_reprovado',l:'Reprovado Diretoria'},
+    {k:'emissao_oc',l:'Emissão da OC'},
+    {k:'entrega',l:'Entrega'},
+    {k:'concluido',l:'Concluído'},
+  ];
+  var histSec='';
+  if(!isSol){
+    var histRows=ETAPAS.filter(function(e){return hist[e.k];}).map(function(e){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100)">'
+        +'<div style="width:8px;height:8px;border-radius:50%;background:#1f4781;flex-shrink:0"></div>'
+        +'<div style="font-size:13px;font-weight:600;color:var(--gray-700);flex:1">'+e.l+'</div>'
+        +'<div style="font-size:12px;color:var(--gray-500)">'+fmtDT(hist[e.k])+'</div>'
+        +'</div>';
+    }).join('');
+    if(histRows)histSec='<div class="sec"><h3>📋 Histórico de Etapas</h3>'+histRows+'</div>';
+  }
+  return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
 }
 
 // MUTAÇÕES
