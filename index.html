@@ -483,6 +483,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
         </div>
         <div class="kpi-row" id="kpi-row"></div>
         <div class="kpi-row" id="kpi-row2" style="margin-bottom:20px"></div>
+        <div id="daily-activity" style="margin-bottom:22px"></div>
         <div class="chart-grid">
           <div class="chart-card"><h3>Pedidos por M&ecirc;s</h3><p class="chart-sub">Solicita&ccedil;&otilde;es abertas por m&ecirc;s</p><div id="chart-mes"></div></div>
           <div class="chart-card"><h3>Pedidos por Setor</h3><p class="chart-sub">Distribui&ccedil;&atilde;o de solicita&ccedil;&otilde;es por setor</p><div id="chart-setor-qtd"></div></div>
@@ -1008,6 +1009,39 @@ async function renderAdmin(){
     '<div class="kpi"><div class="kpi-icon emerald">📊</div><div><div class="kpi-val">'+(savingPct!==null?savingPct+'%':'—')+'</div><div class="kpi-lbl">Saving Total (%)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon indigo">⏱️</div><div><div class="kpi-val">'+(avgLt!==null?avgLt+' dias':'—')+'</div><div class="kpi-lbl">Lead Time M&eacute;dio</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon '+(otd===null?'amber':otd>=80?'emerald':'amber')+'">🎯</div><div><div class="kpi-val">'+(otd!==null?otd+'%':'—')+'</div><div class="kpi-lbl">OTD (On Time Delivery)</div></div></div>';
+
+  // Atividade diária — últimos 7 dias (usa TODOS os dados, não o filtro de mês)
+  (function(){
+    var today=new Date();
+    var dias=[];
+    for(var i=6;i>=0;i--){var d=new Date(today);d.setDate(d.getDate()-i);dias.push(d.toISOString().split('T')[0]);}
+    function isoDate(v){if(!v)return null;try{return new Date(v).toISOString().split('T')[0];}catch(e){return null;}}
+    var rows=dias.map(function(dia){
+      var enviadas=sols.filter(function(x){return isoDate(x.created_at)===dia;}).length;
+      var aprovadas=sols.filter(function(x){return isoDate(x.historico&&x.historico.ap_aprovado)===dia;}).length;
+      var ocs=sols.filter(function(x){return isoDate(x.historico&&x.historico.emissao_oc)===dia;}).length;
+      var concluidas=sols.filter(function(x){return isoDate(x.historico&&x.historico.concluido)===dia;}).length;
+      var dLabel=new Date(dia+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+      var isToday=dia===today.toISOString().split('T')[0];
+      return'<tr style="'+(isToday?'background:rgba(31,71,129,.06)':'')+'">'
+        +'<td style="padding:7px 10px;font-size:12px;color:'+(isToday?'#1f4781':'#374151')+';font-weight:'+(isToday?'700':'400')+'">'+dLabel+(isToday?' <span style="font-size:10px;background:#1f4781;color:#fff;border-radius:3px;padding:1px 5px">hoje</span>':'')+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(enviadas?'#4F46E5':'#9CA3AF')+'">'+enviadas+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(aprovadas?'#F59E0B':'#9CA3AF')+'">'+aprovadas+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(ocs?'#EC4899':'#9CA3AF')+'">'+ocs+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(concluidas?'#10B981':'#9CA3AF')+'">'+concluidas+'</td>'
+        +'</tr>';
+    }).join('');
+    var theader='<tr style="background:#f8fafc">'
+      +'<th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Data</th>'
+      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#4F46E5;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Enviadas</th>'
+      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#F59E0B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Aprovadas</th>'
+      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#EC4899;font-weight:600;text-transform:uppercase;letter-spacing:.5px">OC Emitidas</th>'
+      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#10B981;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Conclu&#237;das</th>'
+      +'</tr>';
+    document.getElementById('daily-activity').innerHTML=
+      '<div class="chart-card" style="margin-bottom:0"><h3>&#x1F4C5; Atividade Di&#225;ria</h3><p class="chart-sub">Solicita&#231;&#245;es dos &#250;ltimos 7 dias</p>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'+theader+rows+'</table></div></div>';
+  })();
 
   var pm={};s.forEach(function(x){var k=mkey(x.created_at);pm[k]=(pm[k]||0)+1;});
   drawColumns('chart-mes',pm,'#4F46E5');
@@ -2239,10 +2273,23 @@ async function sendChat(solId){
   var r=await sb.from('comentarios').insert({sol_id:solId,user_id:CU.id,nome:CU.nome||CU.email,role:CU.role,mensagem:msg});
   if(r.error){toast('❌ Erro ao enviar mensagem');el.value=msg;return;}
   // Notify the other party
+  var solObj=sols.find(function(x){return x.id===solId;})||{};
+  var solTit=solObj.titulo||solObj.descricao||'Solicitação #'+solId;
   if(CU.role==='admin'){
-    await notifySolicitante(solId,'Nova mensagem do Compras','Você recebeu uma atualização sobre sua solicitação.','chat');
+    var tituloMsg='💬 Nova mensagem do Compras — '+solTit;
+    var corpMsg='<p>O setor de <strong>Compras</strong> enviou uma mensagem na sua solicitação <strong>'+esc(solTit)+'</strong>:</p>'
+      +'<blockquote style="border-left:4px solid #1f4781;padding:8px 14px;margin:12px 0;background:#f0f4ff;border-radius:0 6px 6px 0;font-style:italic;color:#374151">'+esc(msg)+'</blockquote>'
+      +'<p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Ver a solicitação</a></p>';
+    if(solObj.user_id)await sb.from('notificacoes').insert({user_id:solObj.user_id,titulo:tituloMsg,mensagem:'Compras: '+msg.substring(0,120),tipo:'chat',sol_id:solId,lida:false});
+    if(solObj.email)await sendEmail(solObj.email,tituloMsg,emailTpl(tituloMsg,corpMsg));
   } else {
-    await notifyUsers(['admin'],'Nova mensagem',''+esc(CU.nome||CU.email)+' enviou uma mensagem na solicitação.','chat',solId);
+    var sender=CU.nome||CU.email;
+    var tituloMsg2='💬 Nova mensagem de '+sender+' — '+solTit;
+    var corpMsg2='<p><strong>'+esc(sender)+'</strong> enviou uma mensagem na solicitação <strong>'+esc(solTit)+'</strong>:</p>'
+      +'<blockquote style="border-left:4px solid #8B5CF6;padding:8px 14px;margin:12px 0;background:#f5f3ff;border-radius:0 6px 6px 0;font-style:italic;color:#374151">'+esc(msg)+'</blockquote>'
+      +'<p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Ver a solicitação</a></p>';
+    await notifyUsers(['admin'],tituloMsg2,sender+': '+msg.substring(0,120),'chat',solId);
+    await sendEmail(COMPRAS_EMAIL,tituloMsg2,emailTpl(tituloMsg2,corpMsg2));
   }
   sols=[];await openModal(solId);
   // Scroll chat to bottom
