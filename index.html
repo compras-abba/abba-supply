@@ -1024,6 +1024,9 @@ async function renderAdmin(){
       var ocs=sols.filter(function(x){
         return (x.historico&&isoDate(x.historico.emissao_oc)===dia);
       }).length;
+      var entregues=sols.filter(function(x){
+        return (x.historico&&isoDate(x.historico.entrega)===dia);
+      }).length;
       var concluidas=sols.filter(function(x){
         return isoDate(x.dt_entrega)===dia||(x.historico&&isoDate(x.historico.concluido)===dia);
       }).length;
@@ -1034,6 +1037,7 @@ async function renderAdmin(){
         +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(enviadas?'#4F46E5':'#9CA3AF')+'">'+enviadas+'</td>'
         +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(aprovadas?'#F59E0B':'#9CA3AF')+'">'+aprovadas+'</td>'
         +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(ocs?'#EC4899':'#9CA3AF')+'">'+ocs+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(entregues?'#F97316':'#9CA3AF')+'">'+entregues+'</td>'
         +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(concluidas?'#10B981':'#9CA3AF')+'">'+concluidas+'</td>'
         +'</tr>';
     }).join('');
@@ -1042,6 +1046,7 @@ async function renderAdmin(){
       +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#4F46E5;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Enviadas</th>'
       +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#F59E0B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Aprovadas</th>'
       +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#EC4899;font-weight:600;text-transform:uppercase;letter-spacing:.5px">OC Emitidas</th>'
+      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#F97316;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Entregues</th>'
       +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#10B981;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Conclu&#237;das</th>'
       +'</tr>';
     document.getElementById('daily-activity').innerHTML=
