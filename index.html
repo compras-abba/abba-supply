@@ -1221,7 +1221,11 @@ async function renderFila(){
   }
 }
 async function qAp(id,status){
-  await sb.from('solicitacoes').update({ap_status:status,status:status==='aprovado'?'emissao_oc':'aprovacao'}).eq('id',id);
+  var updQ={ap_status:status,status:status==='aprovado'?'emissao_oc':'aprovacao'};
+  if(status==='aprovado')updQ.dt_aprovacao=new Date().toISOString().split('T')[0];
+  await sb.from('solicitacoes').update(updQ).eq('id',id);
+  if(status==='aprovado'){await registrarHistorico(id,'ap_aprovado');await registrarHistorico(id,'emissao_oc');}
+  else if(status==='reprovado')await registrarHistorico(id,'ap_reprovado');
   var s=sols.find(function(x){return x.id===id;});
   var titulo=s?s.titulo:'Solicitação';
   var sol2=sols.find(function(x){return x.id===id;});
@@ -1923,6 +1927,7 @@ async function doAp(id,status){
   if(status==='revisao')upd.status='triagem';
   await sb.from('solicitacoes').update(upd).eq('id',id);
   await registrarHistorico(id,'ap_'+status);
+  if(status==='aprovado')await registrarHistorico(id,'emissao_oc');
   var s=sols.find(function(x){return x.id===id;});var titulo=s?s.titulo:'Solicitação';
   var msgs={aprovado:{titulo:'Solicitação Aprovada! ✅',msg:'"'+titulo+'" foi aprovada e está em andamento.',tipo:'aprovacao'},
     reprovado:{titulo:'Solicitação Reprovada',msg:'"'+titulo+'" foi reprovada.'+(obs?' Motivo: '+obs:''),tipo:'reprovado'},
