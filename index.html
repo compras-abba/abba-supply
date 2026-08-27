@@ -1182,7 +1182,7 @@ function kCard(s){
   return'<div class="k-card" onclick="openModal('+s.id+')">'+
     '<div class="k-card-top"><span class="k-title">'+esc(s.titulo)+'</span><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade)+'</span></div>'+
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>'+esc(s.setor)+'</div>'+
-    '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+fmtD(s.prazo)+'</div>'+
+    '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+(s.status==='concluido'&&s.dt_entrega?'<span style="color:#10B981;font-weight:600">✅ '+fmtD(s.dt_entrega)+'</span>':fmtD(s.prazo))+'</div>'+
     fornTag+
     (s.status==='pausado'&&s.motivo_pausa?'<div style="font-size:11px;color:#6B7280;background:#F3F4F6;border-radius:6px;padding:5px 8px;margin-top:4px">&#x23F8;&#xFE0F; '+esc(s.motivo_pausa.substring(0,60))+(s.motivo_pausa.length>60?'...':'')+'</div>':'')+
     '<div class="k-footer"><div><div class="k-user">'+esc(s.nome)+'</div>'+stag+'</div><span class="k-cat">'+esc(s.categoria)+'</span></div>'+moveBtn+'</div>';
