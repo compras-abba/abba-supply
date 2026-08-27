@@ -1168,6 +1168,7 @@ async function renderKanban(){
   document.getElementById('k-sub').textContent=items.length+' solicitações no total';
   document.getElementById('kanban-board').innerHTML=COLS.map(function(col){
     var ci=items.filter(function(s){return s.status===col.id;});
+    if(col.id==='concluido')ci=ci.slice().sort(function(a,b){return new Date(b.dt_entrega||b.created_at)-new Date(a.dt_entrega||a.created_at);});
     var cards=ci.length?ci.map(kCard).join(''):'<div class="col-empty"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h10"/></svg>Nenhuma</div>';
     return'<div class="kanban-col"><div class="col-head"><div class="col-dot" style="background:'+SC[col.id]+'"></div><span class="col-name">'+col.l+'</span><span class="col-cnt">'+ci.length+'</span></div><div class="col-body">'+cards+'</div></div>';
   }).join('');
