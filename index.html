@@ -1120,6 +1120,7 @@ async function renderAdmin(){
       {de:'entrega',     ate:'concluido',       l:'Entrega → Concluído',           c:'#10B981'},
     ];
     function diffDias(a,b){if(!a||!b)return null;var d=Math.round((new Date(b)-new Date(a))/86400000);return d>=0?d:null;}
+    if(CU.role!=='admin'){document.getElementById('tempo-etapas').innerHTML='';return;}
     var resultados=TRANS.map(function(t){
       var vals=sols.map(function(x){
         var h=x.historico||{};
