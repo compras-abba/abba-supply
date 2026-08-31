@@ -1938,6 +1938,46 @@ function pedirDataConclusao(id,cb){
   document.getElementById('btn-concluir-ok').onclick=async function(){
     var dt=document.getElementById('inp-dt-conclusao').value;
     if(!dt){toast('⚠️ Selecione a data');return;}
+    var sol=sols.find(function(x){return x.id===id;})||{};
+    var prazoRef=sol.dt_prevista||sol.prazo;
+    var atrasado=prazoRef&&dt>prazoRef;
+    if(atrasado){
+      // Pedir motivo do atraso
+      var inp=document.getElementById('inp-dt-conclusao');
+      inp.disabled=true;
+      document.getElementById('btn-concluir-ok').disabled=true;
+      var extra=document.createElement('div');
+      extra.innerHTML='<div style="margin-top:14px;padding-top:14px;border-top:1px solid #FEE2E2">'
+        +'<div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:6px">⚠️ Entrega atrasada — informe o motivo</div>'
+        +'<select id="inp-motivo-atraso" style="width:100%;padding:9px 12px;border:1.5px solid #FECACA;border-radius:8px;font-size:13px;color:#374151;background:#fff;margin-bottom:8px">'
+        +'<option value="">Selecione o motivo...</option>'
+        +'<option>Atraso do fornecedor</option>'
+        +'<option>Problema na negociação</option>'
+        +'<option>Documentação pendente</option>'
+        +'<option>Aprovação demorada</option>'
+        +'<option>Produto indisponível no mercado</option>'
+        +'<option>Retrabalho / revisão da solicitação</option>'
+        +'<option>Frete / logística</option>'
+        +'<option>Outro</option>'
+        +'</select>'
+        +'<textarea id="inp-motivo-atraso-obs" placeholder="Observações adicionais (opcional)..." rows="2" style="width:100%;padding:9px 12px;border:1.5px solid #FECACA;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>'
+        +'</div>';
+      overlay.querySelector('div').insertBefore(extra,overlay.querySelector('div').lastElementChild);
+      document.getElementById('btn-concluir-ok').disabled=false;
+      document.getElementById('btn-concluir-ok').onclick=async function(){
+        var motivo=document.getElementById('inp-motivo-atraso').value;
+        var obs=(document.getElementById('inp-motivo-atraso-obs').value||'').trim();
+        if(!motivo){toast('⚠️ Selecione o motivo do atraso');return;}
+        var motivoFull=motivo+(obs?' — '+obs:'');
+        document.body.removeChild(overlay);
+        var r=await sb.from('solicitacoes').update({status:'concluido',dt_entrega:dt,motivo_atraso:motivoFull}).eq('id',id);
+        if(r.error){toast('❌ Erro: '+r.error.message);return;}
+        await registrarHistorico(id,'concluido');
+        await notifySolicitante(id,'Pedido Entregue!','Sua solicitação foi concluída em '+fmtD(dt)+'.','entrega');
+        sols=[];if(cb)cb();else await openModal(id);toast('✅ Solicitação concluída!');
+      };
+      return;
+    }
     document.body.removeChild(overlay);
     var r=await sb.from('solicitacoes').update({status:'concluido',dt_entrega:dt}).eq('id',id);
     if(r.error){toast('❌ Erro: '+r.error.message);return;}
