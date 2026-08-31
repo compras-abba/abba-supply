@@ -1672,8 +1672,19 @@ function buildModal(s,anexos,comentarios){
       s.status==='pre_aprovacao'?'<div class="ap-wait">⏳ Aguardando aprovação da Gerência</div>':
       s.status==='triagem'&&apStatus==='reprovado'?'<div class="ap-done reprovado">❌ Recusada'+(s.ap_obs?' — '+esc(s.ap_obs):'')+'</div>':
       '<div class="ap-wait">⏳ Em análise pelo time de Compras</div>';
+    var isComercialSol=(s.setor==='Comercial'||s.categoria==='Compra Revenda'||s.categoria==='Cotação');
     var valorCotacao='';
-    var isComercialSol=(s.setor==='Comercial'||s.categoria==='Compra Revenda');
+    if(isComercialSol){
+      var cotEsc=(s.cotacoes||[]).find(function(c){return c.escolhida;});
+      if(cotEsc&&cotEsc.val){
+        valorCotacao='<div style="margin-top:14px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:14px 16px">'
+          +'<div style="font-size:11px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">💰 Valor de Venda</div>'
+          +'<div style="font-size:22px;font-weight:800;color:#0C4A6E">R$ '+fmt(cotEsc.val)+'/kg</div>'
+          +(cotEsc.cond?'<div style="font-size:12px;color:#0369A1;margin-top:4px">ICMS: '+esc(cotEsc.cond)+'</div>':'')
+          +(cotEsc.prazo?'<div style="font-size:12px;color:#0369A1;margin-top:2px">Entrega: '+esc(cotEsc.prazo)+'</div>':'')
+          +'</div>';
+      }
+    }
     var tipoTag='<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Tipo: <strong>'+esc(s.categoria||'—')+'</strong></div>';
     var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+valorCotacao+'</div>';
   } else {
