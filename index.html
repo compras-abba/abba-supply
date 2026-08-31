@@ -1027,6 +1027,7 @@ async function renderAdmin(){
   (function(){
     var el=document.getElementById('otd-atrasadas');
     if(!el)return;
+    if(CU.role!=='admin'){el.innerHTML='';return;}
     if(!otdAtrasadas.length){el.innerHTML='';return;}
     var rows=otdAtrasadas.map(function(x){
       var ref=new Date(x.dt_prevista||x.prazo);
@@ -1101,6 +1102,7 @@ async function renderAdmin(){
     }).join('');
     var theader='<tr style="background:#f8fafc"><th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Data</th>'
       +DCOLS.map(function(col){return'<th style="padding:8px 8px;text-align:center;font-size:11px;color:'+col.c+';font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">'+col.l+'</th>';}).join('')+'</tr>';
+    if(CU.role!=='admin'){document.getElementById('daily-activity').innerHTML='';return;}
     document.getElementById('daily-activity').innerHTML=
       '<div class="chart-card" style="margin-bottom:0"><h3>&#x1F4C5; Atividade Di&#225;ria</h3><p class="chart-sub">Solicita&#231;&#245;es dos &#250;ltimos 7 dias</p>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'+theader+rows+'</table></div></div>';
