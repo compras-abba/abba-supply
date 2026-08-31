@@ -492,6 +492,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           <div class="chart-card"><h3>Saving por Fornecedor (R$)</h3><p class="chart-sub">Economia gerada por fornecedor nas negocia&ccedil;&otilde;es</p><div class="hbar-wrap" id="chart-saving"></div></div>
         </div>
         <div id="daily-activity" style="margin-top:22px"></div>
+        <div id="tempo-etapas" style="margin-top:22px"></div>
       </div>
     </div>
     <div class="page" id="page-kanban">
@@ -1062,6 +1063,45 @@ async function renderAdmin(){
     document.getElementById('daily-activity').innerHTML=
       '<div class="chart-card" style="margin-bottom:0"><h3>&#x1F4C5; Atividade Di&#225;ria</h3><p class="chart-sub">Solicita&#231;&#245;es dos &#250;ltimos 7 dias</p>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'+theader+rows+'</table></div></div>';
+  })();
+
+  // Tempo médio por etapa
+  (function(){
+    var TRANS=[
+      {de:'triagem',     ate:'cotacao',        l:'Triagem → Cotação',             c:'#3B82F6'},
+      {de:'cotacao',     ate:'pre_aprovacao',   l:'Cotação → Pré-Aprovação',       c:'#8B5CF6'},
+      {de:'pre_aprovacao',ate:'pre_ap_aprovado',l:'Pré-Aprov. → Gerência Aprovou', c:'#06B6D4'},
+      {de:'pre_ap_aprovado',ate:'ap_aprovado',  l:'Gerência → Diretoria Aprovou',  c:'#F59E0B'},
+      {de:'ap_aprovado', ate:'emissao_oc',      l:'Aprovação → OC Emitida',        c:'#EC4899'},
+      {de:'emissao_oc',  ate:'entrega',         l:'OC Emitida → Entrega',          c:'#F97316'},
+      {de:'entrega',     ate:'concluido',       l:'Entrega → Concluído',           c:'#10B981'},
+    ];
+    function diffDias(a,b){if(!a||!b)return null;var d=Math.round((new Date(b)-new Date(a))/86400000);return d>=0?d:null;}
+    var resultados=TRANS.map(function(t){
+      var vals=sols.map(function(x){
+        var h=x.historico||{};
+        var de=h[t.de];
+        var ate=h[t.ate]||(t.ate==='ap_aprovado'?x.dt_aprovacao:null)||(t.ate==='concluido'?x.dt_entrega:null);
+        return diffDias(de,ate);
+      }).filter(function(v){return v!==null&&v>=0;});
+      var avg=vals.length?Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length*10)/10:null;
+      return{l:t.l,c:t.c,avg:avg,n:vals.length};
+    });
+    var maxAvg=Math.max.apply(null,resultados.map(function(r){return r.avg||0;}))||1;
+    var bars=resultados.map(function(r){
+      var pct=r.avg!==null?Math.round(r.avg/maxAvg*100):0;
+      var label=r.avg!==null?(r.avg===1?'1 dia':r.avg+' dias')+' <span style="font-size:11px;color:#9CA3AF">('+r.n+' amostras)</span>':'<span style="color:#9CA3AF">sem dados</span>';
+      return'<div style="margin-bottom:12px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+        +'<span style="font-size:12px;color:#374151;font-weight:500">'+r.l+'</span>'
+        +'<span style="font-size:13px;font-weight:700;color:'+(r.avg!==null?r.c:'#9CA3AF')+'">'+label+'</span>'
+        +'</div>'
+        +'<div style="background:#F3F4F6;border-radius:6px;height:8px;overflow:hidden">'
+        +(r.avg!==null?'<div style="background:'+r.c+';width:'+pct+'%;height:100%;border-radius:6px;transition:width .4s"></div>':'')
+        +'</div></div>';
+    }).join('');
+    document.getElementById('tempo-etapas').innerHTML=
+      '<div class="chart-card"><h3>&#x23F1;&#xFE0F; Tempo M&eacute;dio por Etapa</h3><p class="chart-sub">M&eacute;dia de dias que as solicita&ccedil;&otilde;es passam em cada transi&ccedil;&atilde;o (baseado no hist&oacute;rico)</p>'+bars+'</div>';
   })();
 
   var pm={};s.forEach(function(x){var k=mkey(x.created_at);pm[k]=(pm[k]||0)+1;});
