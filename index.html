@@ -1020,39 +1020,30 @@ async function renderAdmin(){
     var dias=[];
     for(var i=6;i>=0;i--){var d=new Date(today);d.setDate(d.getDate()-i);dias.push(d.toISOString().split('T')[0]);}
     function isoDate(v){if(!v)return null;try{return new Date(v).toISOString().split('T')[0];}catch(e){return null;}}
+    var DCOLS=[
+      {l:'Enviadas',     c:'#4F46E5', fn:function(x){return isoDate(x.created_at)===dia;}},
+      {l:'Triagem',      c:'#3B82F6', fn:function(x){return x.historico&&isoDate(x.historico.triagem)===dia;}},
+      {l:'Cotação',      c:'#8B5CF6', fn:function(x){return x.historico&&isoDate(x.historico.cotacao)===dia;}},
+      {l:'Pré-Aprov.',   c:'#06B6D4', fn:function(x){return x.historico&&isoDate(x.historico.pre_aprovacao)===dia;}},
+      {l:'Aprovadas',    c:'#F59E0B', fn:function(x){return isoDate(x.dt_aprovacao)===dia||(x.historico&&isoDate(x.historico.ap_aprovado)===dia);}},
+      {l:'OC Emitidas',  c:'#EC4899', fn:function(x){return x.historico&&isoDate(x.historico.emissao_oc)===dia;}},
+      {l:'Entregues',    c:'#F97316', fn:function(x){return x.historico&&isoDate(x.historico.entrega)===dia;}},
+      {l:'Conclu&#237;das', c:'#10B981', fn:function(x){return isoDate(x.dt_entrega)===dia||(x.historico&&isoDate(x.historico.concluido)===dia);}},
+      {l:'Reprovadas',   c:'#DC2626', fn:function(x){return x.historico&&(isoDate(x.historico.reprovado)===dia||isoDate(x.historico.ap_reprovado)===dia);}},
+    ];
     var rows=dias.map(function(dia){
-      var enviadas=sols.filter(function(x){return isoDate(x.created_at)===dia;}).length;
-      var aprovadas=sols.filter(function(x){
-        return isoDate(x.dt_aprovacao)===dia||(x.historico&&isoDate(x.historico.ap_aprovado)===dia);
-      }).length;
-      var ocs=sols.filter(function(x){
-        return (x.historico&&isoDate(x.historico.emissao_oc)===dia);
-      }).length;
-      var entregues=sols.filter(function(x){
-        return (x.historico&&isoDate(x.historico.entrega)===dia);
-      }).length;
-      var concluidas=sols.filter(function(x){
-        return isoDate(x.dt_entrega)===dia||(x.historico&&isoDate(x.historico.concluido)===dia);
-      }).length;
       var dLabel=new Date(dia+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
       var isToday=dia===today.toISOString().split('T')[0];
+      var cells=DCOLS.map(function(col){
+        var n=sols.filter(col.fn).length;
+        return'<td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:600;color:'+(n?col.c:'#9CA3AF')+'">'+n+'</td>';
+      }).join('');
       return'<tr style="'+(isToday?'background:rgba(31,71,129,.06)':'')+'">'
-        +'<td style="padding:7px 10px;font-size:12px;color:'+(isToday?'#1f4781':'#374151')+';font-weight:'+(isToday?'700':'400')+'">'+dLabel+(isToday?' <span style="font-size:10px;background:#1f4781;color:#fff;border-radius:3px;padding:1px 5px">hoje</span>':'')+'</td>'
-        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(enviadas?'#4F46E5':'#9CA3AF')+'">'+enviadas+'</td>'
-        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(aprovadas?'#F59E0B':'#9CA3AF')+'">'+aprovadas+'</td>'
-        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(ocs?'#EC4899':'#9CA3AF')+'">'+ocs+'</td>'
-        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(entregues?'#F97316':'#9CA3AF')+'">'+entregues+'</td>'
-        +'<td style="padding:7px 10px;text-align:center;font-size:13px;font-weight:600;color:'+(concluidas?'#10B981':'#9CA3AF')+'">'+concluidas+'</td>'
-        +'</tr>';
+        +'<td style="padding:7px 10px;font-size:12px;white-space:nowrap;color:'+(isToday?'#1f4781':'#374151')+';font-weight:'+(isToday?'700':'400')+'">'+dLabel+(isToday?' <span style="font-size:10px;background:#1f4781;color:#fff;border-radius:3px;padding:1px 5px">hoje</span>':'')+'</td>'
+        +cells+'</tr>';
     }).join('');
-    var theader='<tr style="background:#f8fafc">'
-      +'<th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Data</th>'
-      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#4F46E5;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Enviadas</th>'
-      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#F59E0B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Aprovadas</th>'
-      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#EC4899;font-weight:600;text-transform:uppercase;letter-spacing:.5px">OC Emitidas</th>'
-      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#F97316;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Entregues</th>'
-      +'<th style="padding:8px 10px;text-align:center;font-size:11px;color:#10B981;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Conclu&#237;das</th>'
-      +'</tr>';
+    var theader='<tr style="background:#f8fafc"><th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Data</th>'
+      +DCOLS.map(function(col){return'<th style="padding:8px 8px;text-align:center;font-size:11px;color:'+col.c+';font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">'+col.l+'</th>';}).join('')+'</tr>';
     document.getElementById('daily-activity').innerHTML=
       '<div class="chart-card" style="margin-bottom:0"><h3>&#x1F4C5; Atividade Di&#225;ria</h3><p class="chart-sub">Solicita&#231;&#245;es dos &#250;ltimos 7 dias</p>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'+theader+rows+'</table></div></div>';
