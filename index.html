@@ -483,6 +483,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
         </div>
         <div class="kpi-row" id="kpi-row"></div>
         <div class="kpi-row" id="kpi-row2" style="margin-bottom:20px"></div>
+        <div id="otd-atrasadas" style="margin-bottom:22px"></div>
         <div class="chart-grid">
           <div class="chart-card"><h3>Pedidos por M&ecirc;s</h3><p class="chart-sub">Solicita&ccedil;&otilde;es abertas por m&ecirc;s</p><div id="chart-mes"></div></div>
           <div class="chart-card"><h3>Pedidos por Setor</h3><p class="chart-sub">Distribui&ccedil;&atilde;o de solicita&ccedil;&otilde;es por setor</p><div id="chart-setor-qtd"></div></div>
@@ -1001,14 +1002,54 @@ async function renderAdmin(){
     return acc+Math.round((new Date(x.dt_entrega)-new Date(x.created_at))/86400000);
   },0)/ltSols.length):null;
 
-  // OTD: % entregues até o prazo solicitado (ou dt_prevista se definida)
-  var otdSols=s.filter(function(x){return (x.prazo||x.dt_prevista)&&x.dt_entrega;});
-  var otd=otdSols.length?Math.round(otdSols.filter(function(x){
+  // OTD: filtrado por mês de dt_entrega (não created_at)
+  var otdPool=sols.filter(function(x){
+    if(!x.dt_entrega||(!(x.dt_prevista||x.prazo)))return false;
+    if(!filtroMes)return true;
+    return mkey(x.dt_entrega)===filtroMes;
+  });
+  var otdNoPrazo=otdPool.filter(function(x){
     var ref=x.dt_prevista||x.prazo;
     return new Date(x.dt_entrega)<=new Date(ref);
-  }).length/otdSols.length*100):null;
+  });
+  var otd=otdPool.length?Math.round(otdNoPrazo.length/otdPool.length*100):null;
+  var otdAtrasadas=otdPool.filter(function(x){
+    var ref=x.dt_prevista||x.prazo;
+    return new Date(x.dt_entrega)>new Date(ref);
+  }).sort(function(a,b){
+    var da=(new Date(a.dt_entrega)-new Date(a.dt_prevista||a.prazo));
+    var db=(new Date(b.dt_entrega)-new Date(b.dt_prevista||b.prazo));
+    return db-da;
+  });
 
   var savingPct=(volAprovado>0&&totalSaving>0)?Math.round(totalSaving/volAprovado*100*10)/10:null;
+  // Lista de itens atrasados
+  (function(){
+    var el=document.getElementById('otd-atrasadas');
+    if(!el)return;
+    if(!otdAtrasadas.length){el.innerHTML='';return;}
+    var rows=otdAtrasadas.map(function(x){
+      var ref=new Date(x.dt_prevista||x.prazo);
+      var ent=new Date(x.dt_entrega);
+      var dias=Math.round((ent-ref)/86400000);
+      return'<tr onclick="openModal('+x.id+')" style="cursor:pointer" onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'\'">'
+        +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:#1f4781">'+esc(x.titulo)+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+esc(x.nome)+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+esc(x.setor)+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;text-align:center">'+fmtD(x.dt_prevista||x.prazo)+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;text-align:center">'+fmtD(x.dt_entrega)+'</td>'
+        +'<td style="padding:8px 10px;text-align:center"><span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;border-radius:12px;padding:2px 10px">+'+dias+' dias</span></td>'
+        +'</tr>';
+    }).join('');
+    el.innerHTML='<div class="chart-card" style="padding:0;overflow:hidden">'
+      +'<div style="padding:16px 20px 10px;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><h3 style="margin:0;font-size:15px">&#x26A0;&#xFE0F; Entregas Fora do Prazo</h3><p class="chart-sub" style="margin:2px 0 0">'+otdAtrasadas.length+' solicita&#231;&#245;es entregues ap&#243;s o prazo '+(filtroMes?'em '+filtroMes:'no per&#237;odo selecionado')+'</p></div>'
+      +'<span style="background:#FEE2E2;color:#991B1B;font-size:13px;font-weight:700;border-radius:12px;padding:4px 14px">'+otdAtrasadas.length+' atrasos</span>'
+      +'</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+      +'<tr style="background:#FEF2F2"><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Solicita&#231;&#227;o</th><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Solicitante</th><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Setor</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Prazo</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Entrega Real</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Atraso</th></tr>'
+      +rows+'</table></div></div>';
+  })();
   document.getElementById('kpi-row2').innerHTML=
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(totalSaving)+'</div><div class="kpi-lbl">Saving Total (R$)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">📊</div><div><div class="kpi-val">'+(savingPct!==null?savingPct+'%':'—')+'</div><div class="kpi-lbl">Saving Total (%)</div></div></div>'+
