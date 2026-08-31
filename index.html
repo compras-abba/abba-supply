@@ -1021,21 +1021,36 @@ async function renderAdmin(){
     for(var i=6;i>=0;i--){var d=new Date(today);d.setDate(d.getDate()-i);dias.push(d.toISOString().split('T')[0]);}
     function isoDate(v){if(!v)return null;try{return new Date(v).toISOString().split('T')[0];}catch(e){return null;}}
     var DCOLS=[
-      {l:'Enviadas',     c:'#4F46E5', fn:function(x){return isoDate(x.created_at)===dia;}},
-      {l:'Triagem',      c:'#3B82F6', fn:function(x){return x.historico&&isoDate(x.historico.triagem)===dia;}},
-      {l:'Cotação',      c:'#8B5CF6', fn:function(x){return x.historico&&isoDate(x.historico.cotacao)===dia;}},
-      {l:'Pré-Aprov.',   c:'#06B6D4', fn:function(x){return x.historico&&isoDate(x.historico.pre_aprovacao)===dia;}},
-      {l:'Aprovadas',    c:'#F59E0B', fn:function(x){return isoDate(x.dt_aprovacao)===dia||(x.historico&&isoDate(x.historico.ap_aprovado)===dia);}},
-      {l:'OC Emitidas',  c:'#EC4899', fn:function(x){return x.historico&&isoDate(x.historico.emissao_oc)===dia;}},
-      {l:'Entregues',    c:'#F97316', fn:function(x){return x.historico&&isoDate(x.historico.entrega)===dia;}},
-      {l:'Conclu&#237;das', c:'#10B981', fn:function(x){return isoDate(x.dt_entrega)===dia||(x.historico&&isoDate(x.historico.concluido)===dia);}},
-      {l:'Reprovadas',   c:'#DC2626', fn:function(x){return x.historico&&(isoDate(x.historico.reprovado)===dia||isoDate(x.historico.ap_reprovado)===dia);}},
+      {l:'Enviadas',        c:'#4F46E5'},
+      {l:'Triagem',         c:'#3B82F6'},
+      {l:'Cota&#231;&#227;o',c:'#8B5CF6'},
+      {l:'Pr&#233;-Aprov.', c:'#06B6D4'},
+      {l:'Aprovadas',       c:'#F59E0B'},
+      {l:'OC Emitidas',     c:'#EC4899'},
+      {l:'Entregues',       c:'#F97316'},
+      {l:'Conclu&#237;das', c:'#10B981'},
+      {l:'Reprovadas',      c:'#DC2626'},
     ];
+    function diaCount(dia,idx){
+      return sols.filter(function(x){
+        var h=x.historico||{};
+        if(idx===0)return isoDate(x.created_at)===dia;
+        if(idx===1)return isoDate(h.triagem)===dia;
+        if(idx===2)return isoDate(h.cotacao)===dia;
+        if(idx===3)return isoDate(h.pre_aprovacao)===dia;
+        if(idx===4)return isoDate(x.dt_aprovacao)===dia||isoDate(h.ap_aprovado)===dia;
+        if(idx===5)return isoDate(h.emissao_oc)===dia;
+        if(idx===6)return isoDate(h.entrega)===dia;
+        if(idx===7)return isoDate(x.dt_entrega)===dia||isoDate(h.concluido)===dia;
+        if(idx===8)return isoDate(h.reprovado)===dia||isoDate(h.ap_reprovado)===dia;
+        return false;
+      }).length;
+    }
     var rows=dias.map(function(dia){
       var dLabel=new Date(dia+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
       var isToday=dia===today.toISOString().split('T')[0];
-      var cells=DCOLS.map(function(col){
-        var n=sols.filter(col.fn).length;
+      var cells=DCOLS.map(function(col,i){
+        var n=diaCount(dia,i);
         return'<td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:600;color:'+(n?col.c:'#9CA3AF')+'">'+n+'</td>';
       }).join('');
       return'<tr style="'+(isToday?'background:rgba(31,71,129,.06)':'')+'">'
