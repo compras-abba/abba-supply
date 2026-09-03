@@ -1834,7 +1834,14 @@ function buildModal(s,anexos,comentarios){
         +histRows+'</div>';
     }
   }
-  return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
+  var pdfBtn=(canEdit&&(s.status==='emissao_oc'||s.status==='entrega'||s.status==='concluido'))
+    ?'<div class="sec" style="background:var(--navy-light,#EFF6FF);border:1.5px solid #BFDBFE;border-radius:10px;padding:14px 16px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+      +'<div><div style="font-size:13px;font-weight:700;color:#1e3a8a;margin-bottom:2px">📄 Documento da OC</div>'
+      +'<div style="font-size:12px;color:#3B82F6">Gere o PDF formal com aprovações e cotação para anexar à OC</div></div>'
+      +'<button onclick="gerarPDFOC('+s.id+')" style="background:#1f4781;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">📄 Gerar PDF</button>'
+      +'</div></div>':''  ;
+  return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+pdfBtn+anexSec+histSec;
 }
 
 // MUTAÇÕES
@@ -2459,6 +2466,66 @@ async function sendChat(solId){
   // Scroll chat to bottom
   var chat=document.getElementById('chat-msgs-'+solId);
   if(chat)chat.scrollTop=chat.scrollHeight;
+}
+
+// PDF OC
+function gerarPDFOC(id){
+  var s=sols.find(function(x){return x.id===id;});
+  if(!s)return;
+  var hist=s.historico||{};
+  var cot=(s.cotacoes||[]).find(function(c){return c.escolhida;})||null;
+  var itens=(s.itens_solicitacao||[]);
+  var now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  function row(l,v){return v?'<tr><td style="padding:6px 10px;font-size:12px;color:#6B7280;font-weight:600;white-space:nowrap;width:160px">'+l+'</td><td style="padding:6px 10px;font-size:13px;color:#111;font-weight:500">'+v+'</td></tr>':'';}
+  function etapa(k,l){var v=hist[k];return v?'<tr><td style="padding:5px 10px;font-size:12px;color:#374151;font-weight:600">'+l+'</td><td style="padding:5px 10px;font-size:12px;color:#6B7280;font-variant-numeric:tabular-nums">'+fmtDT(v)+'</td></tr>':'';}
+  var itensHtml=itens.length?itens.map(function(it,i){
+    return'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:8px 10px;font-size:12px;color:#6B7280;width:32px">'+(i+1)+'</td>'
+      +'<td style="padding:8px 10px;font-size:13px;color:#111;font-weight:500">'+esc(it.descricao||'')+'</td>'
+      +'<td style="padding:8px 10px;font-size:12px;color:#374151;white-space:nowrap">'+esc(it.quantidade||'')+'</td>'
+      +'<td style="padding:8px 10px;font-size:12px;color:#6B7280">'+esc(it.observacao||'')+'</td></tr>';
+  }).join(''):'<tr><td colspan="4" style="padding:10px;font-size:12px;color:#9CA3AF">Nenhum item registrado</td></tr>';
+  var cotHtml=cot
+    ?'<table style="width:100%;border-collapse:collapse;margin-top:4px">'+
+      row('Fornecedor',esc(cot.forn))+row('Valor',cot.val?(s.setor==='Comercial'||s.categoria==='Cotação'?'R$ '+fmt(cot.val)+'/kg':'R$ '+fmt(cot.val)):null)+
+      row('Prazo Entrega',esc(cot.prazo))+row('Cond. Pagamento / ICMS',esc(cot.cond))+'</table>'
+    :'<p style="font-size:12px;color:#9CA3AF;margin:8px 0 0">Nenhuma cotação registrada.</p>';
+  var etapasHtml='<table style="width:100%;border-collapse:collapse">'
+    +etapa('triagem','Triagem')+etapa('cotacao','Cotação Externa')+etapa('pre_aprovacao','Enviado p/ Pré-Aprovação')
+    +etapa('pre_ap_aprovado','Gerência Aprovou')+etapa('ap_aprovado','Diretoria Aprovou')
+    +etapa('emissao_oc','Emissão da OC')+etapa('entrega','Entrega')+etapa('concluido','Concluído')
+    +'</table>';
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
+    +'<title>OC — '+esc(s.titulo)+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;color:#111;padding:32px 40px;max-width:800px;margin:0 auto}'
+    +'h1{font-size:20px;font-weight:700;color:#1f4781;margin-bottom:2px}h2{font-size:13px;font-weight:700;color:#1f4781;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 8px;padding-bottom:4px;border-bottom:2px solid #1f4781}'
+    +'.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:12px;padding:3px 10px;background:#DCFCE7;color:#15803D}'
+    +'table{border-collapse:collapse}td{vertical-align:top}'
+    +'.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:3px solid #1f4781;margin-bottom:20px}'
+    +'.meta{font-size:11px;color:#6B7280;margin-top:4px}'
+    +'@media print{body{padding:20px}button{display:none!important}}'
+    +'</style></head><body>'
+    +'<div class="header"><div><div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:.1em;margin-bottom:4px">ABBA SUPPLY — DOCUMENTO DE OC</div>'
+    +'<h1>'+esc(s.titulo)+'</h1>'
+    +'<div class="meta">Solicitado em '+new Date(s.created_at).toLocaleDateString('pt-BR')+' &nbsp;|&nbsp; Gerado em '+now+'</div></div>'
+    +'<div style="text-align:right"><span class="badge">'+esc(s.status==='concluido'?'Concluído':s.status==='emissao_oc'?'Emissão OC':'Entrega')+'</span>'
+    +'<div style="font-size:11px;color:#6B7280;margin-top:6px">ID #'+s.id+'</div></div></div>'
+    +'<h2>Dados da Solicitação</h2>'
+    +'<table style="width:100%">'+row('Solicitante',esc(s.nome))+row('Email',esc(s.email))+row('Setor',esc(s.setor))+row('Empresa',esc(s.empresa))+(s.cliente?row('Cliente',esc(s.cliente)):'')+row('Categoria',esc(s.categoria))+row('Prioridade',esc(s.prioridade))+row('Prazo Solicitado',fmtD(s.prazo))+(s.aprovador?row('Aprovador',esc(s.aprovador)):'')+'</table>'
+    +'<h2>Itens Solicitados</h2>'
+    +'<table style="width:100%;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">'
+    +'<tr style="background:#F8FAFC"><th style="padding:8px 10px;font-size:11px;color:#6B7280;font-weight:700;text-align:left;width:32px">#</th><th style="padding:8px 10px;font-size:11px;color:#6B7280;font-weight:700;text-align:left">Descrição</th><th style="padding:8px 10px;font-size:11px;color:#6B7280;font-weight:700;text-align:left">Qtd</th><th style="padding:8px 10px;font-size:11px;color:#6B7280;font-weight:700;text-align:left">Obs</th></tr>'
+    +itensHtml+'</table>'
+    +(s.justificativa?'<h2>Justificativa</h2><p style="font-size:13px;color:#374151;line-height:1.6">'+esc(s.justificativa)+'</p>':'')
+    +'<h2>Cotação Selecionada</h2>'+cotHtml
+    +'<h2>Histórico de Aprovações</h2>'+etapasHtml
+    +(s.ap_obs?'<div style="margin-top:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px 14px;font-size:12px;color:#374151"><strong>Obs. Aprovação:</strong> '+esc(s.ap_obs)+'</div>':'')
+    +'<div style="margin-top:32px;padding-top:16px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF">'
+    +'<span>ABBA Supply — Gestão de Compras</span><span>Documento gerado em '+now+'</span></div>'
+    +'<div style="margin-top:24px;text-align:center"><button onclick="window.print()" style="background:#1f4781;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer">🖨️ Imprimir / Salvar PDF</button></div>'
+    +'</body></html>';
+  var w=window.open('','_blank','width=860,height=700');
+  if(w){w.document.write(html);w.document.close();setTimeout(function(){w.focus();},300);}
+  else toast('⚠️ Permita popups para gerar o PDF');
 }
 
 // UTILS
