@@ -663,6 +663,10 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
       <div class="modal-hd-row">
         <div style="flex:1;min-width:0"><h2 id="m-title">-</h2><div class="modal-sub" id="m-sub">-</div><div class="modal-badges" id="m-badges"></div></div>
         <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-sm" id="btn-pdf-modal" style="display:none;background:#1f4781;color:#fff;border:none" onclick="gerarPDFOC(selId)">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            PDF
+          </button>
           <button class="btn btn-outline btn-sm" id="btn-edit-modal" style="display:none" onclick="openEditSol(selId)">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Editar
@@ -1446,6 +1450,7 @@ async function openModal(id){
   document.getElementById('modal-bd').innerHTML=buildModal(s,anexos,comentarios);
   document.getElementById('btn-del-modal').style.display=CU.role==='admin'?'inline-flex':'none';
   document.getElementById('btn-edit-modal').style.display=CU.role==='admin'?'inline-flex':'none';
+  document.getElementById('btn-pdf-modal').style.display=CU.role==='admin'?'inline-flex':'none';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -1471,6 +1476,7 @@ function openEditSol(id){
     '<div class="fg"><label>Aprovador</label><select id="es-aprov"><option value="Francisco"'+(s.aprovador==='Francisco'?' selected':'')+'>Francisco — Demais compras</option><option value="Christiane"'+(s.aprovador==='Christiane'?' selected':'')+'>Christiane — Uso/Consumo</option></select></div>'+
     '<div class="fg"><label>Etapa</label><select id="es-status">'+Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div>'+
     '</div>'+
+    '<div class="fg" style="margin-bottom:12px"><label>Título da Compra</label><input id="es-titulo" value="'+esc(s.titulo||'')+'" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>'+
     '<div class="fg" style="margin-bottom:12px"><label>Descrição</label><textarea id="es-desc" rows="3" style="width:100%;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px;resize:vertical">'+esc(s.descricao||'')+'</textarea></div>'+
     '<div class="fg" style="margin-bottom:16px"><label>Justificativa</label><textarea id="es-just" rows="2" style="width:100%;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px;resize:vertical">'+esc(s.justificativa||s.just||'')+'</textarea></div>'+
     '<div style="display:flex;gap:10px">'+
@@ -1490,10 +1496,11 @@ async function saveEditSol(id){
   var prazo=document.getElementById('es-prazo').value;
   var aprov=document.getElementById('es-aprov').value;
   var status=document.getElementById('es-status').value;
+  var titulo=(document.getElementById('es-titulo').value||'').trim().toUpperCase();
   var desc=(document.getElementById('es-desc').value||'').trim();
   var just=(document.getElementById('es-just').value||'').trim();
   if(!nome||!setor||!prazo){toast('⚠️ Preencha os campos obrigatórios');return;}
-  var r=await sb.from('solicitacoes').update({nome:nome,email:email,setor:setor,empresa:empresa,categoria:cat,prioridade:prio,prazo:prazo,aprovador:aprov,status:status,descricao:desc,justificativa:just,titulo:desc.substring(0,60)}).eq('id',id);
+  var r=await sb.from('solicitacoes').update({nome:nome,email:email,setor:setor,empresa:empresa,categoria:cat,prioridade:prio,prazo:prazo,aprovador:aprov,status:status,descricao:desc,justificativa:just,titulo:titulo||undefined}).eq('id',id);
   if(r.error){toast('❌ Erro ao salvar: '+r.error.message);return;}
   toast('✅ Solicitação atualizada!');
   sols=[];await openModal(id);render(curPage());
@@ -1834,14 +1841,7 @@ function buildModal(s,anexos,comentarios){
         +histRows+'</div>';
     }
   }
-  var pdfBtn=(canEdit)
-    ?'<div class="sec" style="background:var(--navy-light,#EFF6FF);border:1.5px solid #BFDBFE;border-radius:10px;padding:14px 16px">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
-      +'<div><div style="font-size:13px;font-weight:700;color:#1e3a8a;margin-bottom:2px">📄 Documento da OC</div>'
-      +'<div style="font-size:12px;color:#3B82F6">Gere o PDF formal com aprovações e cotação para anexar à OC</div></div>'
-      +'<button onclick="gerarPDFOC('+s.id+')" style="background:#1f4781;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">📄 Gerar PDF</button>'
-      +'</div></div>':''  ;
-  return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+pdfBtn+anexSec+histSec;
+  return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
 }
 
 // MUTAÇÕES
