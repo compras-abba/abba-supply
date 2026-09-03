@@ -1066,17 +1066,14 @@ async function renderAdmin(){
     var today=new Date();
     var dias=[];
     if(filtroMes){
-      // encontrar ano/mês testando datas recentes até mkey bater
       function padZ(n){return String(n).padStart(2,'0');}
-      var ref=new Date();
-      for(var tryM=0;tryM<36;tryM++){
-        var td=new Date(ref.getFullYear(),ref.getMonth()-tryM,1);
-        if(mkey(td)===filtroMes){
-          var ano=td.getFullYear(),mes=td.getMonth();
-          var ultimo=new Date(ano,mes+1,0).getDate();
-          for(var d2=1;d2<=ultimo;d2++)dias.push(ano+'-'+padZ(mes+1)+'-'+padZ(d2));
-          break;
-        }
+      // usar uma sol do mês selecionado para extrair ano/mês com certeza
+      var matchSol=sols.find(function(x){return mkey(x.created_at)===filtroMes;});
+      if(matchSol){
+        var refDt=new Date(matchSol.created_at);
+        var ano=refDt.getFullYear(),mes=refDt.getMonth();
+        var ultimo=new Date(ano,mes+1,0).getDate();
+        for(var d2=1;d2<=ultimo;d2++)dias.push(ano+'-'+padZ(mes+1)+'-'+padZ(d2));
       }
     } else {
       for(var i=6;i>=0;i--){var d=new Date(today);d.setDate(d.getDate()-i);dias.push(d.toISOString().split('T')[0]);}
