@@ -1072,9 +1072,9 @@ async function renderAdmin(){
       var mes=mNames[partes[0]];
       var ano=2000+parseInt(partes[1],10);
       var ultimo=new Date(ano,mes+1,0).getDate();
+      function padZ(n){return String(n).padStart(2,'0');}
       for(var d2=1;d2<=ultimo;d2++){
-        var dd=new Date(ano,mes,d2);
-        dias.push(dd.toISOString().split('T')[0]);
+        dias.push(ano+'-'+padZ(mes+1)+'-'+padZ(d2));
       }
     } else {
       for(var i=6;i>=0;i--){var d=new Date(today);d.setDate(d.getDate()-i);dias.push(d.toISOString().split('T')[0]);}
