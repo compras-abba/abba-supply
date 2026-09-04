@@ -1006,6 +1006,25 @@ async function renderAdmin(){
     return acc+Math.round((new Date(x.dt_entrega)-new Date(x.created_at))/86400000);
   },0)/ltSols.length):null;
 
+  // Lead Time por Etapas (soma dos tempos médios entre transições)
+  var TRANS_KPI=[
+    {de:'triagem',ate:'cotacao'},{de:'cotacao',ate:'pre_aprovacao'},
+    {de:'pre_aprovacao',ate:'pre_ap_aprovado'},{de:'pre_ap_aprovado',ate:'ap_aprovado'},
+    {de:'ap_aprovado',ate:'emissao_oc'},{de:'emissao_oc',ate:'entrega'},{de:'entrega',ate:'concluido'},
+  ];
+  function diffDiasKPI(a,b){if(!a||!b)return null;var d=Math.round((new Date(b)-new Date(a))/86400000);return d>=0?d:null;}
+  var totalDiasEtapas=(function(){
+    var sum=0;
+    TRANS_KPI.forEach(function(t){
+      var vals=sols.map(function(x){
+        var h=x.historico||{};
+        return diffDiasKPI(h[t.de],h[t.ate]||(t.ate==='ap_aprovado'?x.dt_aprovacao:null)||(t.ate==='concluido'?x.dt_entrega:null));
+      }).filter(function(v){return v!==null&&v>=0;});
+      if(vals.length)sum+=vals.reduce(function(a,b){return a+b;},0)/vals.length;
+    });
+    return Math.round(sum*10)/10;
+  })();
+
   // OTD: filtrado por mês de dt_entrega (não created_at)
   var otdPool=sols.filter(function(x){
     if(!x.dt_entrega||(!(x.dt_prevista||x.prazo)))return false;
@@ -1059,6 +1078,7 @@ async function renderAdmin(){
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(totalSaving)+'</div><div class="kpi-lbl">Saving Total (R$)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">📊</div><div><div class="kpi-val">'+(savingPct!==null?savingPct+'%':'—')+'</div><div class="kpi-lbl">Saving Total (%)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon indigo">⏱️</div><div><div class="kpi-val">'+(avgLt!==null?avgLt+' dias':'—')+'</div><div class="kpi-lbl">Lead Time M&eacute;dio</div></div></div>'+
+    '<div class="kpi"><div class="kpi-icon indigo">🔄</div><div><div class="kpi-val">'+(totalDiasEtapas?totalDiasEtapas+' dias':'—')+'</div><div class="kpi-lbl">Ciclo Total M&eacute;dio</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon '+(otd===null?'amber':otd>=80?'emerald':'amber')+'">🎯</div><div><div class="kpi-val">'+(otd!==null?otd+'%':'—')+'</div><div class="kpi-lbl">OTD (On Time Delivery)</div></div></div>';
 
   // Atividade diária — todos os dias do mês selecionado, ou últimos 7 dias
@@ -1148,6 +1168,8 @@ async function renderAdmin(){
       return{l:t.l,c:t.c,avg:avg,n:vals.length};
     });
     var maxAvg=Math.max.apply(null,resultados.map(function(r){return r.avg||0;}))||1;
+    var totalDias=resultados.reduce(function(a,r){return a+(r.avg||0);},0);
+    totalDias=Math.round(totalDias*10)/10;
     var bars=resultados.map(function(r){
       var pct=r.avg!==null?Math.round(r.avg/maxAvg*100):0;
       var label=r.avg!==null?(r.avg===1?'1 dia':r.avg+' dias')+' <span style="font-size:11px;color:#9CA3AF">('+r.n+' amostras)</span>':'<span style="color:#9CA3AF">sem dados</span>';
@@ -1160,8 +1182,13 @@ async function renderAdmin(){
         +(r.avg!==null?'<div style="background:'+r.c+';width:'+pct+'%;height:100%;border-radius:6px;transition:width .4s"></div>':'')
         +'</div></div>';
     }).join('');
+    var totalCard='<div style="margin-top:16px;padding:14px 16px;background:linear-gradient(135deg,#1f4781,#3B82F6);border-radius:10px;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">&#x23F1; Lead Time Total M&eacute;dio</div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.55)">Soma de todas as etapas (triagem → conclu&iacute;do)</div></div>'
+      +'<div style="font-size:28px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap">'+totalDias+' <span style="font-size:14px;font-weight:600;opacity:.8">dias</span></div>'
+      +'</div>';
     document.getElementById('tempo-etapas').innerHTML=
-      '<div class="chart-card"><h3>&#x23F1;&#xFE0F; Tempo M&eacute;dio por Etapa</h3><p class="chart-sub">M&eacute;dia de dias que as solicita&ccedil;&otilde;es passam em cada transi&ccedil;&atilde;o (baseado no hist&oacute;rico)</p>'+bars+'</div>';
+      '<div class="chart-card"><h3>&#x23F1;&#xFE0F; Tempo M&eacute;dio por Etapa</h3><p class="chart-sub">M&eacute;dia de dias que as solicita&ccedil;&otilde;es passam em cada transi&ccedil;&atilde;o (baseado no hist&oacute;rico)</p>'+bars+totalCard+'</div>';
   })();
 
   var pm={};s.forEach(function(x){var k=mkey(x.created_at);pm[k]=(pm[k]||0)+1;});
