@@ -1845,6 +1845,14 @@ function buildModal(s,anexos,comentarios){
   }
 
   var chatSec=buildChatSection(s.id,comentarios);
+  // Seção de motivo da reprovação (admin)
+  var reprovadoSec='';
+  if(s.status==='reprovado'&&canEdit&&s.ap_obs){
+    reprovadoSec='<div class="sec" style="border-left:4px solid #DC2626">'
+      +'<h3 style="color:#DC2626">❌ Motivo da Reprovação</h3>'
+      +'<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px 14px;font-size:13px;color:#7F1D1D;line-height:1.6">'+esc(s.ap_obs)+'</div>'
+      +'</div>';
+  }
   // Histórico de etapas
   var ETAPAS=[
     {k:'triagem',l:'Triagem'},
@@ -1880,7 +1888,7 @@ function buildModal(s,anexos,comentarios){
         +histRows+'</div>';
     }
   }
-  return info+triagem+cot+preApSec+apSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
+  return info+triagem+cot+preApSec+apSec+reprovadoSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
 }
 
 // MUTAÇÕES
@@ -1954,7 +1962,7 @@ async function qPreAp(id,status){
     return;
   } else {
     if(!motivo){toast('⚠️ Informe o motivo da recusa.');return;}
-    await sb.from('solicitacoes').update({status:'reprovado',ap_status:'aguardando'}).eq('id',id);
+    await sb.from('solicitacoes').update({status:'reprovado',ap_status:'aguardando',ap_obs:motivo||null}).eq('id',id);
     await registrarHistorico(id,'reprovado');
     await sendEmail(COMPRAS_EMAIL,'Pré-Aprovação Recusada: '+titulo,emailTpl('Solicitação Recusada pelo Gerente','<p>"'+titulo+'" foi recusada na pré-aprovação.</p>'+(motivo?'<p><strong>Motivo:</strong> '+motivo+'</p>':'')));
     await notifySolicitante(id,'Solicitação Reprovada','"'+titulo+'" foi reprovada pelo Gerente.'+(motivo?' Motivo: '+motivo:''),'reprovado');
