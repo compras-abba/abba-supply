@@ -1056,6 +1056,7 @@ async function renderAdmin(){
       var ref=new Date(x.dt_prevista||x.prazo);
       var ent=new Date(x.dt_entrega);
       var dias=Math.round((ent-ref)/86400000);
+      var motivo=x.motivo_atraso||'';
       return'<tr onclick="openModal('+x.id+')" style="cursor:pointer" onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'\'">'
         +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:#1f4781">'+esc(x.titulo)+'</td>'
         +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+esc(x.nome)+'</td>'
@@ -1063,16 +1064,36 @@ async function renderAdmin(){
         +'<td style="padding:8px 10px;font-size:12px;text-align:center">'+fmtD(x.dt_prevista||x.prazo)+'</td>'
         +'<td style="padding:8px 10px;font-size:12px;text-align:center">'+fmtD(x.dt_entrega)+'</td>'
         +'<td style="padding:8px 10px;text-align:center"><span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;border-radius:12px;padding:2px 10px">+'+dias+' dias</span></td>'
+        +'<td style="padding:8px 10px;font-size:12px;color:#6B7280;max-width:180px">'+(motivo?'<span style="background:#FEF3C7;color:#92400E;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">'+esc(motivo)+'</span>':'<span style="color:#D1D5DB;font-size:11px">—</span>')+'</td>'
         +'</tr>';
     }).join('');
+    // Gráfico de motivos
+    var motivoMap={};
+    otdAtrasadas.forEach(function(x){var m=x.motivo_atraso||'Não informado';motivoMap[m]=(motivoMap[m]||0)+1;});
+    var motivoEntries=Object.keys(motivoMap).sort(function(a,b){return motivoMap[b]-motivoMap[a];});
+    var motivoColors=['#DC2626','#F97316','#F59E0B','#8B5CF6','#3B82F6','#EC4899','#6B7280'];
+    var motivoBars=motivoEntries.map(function(m,i){
+      var n=motivoMap[m];
+      var pct=Math.round(n/otdAtrasadas.length*100);
+      var c=motivoColors[i%motivoColors.length];
+      return'<div style="margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
+        +'<span style="font-size:12px;color:#374151;font-weight:500">'+esc(m)+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+c+'">'+pct+'% <span style="font-size:11px;color:#9CA3AF;font-weight:400">('+n+')</span></span>'
+        +'</div>'
+        +'<div style="background:#F3F4F6;border-radius:6px;height:7px;overflow:hidden">'
+        +'<div style="background:'+c+';width:'+pct+'%;height:100%;border-radius:6px;transition:width .4s"></div>'
+        +'</div></div>';
+    }).join('');
+    var motivoSection=motivoEntries.length?'<div style="padding:14px 20px;border-top:1px solid #F3F4F6"><div style="font-size:11px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Causas dos Atrasos</div>'+motivoBars+'</div>':'';
     el.innerHTML='<div class="chart-card" style="padding:0;overflow:hidden">'
       +'<div style="padding:16px 20px 10px;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;justify-content:space-between">'
       +'<div><h3 style="margin:0;font-size:15px">&#x26A0;&#xFE0F; Entregas Fora do Prazo</h3><p class="chart-sub" style="margin:2px 0 0">'+otdAtrasadas.length+' solicita&#231;&#245;es entregues ap&#243;s o prazo '+(filtroMes?'em '+filtroMes:'no per&#237;odo selecionado')+'</p></div>'
       +'<span style="background:#FEE2E2;color:#991B1B;font-size:13px;font-weight:700;border-radius:12px;padding:4px 14px">'+otdAtrasadas.length+' atrasos</span>'
       +'</div>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
-      +'<tr style="background:#FEF2F2"><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Solicita&#231;&#227;o</th><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Solicitante</th><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Setor</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Prazo</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Entrega Real</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Atraso</th></tr>'
-      +rows+'</table></div></div>';
+      +'<tr style="background:#FEF2F2"><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Solicita&#231;&#227;o</th><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Solicitante</th><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Setor</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Prazo</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Entrega Real</th><th style="padding:8px 10px;text-align:center;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Atraso</th><th style="padding:8px 10px;text-align:left;font-size:11px;color:#991B1B;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Motivo</th></tr>'
+      +rows+'</table></div>'+motivoSection+'</div>';
   })();
   document.getElementById('kpi-row2').innerHTML=
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(totalSaving)+'</div><div class="kpi-lbl">Saving Total (R$)</div></div></div>'+
