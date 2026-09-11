@@ -1003,6 +1003,19 @@ async function renderAdmin(){
   // Dias úteis: seg-sex, 8h-18h, excluindo feriados nacionais fixos
   var FERIADOS_FIXOS=['01-01','04-21','05-01','09-07','10-12','11-02','11-15','11-20','12-25'];
   function isFeriado(d){var m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return FERIADOS_FIXOS.indexOf(m+'-'+dd)>=0;}
+  // Parse date string como data local (evita bug de timezone com YYYY-MM-DD)
+  function parseDataLocal(s){if(!s)return null;var p=String(s).split('T')[0].split('-');if(p.length<3)return null;return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]),12,0,0);}
+  function proxDiaUtil(d,forward){var r=new Date(d);for(var i=0;i<60;i++){var dw=r.getDay();if(dw===0||dw===6||isFeriado(r)){r.setDate(r.getDate()+(forward?1:-1));}else break;}return r;}
+  // Dias úteis entre duas datas (strings YYYY-MM-DD) — positivo = atrasado
+  function diasUteisEntreDatas(dataA,dataB){
+    var a=parseDataLocal(dataA),b=parseDataLocal(dataB);
+    if(!a||!b)return null;
+    var bizA=proxDiaUtil(a,true),bizB=proxDiaUtil(b,true);
+    if(bizB<=bizA)return 0;
+    var count=0,cur=new Date(bizA);cur.setDate(cur.getDate()+1);
+    while(cur<=bizB){if(cur.getDay()>0&&cur.getDay()<6&&!isFeriado(cur))count++;cur.setDate(cur.getDate()+1);}
+    return count;
+  }
   function diasUteis(a,b){
     if(!a||!b)return null;
     var ini=new Date(a),fim=new Date(b);
@@ -1073,17 +1086,17 @@ async function renderAdmin(){
   });
   var otdNoPrazo=otdPool.filter(function(x){
     var ref=x.dt_prevista||x.prazo;
-    var hu=diasUteis(ref,x.dt_entrega);
-    return hu===null?new Date(x.dt_entrega)<=new Date(ref):hu<=0;
+    var du=diasUteisEntreDatas(ref,x.dt_entrega);
+    return du===null?new Date(x.dt_entrega)<=new Date(ref):du<=0;
   });
   var otd=otdPool.length?Math.round(otdNoPrazo.length/otdPool.length*100):null;
   var otdAtrasadas=otdPool.filter(function(x){
     var ref=x.dt_prevista||x.prazo;
-    var hu=diasUteis(ref,x.dt_entrega);
-    return hu===null?new Date(x.dt_entrega)>new Date(ref):hu>0;
+    var du=diasUteisEntreDatas(ref,x.dt_entrega);
+    return du===null?new Date(x.dt_entrega)>new Date(ref):du>0;
   }).sort(function(a,b){
-    var da=diasUteis(a.dt_prevista||a.prazo,a.dt_entrega)||0;
-    var db=diasUteis(b.dt_prevista||b.prazo,b.dt_entrega)||0;
+    var da=diasUteisEntreDatas(a.dt_prevista||a.prazo,a.dt_entrega)||0;
+    var db=diasUteisEntreDatas(b.dt_prevista||b.prazo,b.dt_entrega)||0;
     return db-da;
   });
 
@@ -1095,7 +1108,7 @@ async function renderAdmin(){
     if(CU.role!=='admin'){el.innerHTML='';return;}
     if(!otdAtrasadas.length){el.innerHTML='';return;}
     var rows=otdAtrasadas.map(function(x){
-      var dias=diasUteis(x.dt_prevista||x.prazo,x.dt_entrega)||Math.round((new Date(x.dt_entrega)-new Date(x.dt_prevista||x.prazo))/86400000);
+      var dias=diasUteisEntreDatas(x.dt_prevista||x.prazo,x.dt_entrega)||0;
       var motivo=x.motivo_atraso||'';
       return'<tr onclick="openModal('+x.id+')" style="cursor:pointer" onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'\'">'
         +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:#1f4781">'+esc(x.titulo)+'</td>'
@@ -1103,7 +1116,7 @@ async function renderAdmin(){
         +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+esc(x.setor)+'</td>'
         +'<td style="padding:8px 10px;font-size:12px;text-align:center">'+fmtD(x.dt_prevista||x.prazo)+'</td>'
         +'<td style="padding:8px 10px;font-size:12px;text-align:center">'+fmtD(x.dt_entrega)+'</td>'
-        +'<td style="padding:8px 10px;text-align:center"><span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;border-radius:12px;padding:2px 10px">+'+dias+' dias</span></td>'
+        +'<td style="padding:8px 10px;text-align:center"><span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;border-radius:12px;padding:2px 10px">+'+dias+' dia'+(dias===1?'':'s')+' úteis</span></td>'
         +'<td style="padding:8px 10px;font-size:12px;color:#6B7280;max-width:180px">'+(motivo?'<span style="background:#FEF3C7;color:#92400E;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">'+esc(motivo)+'</span>':'<span style="color:#D1D5DB;font-size:11px">—</span>')+'</td>'
         +'</tr>';
     }).join('');
