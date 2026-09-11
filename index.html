@@ -1073,15 +1073,17 @@ async function renderAdmin(){
   });
   var otdNoPrazo=otdPool.filter(function(x){
     var ref=x.dt_prevista||x.prazo;
-    return new Date(x.dt_entrega)<=new Date(ref);
+    var hu=diasUteis(ref,x.dt_entrega);
+    return hu===null?new Date(x.dt_entrega)<=new Date(ref):hu<=0;
   });
   var otd=otdPool.length?Math.round(otdNoPrazo.length/otdPool.length*100):null;
   var otdAtrasadas=otdPool.filter(function(x){
     var ref=x.dt_prevista||x.prazo;
-    return new Date(x.dt_entrega)>new Date(ref);
+    var hu=diasUteis(ref,x.dt_entrega);
+    return hu===null?new Date(x.dt_entrega)>new Date(ref):hu>0;
   }).sort(function(a,b){
-    var da=(new Date(a.dt_entrega)-new Date(a.dt_prevista||a.prazo));
-    var db=(new Date(b.dt_entrega)-new Date(b.dt_prevista||b.prazo));
+    var da=diasUteis(a.dt_prevista||a.prazo,a.dt_entrega)||0;
+    var db=diasUteis(b.dt_prevista||b.prazo,b.dt_entrega)||0;
     return db-da;
   });
 
