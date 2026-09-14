@@ -1051,12 +1051,11 @@ async function renderAdmin(){
   }
   function diasUteisSimples(a,b){var r=diasUteis(a,b);return r===null?null:Math.round(r/10*10)/10;}
 
-  // Lead Time: horas úteis entre criação e entrega real
+  // Lead Time: dias úteis entre criação e entrega real
   var ltSols=s.filter(function(x){return x.created_at&&x.dt_entrega;});
   var avgLt=ltSols.length?(function(){
-    var total=ltSols.reduce(function(acc,x){return acc+(diasUteis(x.created_at,x.dt_entrega)||0);},0);
-    var v=Math.round(total/ltSols.length*10)/10;
-    return v;
+    var total=ltSols.reduce(function(acc,x){return acc+(diasUteisEntreDatas(x.created_at,x.dt_entrega)||0);},0);
+    return Math.round(total/ltSols.length*10)/10;
   })():null;
 
   // Lead Time por Etapas (soma dos tempos médios entre transições) — horas úteis
@@ -1065,7 +1064,7 @@ async function renderAdmin(){
     {de:'pre_aprovacao',ate:'pre_ap_aprovado'},{de:'pre_ap_aprovado',ate:'ap_aprovado'},
     {de:'ap_aprovado',ate:'emissao_oc'},{de:'emissao_oc',ate:'entrega'},{de:'entrega',ate:'concluido'},
   ];
-  function diffDiasKPI(a,b){return diasUteisSimples(a,b);}
+  function diffDiasKPI(a,b){return diasUteisEntreDatas(a,b);}
   var totalDiasEtapas=(function(){
     var sum=0;
     TRANS_KPI.forEach(function(t){
@@ -1151,8 +1150,8 @@ async function renderAdmin(){
   document.getElementById('kpi-row2').innerHTML=
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(totalSaving)+'</div><div class="kpi-lbl">Saving Total (R$)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">📊</div><div><div class="kpi-val">'+(savingPct!==null?savingPct+'%':'—')+'</div><div class="kpi-lbl">Saving Total (%)</div></div></div>'+
-    '<div class="kpi"><div class="kpi-icon indigo">⏱️</div><div><div class="kpi-val">'+(avgLt!==null?avgLt+'h':'—')+'</div><div class="kpi-lbl">Lead Time M&eacute;dio (h úteis)</div></div></div>'+
-    '<div class="kpi"><div class="kpi-icon indigo">🔄</div><div><div class="kpi-val">'+(totalDiasEtapas?totalDiasEtapas+'h':'—')+'</div><div class="kpi-lbl">Ciclo Total M&eacute;dio (h úteis)</div></div></div>'+
+    '<div class="kpi"><div class="kpi-icon indigo">⏱️</div><div><div class="kpi-val">'+(avgLt!==null?avgLt+' dias':'—')+'</div><div class="kpi-lbl">Lead Time M&eacute;dio (dias úteis)</div></div></div>'+
+    '<div class="kpi"><div class="kpi-icon indigo">🔄</div><div><div class="kpi-val">'+(totalDiasEtapas?totalDiasEtapas+' dias':'—')+'</div><div class="kpi-lbl">Ciclo Total M&eacute;dio (dias úteis)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon '+(otd===null?'amber':otd>=80?'emerald':'amber')+'">🎯</div><div><div class="kpi-val">'+(otd!==null?otd+'%':'—')+'</div><div class="kpi-lbl">OTD (On Time Delivery)</div></div></div>';
 
   // Atividade diária — todos os dias do mês selecionado, ou últimos 7 dias
@@ -1229,7 +1228,7 @@ async function renderAdmin(){
       {de:'emissao_oc',  ate:'entrega',         l:'OC Emitida → Entrega',          c:'#F97316'},
       {de:'entrega',     ate:'concluido',       l:'Entrega → Concluído',           c:'#10B981'},
     ];
-    function diffDias(a,b){return diasUteisSimples(a,b);}
+    function diffDias(a,b){return diasUteisEntreDatas(a,b);}
     if(CU.role!=='admin'){document.getElementById('tempo-etapas').innerHTML='';return;}
     var resultados=TRANS.map(function(t){
       var vals=sols.map(function(x){
@@ -1246,7 +1245,7 @@ async function renderAdmin(){
     totalDias=Math.round(totalDias*10)/10;
     var bars=resultados.map(function(r){
       var pct=r.avg!==null?Math.round(r.avg/maxAvg*100):0;
-      var label=r.avg!==null?(r.avg===1?'1h':r.avg+'h')+' &uacute;teis <span style="font-size:11px;color:#9CA3AF">('+r.n+' amostras)</span>':'<span style="color:#9CA3AF">sem dados</span>';
+      var label=r.avg!==null?(r.avg===1?'1 dia útil':r.avg+' dias úteis')+' <span style="font-size:11px;color:#9CA3AF">('+r.n+' amostras)</span>':'<span style="color:#9CA3AF">sem dados</span>';
       return'<div style="margin-bottom:12px">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
         +'<span style="font-size:12px;color:#374151;font-weight:500">'+r.l+'</span>'
@@ -1259,7 +1258,7 @@ async function renderAdmin(){
     var totalCard='<div style="margin-top:16px;padding:14px 16px;background:linear-gradient(135deg,#1f4781,#3B82F6);border-radius:10px;display:flex;align-items:center;justify-content:space-between">'
       +'<div><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">&#x23F1; Lead Time Total M&eacute;dio</div>'
       +'<div style="font-size:11px;color:rgba(255,255,255,.55)">Soma de todas as etapas (triagem → conclu&iacute;do)</div></div>'
-      +'<div style="font-size:28px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap">'+totalDias+' <span style="font-size:14px;font-weight:600;opacity:.8">h úteis</span></div>'
+      +'<div style="font-size:28px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap">'+totalDias+' <span style="font-size:14px;font-weight:600;opacity:.8">dias úteis</span></div>'
       +'</div>';
     document.getElementById('tempo-etapas').innerHTML=
       '<div class="chart-card"><h3>&#x23F1;&#xFE0F; Tempo M&eacute;dio por Etapa</h3><p class="chart-sub">M&eacute;dia de dias que as solicita&ccedil;&otilde;es passam em cada transi&ccedil;&atilde;o (baseado no hist&oacute;rico)</p>'+bars+totalCard+'</div>';
