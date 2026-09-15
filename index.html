@@ -1410,9 +1410,9 @@ async function renderFila(){
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
         '</div><div class="fila-actions" onclick="event.stopPropagation()">'+
         '<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
-        '<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa..." style="width:200px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
+        (CU.role!=='viewer'?'<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa..." style="width:200px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
         '<button class="btn btn-green btn-sm" onclick="qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
-        '<button class="btn btn-red btn-sm" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
+        '<button class="btn btn-red btn-sm" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>':'')+
         '</div></div>';
     }).join('');
   } else {
@@ -1432,8 +1432,8 @@ async function renderFila(){
         '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
         '</div><div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
-        '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
-        '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'reprovado\')">❌ Reprovar</button>'+
+        (CU.role!=='viewer'?'<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
+        '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'reprovado\')">❌ Reprovar</button>':'')+
         '</div></div>';
     }).join('');
   }
@@ -1855,7 +1855,7 @@ function buildModal(s,anexos,comentarios){
       preApSec='<div class="sec"><h3>Pré-Aprovação do Gerente</h3><div class="ap-wait"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Aguardando Pré-Aprovação do Gerente</div></div>';
     }
   }
-  var showApBtn=canApprove&&ap.status==='aguardando'&&s.status==='aprovacao';
+  var showApBtn=canApprove&&ap.status==='aguardando'&&s.status==='aprovacao'&&CU.role!=='viewer';
   var hist=s.historico||{};
   var preApBadge=(s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'||s.status==='concluido')?
     '<div style="display:flex;align-items:center;gap:6px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:8px 12px;font-size:13px;color:#065f46;margin-bottom:12px">'+
