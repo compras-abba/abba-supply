@@ -732,8 +732,7 @@ async function init(){
     var hash=window.location.hash;
     if(hash&&hash.includes('type=recovery')){
       done=true;clearTimeout(timeout);
-      // Faz logout e mostra tela de redefinição de senha
-      await sb.auth.signOut();
+      // Mantém a sessão de recovery ativa para updateUser funcionar
       showLogin();
       showResetPwd();
       return;
