@@ -732,7 +732,8 @@ async function init(){
     var hash=window.location.hash;
     if(hash&&hash.includes('type=recovery')){
       done=true;clearTimeout(timeout);
-      // Mantém a sessão de recovery ativa para updateUser funcionar
+      // Processa os tokens do hash para estabelecer a sessão de recovery
+      await sb.auth.getSession();
       showLogin();
       showResetPwd();
       return;
