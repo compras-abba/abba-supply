@@ -953,7 +953,7 @@ async function notifySolicitante(solId,titulo,mensagem,tipo){
 // ============ DADOS ============
 async function loadSols(){
   var q=sb.from('solicitacoes').select('*, cotacoes(*), itens_solicitacao(*)').order('created_at',{ascending:false});
-  if(CU.role==='solicitante')q=q.eq('user_id',CU.id);
+  if(CU.role==='solicitante')q=q.eq('setor',CU.setor); // vê todas do mesmo setor
   // viewer vê todas
   var r=await q;
   if(r.error){sols=[];return;}
@@ -1465,7 +1465,7 @@ async function qAp(id,status){
 function setChip(el,f){chipFilter=f;document.querySelectorAll('#chips .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f===f);});renderMinhas();}
 async function renderMinhas(){
   if(!sols.length)await loadSols();
-  var mine=(CU.role==='solicitante'||CU.role==='diretor'||CU.role==='gerente')?sols.filter(function(s){return s.user_id===CU.id;}):sols; // admin e viewer veem todas
+  var mine=(CU.role==='solicitante')?sols:((CU.role==='diretor'||CU.role==='gerente')?sols.filter(function(s){return s.user_id===CU.id;}):sols); // solicitante vê todo o setor; admin e viewer veem todas
   var items=mine.filter(function(s){
     if(chipFilter==='andamento')return s.status!=='concluido'&&s.status!=='pausado';
     if(chipFilter==='concluido')return s.status==='concluido';
