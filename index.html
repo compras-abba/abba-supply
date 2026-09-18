@@ -1465,7 +1465,7 @@ async function qAp(id,status){
 function setChip(el,f){chipFilter=f;document.querySelectorAll('#chips .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f===f);});renderMinhas();}
 async function renderMinhas(){
   if(!sols.length)await loadSols();
-  var mine=(CU.role==='solicitante')?sols:((CU.role==='diretor'||CU.role==='gerente')?sols.filter(function(s){return s.user_id===CU.id;}):sols); // solicitante vê todo o setor; admin e viewer veem todas
+  var mine=(CU.role==='solicitante')?sols:((CU.role==='diretor'||CU.role==='gerente')?sols.filter(function(s){return s.user_id===CU.id;}):sols);
   var items=mine.filter(function(s){
     if(chipFilter==='andamento')return s.status!=='concluido'&&s.status!=='pausado';
     if(chipFilter==='concluido')return s.status==='concluido';
