@@ -479,7 +479,14 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
               <option value="">Todos os meses</option>
             </select>
           </div>
-          <button onclick="document.getElementById('dash-mes').value='';renderAdmin()" style="font-size:12px;color:var(--gray-400);background:none;border:none;cursor:pointer;text-decoration:underline">Limpar filtro</button>
+          <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:8px 14px;box-shadow:var(--shadow)">
+            <svg width="16" height="16" fill="none" stroke="#1f4781" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            <label style="font-size:12px;font-weight:600;color:var(--gray-600)">Categoria:</label>
+            <select id="dash-cat" onchange="renderAdmin()" style="border:none;outline:none;font-size:13px;font-weight:500;color:#1f4781;background:transparent;cursor:pointer">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <button onclick="document.getElementById('dash-mes').value='';document.getElementById('dash-cat').value='';renderAdmin()" style="font-size:12px;color:var(--gray-400);background:none;border:none;cursor:pointer;text-decoration:underline">Limpar filtro</button>
         </div>
         <div class="kpi-row" id="kpi-row"></div>
         <div class="kpi-row" id="kpi-row2" style="margin-bottom:20px"></div>
@@ -980,9 +987,23 @@ async function renderAdmin(){
     }).join('');
     sel.value=mesSel;
   }
-  // Filtrar por mês selecionado
+  // Popular filtro de categoria interna
+  var catSel2=document.getElementById('dash-cat');
+  if(catSel2){
+    var catAtual=catSel2.value;
+    var cats={};sols.forEach(function(x){if(x.cat_interna)cats[x.cat_interna]=(cats[x.cat_interna]||0)+1;});
+    var catKeys=Object.keys(cats).sort();
+    catSel2.innerHTML='<option value="">Todas</option>'+catKeys.map(function(c){return'<option value="'+c+'"'+(c===catAtual?' selected':'')+'>'+c+' ('+cats[c]+')</option>';}).join('');
+    catSel2.value=catAtual;
+  }
+  // Filtrar por mês e categoria selecionados
   var filtroMes=sel?sel.value:'';
-  var s=filtroMes?sols.filter(function(x){return mkey(x.created_at)===filtroMes;}):sols;
+  var filtroCat=catSel2?catSel2.value:'';
+  var s=sols.filter(function(x){
+    if(filtroMes&&mkey(x.created_at)!==filtroMes)return false;
+    if(filtroCat&&x.cat_interna!==filtroCat)return false;
+    return true;
+  });
   var wait=s.filter(function(x){return x.ap_status==='aguardando'&&x.status==='aprovacao';}).length;
   var sets=new Set(s.map(function(x){return x.setor;})).size;
   var vol=s.reduce(function(a,x){return a+(x.cotacoes||[]).reduce(function(b,c){return b+(c.escolhida?Number(c.val):0);},0);},0);
@@ -1756,6 +1777,7 @@ function buildModal(s,anexos,comentarios){
       '<div><div class="cf-val">'+esc(c.prazo)+'</div><div class="cf-lbl">Prazo</div></div>'+
       '<div><div class="cf-val">'+esc(c.cond)+'</div><div class="cf-lbl">Condição</div></div>'+
       '</div>'+
+      (c.obs?'<div style="margin-top:8px;padding:7px 10px;background:var(--gray-50);border-radius:7px;font-size:12px;color:var(--gray-600);border-left:3px solid #93c5fd"><span style="font-weight:600;color:var(--gray-500)">Obs:</span> '+esc(c.obs)+'</div>':'')+
       '<div id="cot-edit-'+c.id+'" style="display:none;padding:10px 0 4px">'+
       '<div class="form-2" style="margin-bottom:8px">'+
       '<div class="fg"><label style="margin-top:0">Fornecedor</label><input id="ce-forn-'+c.id+'" value="'+esc(c.forn)+'"></div>'+
@@ -1763,6 +1785,7 @@ function buildModal(s,anexos,comentarios){
       '<div class="form-2" style="margin-bottom:8px">'+
       '<div class="fg"><label style="margin-top:0">Prazo</label><input id="ce-prazo-'+c.id+'" value="'+esc(c.prazo)+'"></div>'+
       '<div class="fg"><label style="margin-top:0">Condição</label><input id="ce-cond-'+c.id+'" value="'+esc(c.cond)+'"></div></div>'+
+      '<div class="fg" style="margin-bottom:8px"><label style="margin-top:0">Observação</label><input id="ce-obs-'+c.id+'" value="'+esc(c.obs||'')+'" placeholder="Ex: frete incluso, validade 30 dias..."></div>'+
       '<div style="display:flex;gap:8px;justify-content:flex-end">'+
       '<button class="btn btn-outline btn-sm" onclick="cancelEditCot('+c.id+')">Cancelar</button>'+
       '<button class="btn btn-primary btn-sm" onclick="saveEditCot('+s.id+','+c.id+')">Salvar</button>'+
@@ -1828,7 +1851,8 @@ function buildModal(s,anexos,comentarios){
     '<div class="form-2" style="margin-bottom:10px"><div class="fg"><label style="margin-top:0">Fornecedor</label><input id="ci-forn-'+s.id+'" placeholder="Nome" list="forn-datalist-'+s.id+'"><datalist id="forn-datalist-'+s.id+'">'+forns.map(function(f){return'<option value="'+esc(f.nome)+'">';}).join('')+'</datalist></div>'+
     '<div class="fg"><label style="margin-top:0">Valor (R$)</label><input type="number" id="ci-val-'+s.id+'" placeholder="0"></div></div>'+
     '<div class="form-2" style="margin-bottom:12px"><div class="fg"><label style="margin-top:0">Prazo Entrega</label><input id="ci-prazo-'+s.id+'" placeholder="Ex: 7 dias"></div>'+
-    '<div class="fg"><label style="margin-top:0">Condição Pgto.</label><input id="ci-cond-'+s.id+'" placeholder="Ex: 30/60"></div></div>'
+    '<div class="fg"><label style="margin-top:0">Condição Pgto.</label><input id="ci-cond-'+s.id+'" placeholder="Ex: 30/60"></div></div>'+
+    '<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Observação</label><input id="ci-obs-'+s.id+'" placeholder="Ex: frete incluso, validade 30 dias..."></div>'
     )+
     '<div style="display:flex;gap:8px;justify-content:flex-end">'+
     '<button class="btn btn-outline btn-sm" onclick="hideCotForm('+s.id+')">Cancelar</button>'+
@@ -2172,8 +2196,9 @@ async function saveEditCot(solId,cotId){
   var val=parseFloat(document.getElementById('ce-val-'+cotId).value)||0;
   var prazo=(document.getElementById('ce-prazo-'+cotId).value||'').trim();
   var cond=(document.getElementById('ce-cond-'+cotId).value||'').trim();
+  var obs=(document.getElementById('ce-obs-'+cotId).value||'').trim();
   if(!forn){toast('⚠️ Informe o fornecedor');return;}
-  var r=await sb.from('cotacoes').update({forn:forn,val:val,prazo:prazo,cond:cond}).eq('id',cotId);
+  var r=await sb.from('cotacoes').update({forn:forn,val:val,prazo:prazo,cond:cond,obs:obs}).eq('id',cotId);
   if(r.error){toast('❌ Erro ao salvar');return;}
   sols=[];await openModal(solId);toast('✅ Cotação atualizada!');
 }
@@ -2194,11 +2219,13 @@ async function saveCot(id){
   var val=parseFloat(document.getElementById('ci-val-'+id).value)||0;
   var prazo=(document.getElementById('ci-prazo-'+id).value||'').trim();
   var cond=(document.getElementById('ci-cond-'+id).value||'').trim();
+  var obsEl=document.getElementById('ci-obs-'+id);
+  var obs=obsEl?(obsEl.value||'').trim():'';
   if(!forn){toast('⚠️ Informe o fornecedor');return;}
   var solObj=sols.find(function(x){return x.id===id;})||{};
   var autoEscolhida=(solObj.setor==='Comercial'||solObj.categoria==='Compra Revenda');
   if(autoEscolhida)await sb.from('cotacoes').update({escolhida:false}).eq('sol_id',id);
-  await sb.from('cotacoes').insert({sol_id:id,forn:forn,val:val,prazo:prazo,cond:cond,escolhida:autoEscolhida});
+  await sb.from('cotacoes').insert({sol_id:id,forn:forn,val:val,prazo:prazo,cond:cond,obs:obs,escolhida:autoEscolhida});
   sols=[];await openModal(id);toast('✅ Cotação adicionada!');
 }
 async function doAp(id,status){
