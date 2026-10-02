@@ -500,6 +500,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
         </div>
         <div id="daily-activity" style="margin-top:22px"></div>
         <div id="otd-atrasadas" style="margin-top:22px"></div>
+        <div id="otif-fornecedor" style="margin-top:22px"></div>
         <div id="tempo-etapas" style="margin-top:22px"></div>
       </div>
     </div>
@@ -1175,7 +1176,92 @@ async function renderAdmin(){
     '<div class="kpi"><div class="kpi-icon emerald">📊</div><div><div class="kpi-val">'+(savingPct!==null?savingPct+'%':'—')+'</div><div class="kpi-lbl">Saving Total (%)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon indigo">⏱️</div><div><div class="kpi-val">'+(avgLt!==null?avgLt+' dias':'—')+'</div><div class="kpi-lbl">Lead Time M&eacute;dio (dias úteis)</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon indigo">🔄</div><div><div class="kpi-val">'+(totalDiasEtapas?totalDiasEtapas+' dias':'—')+'</div><div class="kpi-lbl">Ciclo Total M&eacute;dio (dias úteis)</div></div></div>'+
-    '<div class="kpi"><div class="kpi-icon '+(otd===null?'amber':otd>=80?'emerald':'amber')+'">🎯</div><div><div class="kpi-val">'+(otd!==null?otd+'%':'—')+'</div><div class="kpi-lbl">OTD (On Time Delivery)</div></div></div>';
+    '<div class="kpi"><div class="kpi-icon '+(otd===null?'amber':otd>=80?'emerald':'amber')+'">🎯</div><div><div class="kpi-val">'+(otd!==null?otd+'%':'—')+'</div><div class="kpi-lbl">OTD (On Time Delivery)</div></div></div>'+
+    (function(){
+      // OTIF: On Time AND In Full (concluido + no prazo)
+      var otifPool=otdPool.filter(function(x){return x.status==='concluido';});
+      var otifOk=otifPool.filter(function(x){
+        var ref=x.dt_prevista||x.prazo;
+        var du=diasUteisEntreDatas(ref,x.dt_entrega);
+        return du===null?new Date(x.dt_entrega)<=new Date(ref):du<=0;
+      });
+      var otif=otdPool.length?Math.round(otifOk.length/otdPool.length*100):null;
+      return'<div class="kpi"><div class="kpi-icon '+(otif===null?'amber':otif>=80?'emerald':'amber')+'">✅</div><div><div class="kpi-val">'+(otif!==null?otif+'%':'—')+'</div><div class="kpi-lbl">OTIF (On Time In Full)</div></div></div>';
+    })();
+
+  // OTIF por Fornecedor
+  (function(){
+    var el=document.getElementById('otif-fornecedor');
+    if(!el)return;
+    if(CU.role!=='admin'&&CU.role!=='viewer'){el.innerHTML='';return;}
+    // Pega solicitações com cotação escolhida e dados de entrega
+    var solsComForn=otdPool.map(function(x){
+      var cots=x.cotacoes||[];
+      var esc=cots.find(function(c){return c.escolhida;});
+      if(!esc)return null;
+      return{sol:x,forn:esc.forn,val:esc.val||0};
+    }).filter(Boolean);
+    if(!solsComForn.length){el.innerHTML='';return;}
+    // Agrupa por fornecedor
+    var mapa={};
+    solsComForn.forEach(function(item){
+      var f=item.forn;
+      if(!mapa[f])mapa[f]={total:0,ontime:0,infull:0,otif:0,atraso:0,vals:[]};
+      var m=mapa[f];
+      m.total++;
+      m.vals.push(item.val);
+      var ref=item.sol.dt_prevista||item.sol.prazo;
+      var du=diasUteisEntreDatas(ref,item.sol.dt_entrega);
+      var noTempo=du===null?new Date(item.sol.dt_entrega)<=new Date(ref):du<=0;
+      var completo=item.sol.status==='concluido';
+      if(noTempo)m.ontime++;
+      if(completo)m.infull++;
+      if(noTempo&&completo)m.otif++;
+      else m.atraso+=(du&&du>0?du:0);
+    });
+    var rows=Object.entries(mapa).sort(function(a,b){
+      var oa=a[1].total?a[1].otif/a[1].total:0;
+      var ob=b[1].total?b[1].otif/b[1].total:0;
+      return ob-oa;
+    }).map(function(entry){
+      var f=entry[0],m=entry[1];
+      var otifPct=m.total?Math.round(m.otif/m.total*100):0;
+      var otdPct=m.total?Math.round(m.ontime/m.total*100):0;
+      var ifPct=m.total?Math.round(m.infull/m.total*100):0;
+      var cor=otifPct>=80?'#16a34a':otifPct>=60?'#d97706':'#dc2626';
+      var barW=otifPct;
+      return'<tr onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'\'">'
+        +'<td style="padding:10px 12px;font-size:13px;font-weight:600;color:#1f4781">'+esc(f)+'</td>'
+        +'<td style="padding:10px 12px;font-size:13px;text-align:center;font-variant-numeric:tabular-nums">'+m.total+'</td>'
+        +'<td style="padding:10px 12px;text-align:center"><span style="font-size:12px;font-weight:700;color:'+(otdPct>=80?'#16a34a':otdPct>=60?'#d97706':'#dc2626')+'">'+otdPct+'%</span></td>'
+        +'<td style="padding:10px 12px;text-align:center"><span style="font-size:12px;font-weight:700;color:'+(ifPct>=80?'#16a34a':ifPct>=60?'#d97706':'#dc2626')+'">'+ifPct+'%</span></td>'
+        +'<td style="padding:10px 12px;min-width:140px">'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<div style="flex:1;background:#f1f5f9;border-radius:100px;height:8px;overflow:hidden"><div style="background:'+cor+';width:'+barW+'%;height:100%;border-radius:100px;transition:width .4s"></div></div>'
+        +'<span style="font-size:13px;font-weight:800;color:'+cor+';width:38px;text-align:right;flex-shrink:0">'+otifPct+'%</span>'
+        +'</div></td>'
+        +'</tr>';
+    }).join('');
+    el.innerHTML='<div class="chart-card" style="padding:0;overflow:hidden">'
+      +'<div style="padding:16px 20px 10px;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><h3 style="margin:0;font-size:15px">📦 OTIF por Fornecedor</h3>'
+      +'<p class="chart-sub" style="margin:2px 0 0">On Time In Full — entregas no prazo e completas '+(filtroMes?'em '+filtroMes:'no período')+'</p></div>'
+      +'<div style="display:flex;gap:16px;font-size:11px;color:#64748b;font-weight:600">'
+      +'<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block"></span>≥80%</span>'
+      +'<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#d97706;display:inline-block"></span>60–79%</span>'
+      +'<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block"></span>&lt;60%</span>'
+      +'</div></div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+      +'<tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Fornecedor</th>'
+      +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Pedidos</th>'
+      +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px">OTD</th>'
+      +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px">In Full</th>'
+      +'<th style="padding:8px 12px;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px">OTIF</th></tr>'
+      +rows+'</table></div>'
+      +'<div style="padding:10px 16px;background:#f8fafc;border-top:1px solid #f1f5f9;font-size:11px;color:#94a3b8">'
+      +'OTD = entregue no prazo &nbsp;·&nbsp; In Full = pedido concluído &nbsp;·&nbsp; OTIF = ambos simultaneamente</div>'
+      +'</div>';
+  })();
 
   // Atividade diária — todos os dias do mês selecionado, ou últimos 7 dias
   (function(){
