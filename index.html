@@ -1724,7 +1724,9 @@ async function saveEditSol(id){
   var r=await sb.from('solicitacoes').update({nome:nome,email:email,setor:setor,empresa:empresa,categoria:cat,prioridade:prio,prazo:prazo,aprovador:aprov,status:status,descricao:desc,justificativa:just,titulo:titulo||undefined}).eq('id',id);
   if(r.error){toast('❌ Erro ao salvar: '+r.error.message);return;}
   toast('✅ Solicitação atualizada!');
-  sols=[];await openModal(id);render(curPage());
+  await loadSols();
+  await openModal(id);
+  render(curPage());
 }
 async function deleteSol(id){
   var overlay=document.createElement('div');
