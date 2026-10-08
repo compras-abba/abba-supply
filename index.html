@@ -1700,12 +1700,40 @@ function openEditSol(id){
     '<div class="fg" style="margin-bottom:12px"><label>Título da Compra</label><input id="es-titulo" value="'+esc(s.titulo||'')+'" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>'+
     '<div class="fg" style="margin-bottom:12px"><label>Descrição</label><textarea id="es-desc" rows="3" style="width:100%;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px;resize:vertical">'+esc(s.descricao||'')+'</textarea></div>'+
     '<div class="fg" style="margin-bottom:16px"><label>Justificativa</label><textarea id="es-just" rows="2" style="width:100%;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px;resize:vertical">'+esc(s.justificativa||s.just||'')+'</textarea></div>'+
+    '<div class="fg" style="margin-bottom:16px"><label>Itens Solicitados</label>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><thead><tr style="background:var(--gray-50)">'+
+    '<th style="padding:7px 8px;font-size:11px;font-weight:700;color:var(--gray-500);text-align:left;border-bottom:1px solid var(--gray-200);width:36px">#</th>'+
+    '<th style="padding:7px 8px;font-size:11px;font-weight:700;color:var(--gray-500);text-align:left;border-bottom:1px solid var(--gray-200)">Descrição</th>'+
+    '<th style="padding:7px 8px;font-size:11px;font-weight:700;color:var(--gray-500);text-align:left;border-bottom:1px solid var(--gray-200);width:110px">Qtd/Unid</th>'+
+    '<th style="padding:7px 8px;font-size:11px;font-weight:700;color:var(--gray-500);text-align:left;border-bottom:1px solid var(--gray-200);width:130px">Obs</th>'+
+    '<th style="width:32px;border-bottom:1px solid var(--gray-200)"></th></tr></thead>'+
+    '<tbody id="es-itens-tbody"></tbody></table>'+
+    '<button type="button" onclick="esAddItemRow()" style="font-size:12px;color:var(--primary);background:none;border:1px dashed var(--primary);border-radius:7px;padding:5px 12px;cursor:pointer;font-family:inherit">+ Adicionar item</button></div>'+
     '<div style="display:flex;gap:10px">'+
     '<button class="btn btn-primary" style="flex:1" onclick="saveEditSol('+id+')">💾 Salvar Alterações</button>'+
     '<button class="btn btn-outline" onclick="openModal('+id+')">Cancelar</button>'+
     '</div></div>';
   // set categoria select value after render
   var ec=document.getElementById('es-cat');if(ec)ec.value=s.categoria||'';
+  // popular itens existentes
+  var esItens=s.itens_solicitacao||[];
+  var esN=0;
+  function esAddItemRow(desc,qtd,obs){
+    esN++;var n=esN;
+    var tb=document.getElementById('es-itens-tbody');if(!tb)return;
+    var tr=document.createElement('tr');tr.id='es-item-row-'+n;
+    tr.innerHTML='<td style="padding:5px 8px;font-size:12px;color:var(--gray-400);text-align:center">'+n+'</td>'+
+      '<td style="padding:4px 6px"><input type="text" id="es-item-desc-'+n+'" value="'+(desc||'')+'" placeholder="Descreva o item..." style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
+      '<td style="padding:4px 6px"><input type="text" id="es-item-qtd-'+n+'" value="'+(qtd||'')+'" placeholder="Ex: 10 unid." style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
+      '<td style="padding:4px 6px"><input type="text" id="es-item-obs-'+n+'" value="'+(obs||'')+'" placeholder="Opcional" style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
+      '<td style="padding:4px 6px;text-align:center"><button onclick="document.getElementById(\'es-item-row-'+n+'\').remove();esRenumber()" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;line-height:1">&times;</button></td>';
+    tb.appendChild(tr);
+  }
+  window.esAddItemRow=esAddItemRow;
+  window.esRenumber=function(){var rows=document.querySelectorAll('#es-itens-tbody tr');rows.forEach(function(r,i){var td=r.querySelector('td');if(td)td.textContent=i+1;});};
+  window.esGetItemRows=function(){var rows=document.querySelectorAll('#es-itens-tbody tr');var items=[];rows.forEach(function(tr){var inputs=tr.querySelectorAll('input');if(inputs[0]&&inputs[0].value.trim())items.push({descricao:inputs[0].value.trim(),quantidade:inputs[1]?inputs[1].value.trim():'',observacao:inputs[2]?inputs[2].value.trim():''});});return items;};
+  if(esItens.length){esItens.forEach(function(it){esAddItemRow(it.descricao,it.quantidade,it.observacao);});}
+  else{esAddItemRow();}
 }
 async function saveEditSol(id){
   var nome=(document.getElementById('es-nome').value||'').trim();
@@ -1721,8 +1749,15 @@ async function saveEditSol(id){
   var desc=(document.getElementById('es-desc').value||'').trim();
   var just=(document.getElementById('es-just').value||'').trim();
   if(!nome||!setor||!prazo){toast('⚠️ Preencha os campos obrigatórios');return;}
+  var itensEdit=window.esGetItemRows?window.esGetItemRows():[];
   var r=await sb.from('solicitacoes').update({nome:nome,email:email,setor:setor,empresa:empresa,categoria:cat,prioridade:prio,prazo:prazo,aprovador:aprov,status:status,descricao:desc,justificativa:just,titulo:titulo||undefined}).eq('id',id);
   if(r.error){toast('❌ Erro ao salvar: '+r.error.message);return;}
+  // Atualiza itens: apaga os anteriores e reinsere
+  if(itensEdit.length){
+    await sb.from('itens_solicitacao').delete().eq('sol_id',id);
+    var itemsToSave=itensEdit.map(function(it){return{sol_id:id,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
+    await sb.from('itens_solicitacao').insert(itemsToSave);
+  }
   toast('✅ Solicitação atualizada!');
   await loadSols();
   await openModal(id);
