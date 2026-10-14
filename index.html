@@ -1676,8 +1676,23 @@ async function openModal(id){
   document.body.style.overflow='hidden';
 }
 
+var _esN=0;
+function esAddItemRow(desc,qtd,obs){
+  _esN++;var n=_esN;
+  var tb=document.getElementById('es-itens-tbody');if(!tb)return;
+  var tr=document.createElement('tr');tr.id='es-item-row-'+n;
+  tr.innerHTML='<td style="padding:5px 8px;font-size:12px;color:var(--gray-400);text-align:center">'+n+'</td>'+
+    '<td style="padding:4px 6px"><input type="text" id="es-item-desc-'+n+'" value="'+(desc?esc(desc):'')+'" placeholder="Descreva o item..." style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
+    '<td style="padding:4px 6px"><input type="text" id="es-item-qtd-'+n+'" value="'+(qtd?esc(qtd):'')+'" placeholder="Ex: 10 unid." style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
+    '<td style="padding:4px 6px"><input type="text" id="es-item-obs-'+n+'" value="'+(obs?esc(obs):'')+'" placeholder="Opcional" style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
+    '<td style="padding:4px 6px;text-align:center"><button onclick="this.closest(\'tr\').remove();esRenumber()" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;line-height:1">&times;</button></td>';
+  tb.appendChild(tr);
+}
+function esRenumber(){var rows=document.querySelectorAll('#es-itens-tbody tr');rows.forEach(function(r,i){var td=r.querySelector('td');if(td)td.textContent=i+1;});}
+function esGetItemRows(){var rows=document.querySelectorAll('#es-itens-tbody tr');var items=[];rows.forEach(function(tr){var inputs=tr.querySelectorAll('input');if(inputs[0]&&inputs[0].value.trim())items.push({descricao:inputs[0].value.trim(),quantidade:inputs[1]?inputs[1].value.trim():'',observacao:inputs[2]?inputs[2].value.trim():''});});return items;}
 function openEditSol(id){
   var s=sols.find(function(x){return x.id===id;});if(!s)return;
+  _esN=0;
   var setorOpts=['Diretoria','Comercial','Fábrica','Almoxarifado','Expedição','Logística','Administrativo','Financeiro','RH','Projetos','Laboratório','Qualidade','Assistência Técnica','Compras/Revenda','Compras Consumo'];
   document.getElementById('modal-bd').innerHTML=
     '<div style="padding:4px 0 16px"><div class="form-2" style="margin-bottom:12px">'+
@@ -1713,25 +1728,8 @@ function openEditSol(id){
     '<button class="btn btn-primary" style="flex:1" onclick="saveEditSol('+id+')">💾 Salvar Alterações</button>'+
     '<button class="btn btn-outline" onclick="openModal('+id+')">Cancelar</button>'+
     '</div></div>';
-  // set categoria select value after render
   var ec=document.getElementById('es-cat');if(ec)ec.value=s.categoria||'';
-  // popular itens existentes
   var esItens=s.itens_solicitacao||[];
-  var esN=0;
-  function esAddItemRow(desc,qtd,obs){
-    esN++;var n=esN;
-    var tb=document.getElementById('es-itens-tbody');if(!tb)return;
-    var tr=document.createElement('tr');tr.id='es-item-row-'+n;
-    tr.innerHTML='<td style="padding:5px 8px;font-size:12px;color:var(--gray-400);text-align:center">'+n+'</td>'+
-      '<td style="padding:4px 6px"><input type="text" id="es-item-desc-'+n+'" value="'+(desc||'')+'" placeholder="Descreva o item..." style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
-      '<td style="padding:4px 6px"><input type="text" id="es-item-qtd-'+n+'" value="'+(qtd||'')+'" placeholder="Ex: 10 unid." style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
-      '<td style="padding:4px 6px"><input type="text" id="es-item-obs-'+n+'" value="'+(obs||'')+'" placeholder="Opcional" style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:12px;outline:none"></td>'+
-      '<td style="padding:4px 6px;text-align:center"><button onclick="document.getElementById(\'es-item-row-'+n+'\').remove();esRenumber()" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;line-height:1">&times;</button></td>';
-    tb.appendChild(tr);
-  }
-  window.esAddItemRow=esAddItemRow;
-  window.esRenumber=function(){var rows=document.querySelectorAll('#es-itens-tbody tr');rows.forEach(function(r,i){var td=r.querySelector('td');if(td)td.textContent=i+1;});};
-  window.esGetItemRows=function(){var rows=document.querySelectorAll('#es-itens-tbody tr');var items=[];rows.forEach(function(tr){var inputs=tr.querySelectorAll('input');if(inputs[0]&&inputs[0].value.trim())items.push({descricao:inputs[0].value.trim(),quantidade:inputs[1]?inputs[1].value.trim():'',observacao:inputs[2]?inputs[2].value.trim():''});});return items;};
   if(esItens.length){esItens.forEach(function(it){esAddItemRow(it.descricao,it.quantidade,it.observacao);});}
   else{esAddItemRow();}
 }
@@ -1997,6 +1995,7 @@ function buildModal(s,anexos,comentarios){
         '</div><div class="btn-row">'+
         '<button class="btn btn-green" onclick="qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
         '<button class="btn btn-red" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
+        '<button class="btn btn-outline" style="border-color:#6B7280;color:#6B7280" onclick="qPreAp('+s.id+',\'pausado\')">⏸️ Stand By</button>'+
         '</div></div>';
     } else {
       preApSec='<div class="sec"><h3>Pré-Aprovação do Gerente</h3><div class="ap-wait"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Aguardando Pré-Aprovação do Gerente</div></div>';
@@ -2016,21 +2015,33 @@ function buildModal(s,anexos,comentarios){
     '<button class="btn btn-green" onclick="doAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
     '<button class="btn btn-red" onclick="doAp('+s.id+',\'reprovado\')">❌ Reprovar</button>'+
     '<button class="btn btn-outline" onclick="doAp('+s.id+',\'revisao\')">🔄 Pedir Revisão</button>'+
+    '<button class="btn btn-outline" style="border-color:#6B7280;color:#6B7280" onclick="doAp('+s.id+',\'pausado\')">⏸️ Stand By</button>'+
     '</div>':'')+
     '</div>';
 
   // Pausa section
   var pausaSec='';
   if(s.status==='pausado'||s.motivo_pausa){
+    var dtRetornoStr=s.dt_retorno?fmtD(s.dt_retorno):'';
+    var dtRetornoVencida=s.dt_retorno&&new Date(s.dt_retorno+'T00:00:00')<new Date(new Date().toDateString());
     pausaSec='<div class="sec" style="border-left:4px solid #6B7280"><h3>&#x23F8;&#xFE0F; Pausado / Stand By</h3>'+
       (canEdit?
+        '<div class="form-2" style="margin-bottom:8px">'+
         '<div class="fg"><label>Motivo da Pausa</label>'+
         '<textarea id="motivo-pausa-'+s.id+'" rows="3" placeholder="Descreva o motivo da pausa...">'+esc(s.motivo_pausa||'')+'</textarea></div>'+
-        '<div style="margin-top:8px;display:flex;gap:8px">'+
-        '<button class="btn btn-outline btn-sm" style="border-color:#6B7280;color:#6B7280" onclick="salvarMotivoPausa('+s.id+')">Salvar Motivo</button>'+
+        '<div class="fg"><label>Data de Retorno à Triagem</label>'+
+        '<input type="date" id="dt-retorno-'+s.id+'" value="'+(s.dt_retorno||'')+'" style="max-width:180px">'+
+        (dtRetornoVencida?'<div style="margin-top:6px;font-size:12px;color:#dc2626;font-weight:600">⚠️ Data de retorno vencida em '+dtRetornoStr+'</div>':''+
+        (s.dt_retorno?'<div style="margin-top:6px;font-size:12px;color:#6B7280">Retorno previsto: '+dtRetornoStr+'</div>':''))+
+        '</div></div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+        '<button class="btn btn-outline btn-sm" style="border-color:#6B7280;color:#6B7280" onclick="salvarMotivoPausa('+s.id+')">💾 Salvar</button>'+
+        (s.status==='pausado'?'<button class="btn btn-primary btn-sm" onclick="retornarTriagem('+s.id+')">▶️ Retornar à Triagem</button>':'')+
         '</div>':
-        (s.motivo_pausa?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700)">'+esc(s.motivo_pausa)+'</div>':
-        '<p style="color:var(--gray-400);font-size:13px">Nenhum motivo informado</p>')
+        '<div style="display:flex;flex-direction:column;gap:8px">'+
+        (s.motivo_pausa?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700)">'+esc(s.motivo_pausa)+'</div>':'<p style="color:var(--gray-400);font-size:13px">Nenhum motivo informado</p>')+
+        (s.dt_retorno?'<div style="display:flex;align-items:center;gap:6px;font-size:13px;'+(dtRetornoVencida?'color:#dc2626;font-weight:600':'color:#6B7280')+'">&#x1F4C5; Retorno previsto: '+dtRetornoStr+(dtRetornoVencida?' ⚠️ Vencida':'')+' </div>':'')+
+        '</div>'
       )+'</div>';
   }
 
@@ -2181,6 +2192,13 @@ async function qPreAp(id,status){
       await notifySolicitante(id,'Solicitação Pré-Aprovada','"'+titulo+'" foi pré-aprovada e segue para a Diretoria.','status');
       sols=[];await openModal(id);render(curPage());toast('✅ Pré-aprovado! Enviado para '+aprovador+'.');
     };
+    return;
+  } else if(status==='pausado'){
+    await sb.from('solicitacoes').update({status:'pausado',motivo_pausa:motivo||null}).eq('id',id);
+    await registrarHistorico(id,'pausado');
+    await notifySolicitante(id,'Solicitação em Stand By','"'+titulo+'" foi colocada em Stand By pelo Gerente.'+(motivo?' Motivo: '+motivo:''),'status');
+    sols=[];await openModal(id);render(curPage());
+    toast('⏸️ Stand By.');
     return;
   } else {
     if(!motivo){toast('⚠️ Informe o motivo da recusa.');return;}
@@ -2353,6 +2371,15 @@ async function saveCot(id){
 }
 async function doAp(id,status){
   var obs=(document.getElementById('ap-obs-'+id)?document.getElementById('ap-obs-'+id).value:'').trim();
+  if(status==='pausado'){
+    await sb.from('solicitacoes').update({status:'pausado',motivo_pausa:obs||null}).eq('id',id);
+    await registrarHistorico(id,'pausado');
+    var sP=sols.find(function(x){return x.id===id;});var tituloP=sP?sP.titulo:'Solicitação';
+    await notifySolicitante(id,'Solicitação em Stand By','"'+tituloP+'" foi colocada em Stand By pela Diretoria.'+(obs?' Obs: '+obs:''),'status');
+    sols=[];await openModal(id);render(curPage());
+    toast('⏸️ Stand By.');
+    return;
+  }
   var upd={ap_status:status,ap_obs:obs};
   if(status==='aprovado'){upd.status='emissao_oc';upd.dt_aprovacao=new Date().toISOString().split('T')[0];}
   if(status==='reprovado')upd.status='reprovado';
