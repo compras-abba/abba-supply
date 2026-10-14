@@ -1990,9 +1990,13 @@ function buildModal(s,anexos,comentarios){
   if(s.status==='pre_aprovacao'){
     if(CU.role==='gerente'){
       preApSec='<div class="sec"><h3>Pré-Aprovação do Gerente</h3>'+
-        '<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Motivo da Recusa (obrigatório ao recusar)</label>'+
-        '<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Informe o motivo caso recuse..." style="width:100%;padding:10px 13px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:14px;outline:none">'+
-        '</div><div class="btn-row">'+
+        '<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Motivo da Recusa / Stand By</label>'+
+        '<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Informe o motivo caso recuse ou pause..." style="width:100%;padding:10px 13px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:14px;outline:none">'+
+        '</div>'+
+        '<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Data de Retorno (se Stand By)</label>'+
+        '<input type="date" id="dt-retorno-preap-'+s.id+'" style="padding:10px 13px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:14px;outline:none">'+
+        '</div>'+
+        '<div class="btn-row">'+
         '<button class="btn btn-green" onclick="qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
         '<button class="btn btn-red" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
         '<button class="btn btn-outline" style="border-color:#6B7280;color:#6B7280" onclick="qPreAp('+s.id+',\'pausado\')">⏸️ Stand By</button>'+
@@ -2011,6 +2015,8 @@ function buildModal(s,anexos,comentarios){
     (ap.obs?'<div style="background:var(--gray-50);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gray-700);margin-bottom:12px">'+esc(ap.obs)+'</div>':'')+
     (showApBtn?'<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Observações/Parecer</label>'+
     '<textarea id="ap-obs-'+s.id+'" placeholder="Insira seu parecer...">'+esc(ap.obs)+'</textarea></div>'+
+    '<div class="fg" style="margin-bottom:12px"><label style="margin-top:0">Data de Retorno (se Stand By)</label>'+
+    '<input type="date" id="dt-retorno-ap-'+s.id+'" style="padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:14px;outline:none"></div>'+
     '<div class="btn-row">'+
     '<button class="btn btn-green" onclick="doAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
     '<button class="btn btn-red" onclick="doAp('+s.id+',\'reprovado\')">❌ Reprovar</button>'+
@@ -2026,14 +2032,13 @@ function buildModal(s,anexos,comentarios){
     var dtRetornoVencida=s.dt_retorno&&new Date(s.dt_retorno+'T00:00:00')<new Date(new Date().toDateString());
     pausaSec='<div class="sec" style="border-left:4px solid #6B7280"><h3>&#x23F8;&#xFE0F; Pausado / Stand By</h3>'+
       (canEdit?
-        '<div class="form-2" style="margin-bottom:8px">'+
-        '<div class="fg"><label>Motivo da Pausa</label>'+
+        '<div class="fg" style="margin-bottom:10px"><label>Motivo da Pausa</label>'+
         '<textarea id="motivo-pausa-'+s.id+'" rows="3" placeholder="Descreva o motivo da pausa...">'+esc(s.motivo_pausa||'')+'</textarea></div>'+
-        '<div class="fg"><label>Data de Retorno à Triagem</label>'+
-        '<input type="date" id="dt-retorno-'+s.id+'" value="'+(s.dt_retorno||'')+'" style="max-width:180px">'+
-        (dtRetornoVencida?'<div style="margin-top:6px;font-size:12px;color:#dc2626;font-weight:600">⚠️ Data de retorno vencida em '+dtRetornoStr+'</div>':''+
+        '<div class="fg" style="margin-bottom:12px"><label>Data de Retorno à Triagem</label>'+
+        '<input type="date" id="dt-retorno-'+s.id+'" value="'+(s.dt_retorno||'')+'" style="width:100%;max-width:220px;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;outline:none">'+
+        (dtRetornoVencida?'<div style="margin-top:6px;font-size:12px;color:#dc2626;font-weight:600">⚠️ Data de retorno vencida em '+dtRetornoStr+'</div>':
         (s.dt_retorno?'<div style="margin-top:6px;font-size:12px;color:#6B7280">Retorno previsto: '+dtRetornoStr+'</div>':''))+
-        '</div></div>'+
+        '</div>'+
         '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
         '<button class="btn btn-outline btn-sm" style="border-color:#6B7280;color:#6B7280" onclick="salvarMotivoPausa('+s.id+')">💾 Salvar</button>'+
         (s.status==='pausado'?'<button class="btn btn-primary btn-sm" onclick="retornarTriagem('+s.id+')">▶️ Retornar à Triagem</button>':'')+
@@ -2194,9 +2199,11 @@ async function qPreAp(id,status){
     };
     return;
   } else if(status==='pausado'){
-    await sb.from('solicitacoes').update({status:'pausado',motivo_pausa:motivo||null}).eq('id',id);
+    var drPreEl=document.getElementById('dt-retorno-preap-'+id);
+    var dtRetornoPreAp=(drPreEl&&drPreEl.value)?drPreEl.value:null;
+    await sb.from('solicitacoes').update({status:'pausado',motivo_pausa:motivo||null,dt_retorno:dtRetornoPreAp}).eq('id',id);
     await registrarHistorico(id,'pausado');
-    await notifySolicitante(id,'Solicitação em Stand By','"'+titulo+'" foi colocada em Stand By pelo Gerente.'+(motivo?' Motivo: '+motivo:''),'status');
+    await notifySolicitante(id,'Solicitação em Stand By','"'+titulo+'" foi colocada em Stand By pelo Gerente.'+(motivo?' Motivo: '+motivo:'')+(dtRetornoPreAp?' Retorno previsto: '+fmtD(dtRetornoPreAp):''),'status');
     sols=[];await openModal(id);render(curPage());
     toast('⏸️ Stand By.');
     return;
@@ -2213,9 +2220,18 @@ async function qPreAp(id,status){
 async function salvarMotivoPausa(id){
   var el=document.getElementById('motivo-pausa-'+id);
   var motivo=(el?el.value:'').trim();
-  var r=await sb.from('solicitacoes').update({motivo_pausa:motivo}).eq('id',id);
+  var drEl=document.getElementById('dt-retorno-'+id);
+  var dtRetorno=(drEl&&drEl.value)?drEl.value:null;
+  var r=await sb.from('solicitacoes').update({motivo_pausa:motivo,dt_retorno:dtRetorno}).eq('id',id);
   if(r.error){toast('❌ Erro: '+r.error.message);return;}
-  sols=[];await openModal(id);toast('⏸️ Motivo salvo!');
+  sols=[];await openModal(id);toast('⏸️ Pausa salva!');
+}
+async function retornarTriagem(id){
+  if(!confirm('Retornar esta solicitação para a Triagem?'))return;
+  await sb.from('solicitacoes').update({status:'triagem',motivo_pausa:null,dt_retorno:null}).eq('id',id);
+  await registrarHistorico(id,'triagem');
+  await notifySolicitante(id,'Solicitação Retomada','"'+(sols.find(function(x){return x.id===id;})||{titulo:'Solicitação'}).titulo+'" saiu do Stand By e voltou para Triagem.','status');
+  sols=[];await openModal(id);render(curPage());toast('▶️ Retornada à Triagem!');
 }
 async function saveDtPrevista(id){
   var el=document.getElementById('dt-prevista-'+id);
@@ -2372,10 +2388,12 @@ async function saveCot(id){
 async function doAp(id,status){
   var obs=(document.getElementById('ap-obs-'+id)?document.getElementById('ap-obs-'+id).value:'').trim();
   if(status==='pausado'){
-    await sb.from('solicitacoes').update({status:'pausado',motivo_pausa:obs||null}).eq('id',id);
+    var drApEl=document.getElementById('dt-retorno-ap-'+id);
+    var dtRetornoAp=(drApEl&&drApEl.value)?drApEl.value:null;
+    await sb.from('solicitacoes').update({status:'pausado',motivo_pausa:obs||null,dt_retorno:dtRetornoAp}).eq('id',id);
     await registrarHistorico(id,'pausado');
     var sP=sols.find(function(x){return x.id===id;});var tituloP=sP?sP.titulo:'Solicitação';
-    await notifySolicitante(id,'Solicitação em Stand By','"'+tituloP+'" foi colocada em Stand By pela Diretoria.'+(obs?' Obs: '+obs:''),'status');
+    await notifySolicitante(id,'Solicitação em Stand By','"'+tituloP+'" foi colocada em Stand By pela Diretoria.'+(obs?' Obs: '+obs:'')+(dtRetornoAp?' Retorno previsto: '+fmtD(dtRetornoAp):''),'status');
     sols=[];await openModal(id);render(curPage());
     toast('⏸️ Stand By.');
     return;
