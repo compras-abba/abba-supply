@@ -486,7 +486,31 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
               <option value="">Todas</option>
             </select>
           </div>
-          <button onclick="document.getElementById('dash-mes').value='';document.getElementById('dash-cat').value='';renderAdmin()" style="font-size:12px;color:var(--gray-400);background:none;border:none;cursor:pointer;text-decoration:underline">Limpar filtro</button>
+          <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:8px 14px;box-shadow:var(--shadow)">
+            <svg width="16" height="16" fill="none" stroke="#1f4781" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <label style="font-size:12px;font-weight:600;color:var(--gray-600)">Etapa:</label>
+            <select id="dash-etapa" onchange="renderAdmin()" style="border:none;outline:none;font-size:13px;font-weight:500;color:#1f4781;background:transparent;cursor:pointer">
+              <option value="">Todas</option>
+              <option value="triagem">Triagem</option>
+              <option value="pre_aprovacao">Pré-Aprovação</option>
+              <option value="aprovacao">Aprovação Diretoria</option>
+              <option value="compras">Compras</option>
+              <option value="cotacao">Cotação</option>
+              <option value="emissao_oc">Emissão OC</option>
+              <option value="entrega">Entrega</option>
+              <option value="concluido">Concluído</option>
+              <option value="pausado">Stand By</option>
+              <option value="recusado">Recusado</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:8px 14px;box-shadow:var(--shadow)">
+            <svg width="16" height="16" fill="none" stroke="#1f4781" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <label style="font-size:12px;font-weight:600;color:var(--gray-600)">De:</label>
+            <input type="date" id="dash-dt-de" onchange="renderAdmin()" style="border:none;outline:none;font-size:13px;font-weight:500;color:#1f4781;background:transparent;cursor:pointer">
+            <label style="font-size:12px;font-weight:600;color:var(--gray-600)">Até:</label>
+            <input type="date" id="dash-dt-ate" onchange="renderAdmin()" style="border:none;outline:none;font-size:13px;font-weight:500;color:#1f4781;background:transparent;cursor:pointer">
+          </div>
+          <button onclick="document.getElementById('dash-mes').value='';document.getElementById('dash-cat').value='';document.getElementById('dash-etapa').value='';document.getElementById('dash-dt-de').value='';document.getElementById('dash-dt-ate').value='';renderAdmin()" style="font-size:12px;color:var(--gray-400);background:none;border:none;cursor:pointer;text-decoration:underline">Limpar filtros</button>
         </div>
         <div class="kpi-row" id="kpi-row"></div>
         <div class="kpi-row" id="kpi-row2" style="margin-bottom:20px"></div>
@@ -997,12 +1021,21 @@ async function renderAdmin(){
     catSel2.innerHTML='<option value="">Todas</option>'+catKeys.map(function(c){return'<option value="'+c+'"'+(c===catAtual?' selected':'')+'>'+c+' ('+cats[c]+')</option>';}).join('');
     catSel2.value=catAtual;
   }
-  // Filtrar por mês e categoria selecionados
+  // Filtrar por mês, categoria, etapa e intervalo de datas
   var filtroMes=sel?sel.value:'';
   var filtroCat=catSel2?catSel2.value:'';
+  var filtroEtapa=document.getElementById('dash-etapa')?document.getElementById('dash-etapa').value:'';
+  var filtroDtDe=document.getElementById('dash-dt-de')?document.getElementById('dash-dt-de').value:'';
+  var filtroDtAte=document.getElementById('dash-dt-ate')?document.getElementById('dash-dt-ate').value:'';
   var s=sols.filter(function(x){
     if(filtroMes&&mkey(x.created_at)!==filtroMes)return false;
     if(filtroCat&&x.cat_interna!==filtroCat)return false;
+    if(filtroEtapa&&x.status!==filtroEtapa)return false;
+    if(filtroDtDe||filtroDtAte){
+      var d=x.created_at?x.created_at.substring(0,10):'';
+      if(filtroDtDe&&d<filtroDtDe)return false;
+      if(filtroDtAte&&d>filtroDtAte)return false;
+    }
     return true;
   });
   var wait=s.filter(function(x){return x.ap_status==='aguardando'&&x.status==='aprovacao';}).length;
