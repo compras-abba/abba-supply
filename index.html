@@ -875,15 +875,14 @@ async function doLogout(){await sb.auth.signOut();CU=null;sols=[];notifs=[];docu
 // NAV
 function setupNav(){
   var role=CU.role;
-  var isViewer=role==='viewer';
   var isFinanceiro=role==='financeiro';
-  document.getElementById('nav-admin').style.display=(role==='diretor'||role==='admin'||isViewer)?'flex':'none';
-  document.getElementById('nav-kanban').style.display=(role==='admin'||isViewer||isFinanceiro)?'flex':'none';
-  document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin'||role==='gerente'||isViewer)?'flex':'none';
-  document.getElementById('nav-fornecedores').style.display=(role==='admin'||isViewer)?'flex':'none';
-  document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor'||role==='gerente')?'flex':'none';
+  document.getElementById('nav-admin').style.display=(role==='diretor'||role==='admin')?'flex':'none';
+  document.getElementById('nav-kanban').style.display=(role==='admin'||isFinanceiro)?'flex':'none';
+  document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin'||role==='gerente')?'flex':'none';
+  document.getElementById('nav-fornecedores').style.display=(role==='admin')?'flex':'none';
+  document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor'||role==='gerente'||isFinanceiro)?'flex':'none';
   document.getElementById('disp-nome').textContent=CU.nome;
-  document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':role==='gerente'?'Gerente':isViewer?'Visualizador':isFinanceiro?'Financeiro':'Solicitante';
+  document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':role==='gerente'?'Gerente':isFinanceiro?'Financeiro':'Solicitante';
   if(role==='solicitante')go('nova');else if(role==='diretor'||role==='gerente')go('fila');else if(isFinanceiro)go('kanban');else go('admin');
 }
 function go(p){
@@ -1172,7 +1171,7 @@ async function renderAdmin(){
   (function(){
     var el=document.getElementById('otd-atrasadas');
     if(!el)return;
-    if(CU.role!=='admin'&&CU.role!=='viewer'){el.innerHTML='';return;}
+    if(CU.role!=='admin'){el.innerHTML='';return;}
     if(!otdAtrasadas.length){el.innerHTML='';return;}
     var rows=otdAtrasadas.map(function(x){
       var dias=diasUteisEntreDatas(x.dt_prevista||x.prazo,x.dt_entrega)||0;
@@ -1237,7 +1236,7 @@ async function renderAdmin(){
   (function(){
     var el=document.getElementById('otif-fornecedor');
     if(!el)return;
-    if(CU.role!=='admin'&&CU.role!=='viewer'){el.innerHTML='';return;}
+    if(CU.role!=='admin'){el.innerHTML='';return;}
     // Pega solicitações com cotação escolhida e dados de entrega
     var solsComForn=otdPool.map(function(x){
       var cots=x.cotacoes||[];
@@ -1364,7 +1363,7 @@ async function renderAdmin(){
     }).join('');
     var theader='<tr style="background:#f8fafc"><th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Data</th>'
       +DCOLS.map(function(col){return'<th style="padding:8px 8px;text-align:center;font-size:11px;color:'+col.c+';font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">'+col.l+'</th>';}).join('')+'</tr>';
-    if(CU.role!=='admin'&&CU.role!=='viewer'){document.getElementById('daily-activity').innerHTML='';return;}
+    if(CU.role!=='admin'){document.getElementById('daily-activity').innerHTML='';return;}
     document.getElementById('daily-activity').innerHTML=
       '<div class="chart-card" style="margin-bottom:0"><h3>&#x1F4C5; Atividade Di&#225;ria</h3><p class="chart-sub">'+(filtroMes?'Solicita&#231;&#245;es de '+filtroMes:'Solicita&#231;&#245;es dos &#250;ltimos 7 dias')+'</p>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'+theader+rows+'</table></div></div>';
@@ -1382,7 +1381,7 @@ async function renderAdmin(){
       {de:'entrega',     ate:'concluido',       l:'Entrega → Concluído',           c:'#10B981'},
     ];
     function diffDias(a,b){return diasUteisEntreDatas(a,b);}
-    if(CU.role!=='admin'&&CU.role!=='viewer'){document.getElementById('tempo-etapas').innerHTML='';return;}
+    if(CU.role!=='admin'){document.getElementById('tempo-etapas').innerHTML='';return;}
     var resultados=TRANS.map(function(t){
       var vals=sols.map(function(x){
         var h=x.historico||{};
@@ -1574,7 +1573,7 @@ async function renderFila(){
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
         '</div><div class="fila-actions" onclick="event.stopPropagation()">'+
         '<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
-        (CU.role!=='viewer'?'<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa..." style="width:200px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
+        ('<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa..." style="width:200px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
         '<button class="btn btn-green btn-sm" onclick="qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
         '<button class="btn btn-red btn-sm" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>':'')+
         '</div></div>';
@@ -1596,8 +1595,8 @@ async function renderFila(){
         '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
         '</div><div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
-        (CU.role!=='viewer'?'<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
-        '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'reprovado\')">❌ Reprovar</button>':'')+
+        '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
+        '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'reprovado\')">❌ Reprovar</button>'+
         '</div></div>';
     }).join('');
   }
@@ -1728,7 +1727,7 @@ async function openModal(id){
   document.getElementById('modal-bd').innerHTML=buildModal(s,anexos,comentarios);
   document.getElementById('btn-del-modal').style.display=CU.role==='admin'?'inline-flex':'none';
   document.getElementById('btn-edit-modal').style.display=CU.role==='admin'?'inline-flex':'none';
-  document.getElementById('btn-pdf-modal').style.display=(CU.role==='admin'||CU.role==='viewer'||CU.role==='financeiro')?'inline-flex':'none';
+  document.getElementById('btn-pdf-modal').style.display=(CU.role==='admin'||CU.role==='financeiro')?'inline-flex':'none';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -1857,7 +1856,7 @@ function closeModal(){document.getElementById('overlay').classList.remove('open'
 function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
 
 function canVerValores(s){
-  if(CU.role==='admin'||CU.role==='diretor'||CU.role==='gerente'||CU.role==='financeiro'||CU.role==='viewer')return true;
+  if(CU.role==='admin'||CU.role==='diretor'||CU.role==='gerente'||CU.role==='financeiro')return true;
   // Solicitante/Comercial só vê valores se a categoria for exatamente "Cotação"
   var cat=(s.categoria||'').trim();
   return cat==='Cotação';
@@ -2076,7 +2075,7 @@ function buildModal(s,anexos,comentarios){
       preApSec='<div class="sec"><h3>Pré-Aprovação do Gerente</h3><div class="ap-wait"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Aguardando Pré-Aprovação do Gerente</div></div>';
     }
   }
-  var showApBtn=canApprove&&ap.status==='aguardando'&&s.status==='aprovacao'&&CU.role!=='viewer';
+  var showApBtn=canApprove&&ap.status==='aguardando'&&s.status==='aprovacao';
   var hist=s.historico||{};
   var preApBadge=(s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'||s.status==='concluido')?
     '<div style="display:flex;align-items:center;gap:6px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:8px 12px;font-size:13px;color:#065f46;margin-bottom:12px">'+
