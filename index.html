@@ -1573,9 +1573,9 @@ async function renderFila(){
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
         '</div><div class="fila-actions" onclick="event.stopPropagation()">'+
         '<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
-        ('<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa..." style="width:200px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
+        '<input type="text" id="motivo-recusa-'+s.id+'" placeholder="Motivo da recusa..." style="width:200px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;outline:none">'+
         '<button class="btn btn-green btn-sm" onclick="qPreAp('+s.id+',\'aprovado\')">✅ Pré-Aprovar</button>'+
-        '<button class="btn btn-red btn-sm" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>':'')+
+        '<button class="btn btn-red btn-sm" onclick="qPreAp('+s.id+',\'recusado\')">❌ Recusar</button>'+
         '</div></div>';
     }).join('');
   } else {
