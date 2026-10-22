@@ -388,7 +388,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
         <select id="r-setor"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Compras/Revenda</option><option>Compras Consumo</option></select>
       </div>
       <div class="lf"><label>Tipo de Acesso <span style="color:var(--red)">*</span></label>
-        <select id="r-role" onchange="toggleCode()"><option value="solicitante">Solicitante</option><option value="gerente">Gerente</option><option value="diretor">Diretor</option><option value="admin">Administrador (Compras)</option></select>
+        <select id="r-role" onchange="toggleCode()"><option value="solicitante">Solicitante</option><option value="gerente">Gerente</option><option value="diretor">Diretor</option><option value="admin">Administrador (Compras)</option><option value="financeiro">Financeiro</option></select>
       </div>
       <div class="lf" id="code-wrap" style="display:none"><label>C&oacute;digo de Acesso <span style="color:var(--red)">*</span></label><input type="password" id="r-code" placeholder="C&oacute;digo fornecido pelo administrador"></div>
       <button class="btn-login" onclick="doRegister()">Criar Conta</button>
@@ -533,7 +533,15 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
       <div class="page-body" style="display:flex;flex-direction:column;padding-bottom:0">
         <div class="kanban-topbar">
           <div class="search-wrap"><span class="search-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span><input type="text" placeholder="Buscar..." id="k-search" oninput="renderKanban()"></div>
-          <select id="k-filter" onchange="renderKanban()"><option value="">Todas</option><option value="alta">Alta</option><option value="media">M&eacute;dia</option><option value="baixa">Baixa</option><option value="urgente">Urgente</option></select>
+          <select id="k-filter" onchange="renderKanban()"><option value="">Todas prioridades</option><option value="alta">Alta</option><option value="media">M&eacute;dia</option><option value="baixa">Baixa</option><option value="urgente">Urgente</option></select>
+          <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--gray-200);border-radius:8px;padding:6px 12px;font-size:12px">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span style="font-weight:600;color:var(--gray-600)">Conclu&iacute;do De:</span>
+            <input type="date" id="k-dt-de" onchange="renderKanban()" style="border:none;outline:none;font-size:12px;font-weight:500;color:#1f4781;background:transparent;cursor:pointer">
+            <span style="font-weight:600;color:var(--gray-600)">At&eacute;:</span>
+            <input type="date" id="k-dt-ate" onchange="renderKanban()" style="border:none;outline:none;font-size:12px;font-weight:500;color:#1f4781;background:transparent;cursor:pointer">
+            <button onclick="document.getElementById('k-dt-de').value='';document.getElementById('k-dt-ate').value='';renderKanban()" style="font-size:11px;color:var(--gray-400);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0">Limpar</button>
+          </div>
         </div>
         <div class="kanban-board" id="kanban-board"></div>
       </div>
@@ -720,7 +728,8 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
 <script>
 var SURL='https://mdiwameqbbguvmugbloh.supabase.co';
 var SKEY='sb_publishable_xriu2k1UP-FcZhULRRowuA_iodzduFq';
-var CODES={diretor:'DIRETORIA',admin:'COMPRAS2026',gerente:'GERENTE2026'};
+var CODES={diretor:'DIRETORIA',admin:'COMPRAS2026',gerente:'GERENTE2026',financeiro:'FINANCEIRO2026'};
+var FINANCEIRO_EMAIL='financeiro@abbaquimica.com.br';
 var DIRECTOR_EMAILS={Christiane:'christiane@abbaquimica.com.br',Francisco:'francisco@abbaquimica.com.br'};
 var COMPRAS_EMAIL='compras@abbaquimica.com.br';
 var GERENTE_EMAIL='bruno@abbaquimica.com.br';
@@ -855,7 +864,7 @@ async function doRegister(){
   await sb.from('profiles').insert({id:r.data.user.id,nome:nome,setor:setor,role:role});
   toast('✅ Conta criada! Faça login.');switchTab('login');
 }
-function toggleCode(){document.getElementById('code-wrap').style.display=document.getElementById('r-role').value!=='solicitante'?'block':'none';}
+function toggleCode(){var r=document.getElementById('r-role').value;document.getElementById('code-wrap').style.display=(r!=='solicitante')?'block':'none';}
 function switchTab(t){
   document.getElementById('tab-login').style.display=t==='login'?'block':'none';
   document.getElementById('tab-register').style.display=t==='register'?'block':'none';
@@ -867,14 +876,15 @@ async function doLogout(){await sb.auth.signOut();CU=null;sols=[];notifs=[];docu
 function setupNav(){
   var role=CU.role;
   var isViewer=role==='viewer';
+  var isFinanceiro=role==='financeiro';
   document.getElementById('nav-admin').style.display=(role==='diretor'||role==='admin'||isViewer)?'flex':'none';
-  document.getElementById('nav-kanban').style.display=(role==='admin'||isViewer)?'flex':'none';
+  document.getElementById('nav-kanban').style.display=(role==='admin'||isViewer||isFinanceiro)?'flex':'none';
   document.getElementById('nav-fila').style.display=(role==='diretor'||role==='admin'||role==='gerente'||isViewer)?'flex':'none';
   document.getElementById('nav-fornecedores').style.display=(role==='admin'||isViewer)?'flex':'none';
   document.getElementById('nav-nova').style.display=(role==='solicitante'||role==='admin'||role==='diretor'||role==='gerente')?'flex':'none';
   document.getElementById('disp-nome').textContent=CU.nome;
-  document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':role==='gerente'?'Gerente':isViewer?'Visualizador':'Solicitante';
-  if(role==='solicitante')go('nova');else if(role==='diretor'||role==='gerente')go('fila');else go('admin');
+  document.getElementById('disp-role').textContent=role==='admin'?'Administrador':role==='diretor'?'Diretoria':role==='gerente'?'Gerente':isViewer?'Visualizador':isFinanceiro?'Financeiro':'Solicitante';
+  if(role==='solicitante')go('nova');else if(role==='diretor'||role==='gerente')go('fila');else if(isFinanceiro)go('kanban');else go('admin');
 }
 function go(p){
   document.querySelectorAll('.page').forEach(function(e){e.classList.remove('active');});
@@ -986,6 +996,7 @@ async function notifySolicitante(solId,titulo,mensagem,tipo){
 async function loadSols(){
   var q=sb.from('solicitacoes').select('*, cotacoes(*), itens_solicitacao(*)').order('created_at',{ascending:false});
   if(CU.role==='solicitante')q=q.eq('setor',CU.setor); // vê todas do mesmo setor
+  if(CU.role==='financeiro')q=q.in('status',['emissao_oc','entrega','concluido']); // vê apenas aprovadas
   // viewer vê todas
   var r=await q;
   if(r.error){sols=[];return;}
@@ -1510,13 +1521,25 @@ async function renderKanban(){
   var q=(document.getElementById('k-search')?document.getElementById('k-search').value:'').toLowerCase();
   var fp=document.getElementById('k-filter')?document.getElementById('k-filter').value:'';
   if(!sols.length)await loadSols();
+  var kDtDe=document.getElementById('k-dt-de')?document.getElementById('k-dt-de').value:'';
+  var kDtAte=document.getElementById('k-dt-ate')?document.getElementById('k-dt-ate').value:'';
   var items=sols;
   if(q)items=items.filter(function(s){return(s.titulo||'').toLowerCase().indexOf(q)>=0||s.nome.toLowerCase().indexOf(q)>=0;});
   if(fp)items=items.filter(function(s){return s.prioridade===fp;});
   document.getElementById('k-sub').textContent=items.length+' solicitações no total';
   document.getElementById('kanban-board').innerHTML=COLS.map(function(col){
     var ci=items.filter(function(s){return s.status===col.id;});
-    if(col.id==='concluido')ci=ci.slice().sort(function(a,b){return new Date(b.dt_entrega||b.created_at)-new Date(a.dt_entrega||a.created_at);});
+    if(col.id==='concluido'){
+      if(kDtDe||kDtAte){
+        ci=ci.filter(function(s){
+          var d=(s.dt_entrega||s.created_at||'').substring(0,10);
+          if(kDtDe&&d<kDtDe)return false;
+          if(kDtAte&&d>kDtAte)return false;
+          return true;
+        });
+      }
+      ci=ci.slice().sort(function(a,b){return new Date(b.dt_entrega||b.created_at)-new Date(a.dt_entrega||a.created_at);});
+    }
     var cards=ci.length?ci.map(kCard).join(''):'<div class="col-empty"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h10"/></svg>Nenhuma</div>';
     return'<div class="kanban-col"><div class="col-head"><div class="col-dot" style="background:'+SC[col.id]+'"></div><span class="col-name">'+col.l+'</span><span class="col-cnt">'+ci.length+'</span></div><div class="col-body">'+cards+'</div></div>';
   }).join('');
@@ -1525,7 +1548,8 @@ function kCard(s){
   var ap=s.aprovacao?s.aprovacao.status:'';
   var stag=ap==='aguardando'?'<span class="k-ap pendente">Pendente</span>':ap==='aprovado'?'<span class="k-ap aprovado">Aprovado</span>':ap==='reprovado'?'<span class="k-ap reprovado">Reprovado</span>':'';
   var chosen=(s.cotacoes||[]).find(function(c){return c.escolhida;});
-  var fornTag=chosen?'<div class="k-forn">✅ '+esc(chosen.forn)+' &bull; R$ '+fmt(chosen.val)+'</div>':'';
+  var fornTagVerVal=canVerValores(s);
+  var fornTag=chosen?'<div class="k-forn">✅ '+esc(chosen.forn)+(fornTagVerVal?' &bull; R$ '+fmt(chosen.val):'')+'</div>':'';
   var moveBtn=s.status==='emissao_oc'?'<button class="btn btn-orange btn-sm" style="font-size:11px;padding:3px 8px;margin-top:6px;width:100%" onclick="event.stopPropagation();updStatus('+s.id+',\'entrega\')">📦 Mover para Entrega</button>':s.status==='entrega'?'<button class="btn btn-green btn-sm" style="font-size:11px;padding:3px 8px;margin-top:6px;width:100%" onclick="event.stopPropagation();quickConcluir('+s.id+')">✅ Marcar Concluído</button>':'';
   return'<div class="k-card" onclick="openModal('+s.id+')">'+
     '<div class="k-card-top"><span class="k-title">'+esc(s.titulo)+'</span><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade)+'</span></div>'+
@@ -1704,7 +1728,7 @@ async function openModal(id){
   document.getElementById('modal-bd').innerHTML=buildModal(s,anexos,comentarios);
   document.getElementById('btn-del-modal').style.display=CU.role==='admin'?'inline-flex':'none';
   document.getElementById('btn-edit-modal').style.display=CU.role==='admin'?'inline-flex':'none';
-  document.getElementById('btn-pdf-modal').style.display=(CU.role==='admin'||CU.role==='viewer')?'inline-flex':'none';
+  document.getElementById('btn-pdf-modal').style.display=(CU.role==='admin'||CU.role==='viewer'||CU.role==='financeiro')?'inline-flex':'none';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -1832,11 +1856,18 @@ async function deleteSol(id){
 function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';selId=null;}
 function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
 
+function canVerValores(s){
+  if(CU.role==='admin'||CU.role==='diretor'||CU.role==='gerente'||CU.role==='financeiro'||CU.role==='viewer')return true;
+  // Solicitante/Comercial só vê valores se a categoria for exatamente "Cotação"
+  var cat=(s.categoria||'').trim();
+  return cat==='Cotação';
+}
 function buildModal(s,anexos,comentarios){
   anexos=anexos||[];comentarios=comentarios||[];
   var canEdit=CU.role==='admin';
   var canApprove=CU.role==='diretor'||CU.role==='admin';
   var isComercial=s.setor==='Comercial'||s.categoria==='Compra Revenda';
+  var verValores=canVerValores(s);
   var roTag=canEdit?'':'<span style="font-size:11px;color:var(--gray-400);font-weight:400">(visualização)</span>';
 
   var info='<div class="sec"><h3>Informações da Solicitação</h3>'+
@@ -1918,7 +1949,7 @@ function buildModal(s,anexos,comentarios){
       '</div></div></div>':'');
 
   var isSolicitante=CU.role==='solicitante';
-  var cotItems=isSolicitante?'':(s.cotacoes||[]).map(function(c){
+  var cotItems=(!verValores&&isSolicitante)?'':(s.cotacoes||[]).map(function(c){
     return'<div class="cot-item'+(c.escolhida?' chosen':'')+'" id="cot-item-'+c.id+'">'+
       '<div class="cot-head" '+(canEdit?'onclick="toggleCot('+s.id+','+c.id+','+c.escolhida+')" style="cursor:pointer"':'')+'>'+
       '<span class="cot-forn">'+esc(c.forn)+'</span>'+(c.escolhida?'<span class="chosen-badge">Escolhido</span>':'')+
@@ -1961,27 +1992,34 @@ function buildModal(s,anexos,comentarios){
     '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'+
     'Enviar para Aprovação da Diretoria</button></div>':'';
 
-  // Para solicitante: visão simplificada sem preços/fornecedores
-  if(isSolicitante){
+  // Para solicitante sem permissão de ver valores: visão simplificada
+  if(isSolicitante&&!verValores){
     var apStatus=s.ap_status||'aguardando';
-    var isCotacao=s.categoria==='Cotação';
     var etapaLabel=s.status==='concluido'?'<div class="ap-done aprovado">✅ Solicitação concluída</div>':
       s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'?'<div class="ap-done aprovado">✅ Aprovada — em andamento</div>':
       s.status==='pre_aprovacao'?'<div class="ap-wait">⏳ Aguardando aprovação da Gerência</div>':
       s.status==='triagem'&&apStatus==='reprovado'?'<div class="ap-done reprovado">❌ Recusada'+(s.ap_obs?' — '+esc(s.ap_obs):'')+'</div>':
       '<div class="ap-wait">⏳ Em análise pelo time de Compras</div>';
-    var isComercialSol=(s.setor==='Comercial'||s.categoria==='Compra Revenda'||s.categoria==='Cotação');
+    var tipoTag='<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Tipo: <strong>'+esc(s.categoria||'—')+'</strong></div>';
+    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+'</div>';
+  } else if(isSolicitante&&verValores){
+    // Solicitante de categoria com permissão (Cotação, Compra Interna, Revenda, Reposição)
+    var apStatus=s.ap_status||'aguardando';
+    var etapaLabel=s.status==='concluido'?'<div class="ap-done aprovado">✅ Solicitação concluída</div>':
+      s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'?'<div class="ap-done aprovado">✅ Aprovada — em andamento</div>':
+      s.status==='pre_aprovacao'?'<div class="ap-wait">⏳ Aguardando aprovação da Gerência</div>':
+      s.status==='triagem'&&apStatus==='reprovado'?'<div class="ap-done reprovado">❌ Recusada'+(s.ap_obs?' — '+esc(s.ap_obs):'')+'</div>':
+      '<div class="ap-wait">⏳ Em análise pelo time de Compras</div>';
+    var cotEsc=(s.cotacoes||[]).find(function(c){return c.escolhida;});
     var valorCotacao='';
-    if(isComercialSol){
-      var cotEsc=(s.cotacoes||[]).find(function(c){return c.escolhida;});
-      if(cotEsc&&cotEsc.val){
-        valorCotacao='<div style="margin-top:14px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:14px 16px">'
-          +'<div style="font-size:11px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">💰 Valor de Venda</div>'
-          +'<div style="font-size:22px;font-weight:800;color:#0C4A6E">R$ '+fmt(cotEsc.val)+'/kg</div>'
-          +(cotEsc.cond?'<div style="font-size:12px;color:#0369A1;margin-top:4px">ICMS: '+esc(cotEsc.cond)+'</div>':'')
-          +(cotEsc.prazo?'<div style="font-size:12px;color:#0369A1;margin-top:2px">Entrega: '+esc(cotEsc.prazo)+'</div>':'')
-          +'</div>';
-      }
+    if(cotEsc&&cotEsc.val){
+      valorCotacao='<div style="margin-top:14px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:14px 16px">'
+        +'<div style="font-size:11px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">💰 Valor</div>'
+        +'<div style="font-size:22px;font-weight:800;color:#0C4A6E">R$ '+fmt(cotEsc.val)+(s.setor==='Comercial'||s.categoria==='Cotação'?'/kg':'')+'</div>'
+        +(cotEsc.forn?'<div style="font-size:12px;color:#0369A1;margin-top:4px">Fornecedor: '+esc(cotEsc.forn)+'</div>':'')
+        +(cotEsc.cond?'<div style="font-size:12px;color:#0369A1;margin-top:2px">Condição: '+esc(cotEsc.cond)+'</div>':'')
+        +(cotEsc.prazo?'<div style="font-size:12px;color:#0369A1;margin-top:2px">Entrega: '+esc(cotEsc.prazo)+'</div>':'')
+        +'</div>';
     }
     var tipoTag='<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Tipo: <strong>'+esc(s.categoria||'—')+'</strong></div>';
     var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+valorCotacao+'</div>';
@@ -2443,6 +2481,21 @@ async function doAp(id,status){
     reprovado:{titulo:'Solicitação Reprovada',msg:'"'+titulo+'" foi reprovada.'+(obs?' Motivo: '+obs:''),tipo:'reprovado'},
     revisao:{titulo:'Revisão Solicitada',msg:'"'+titulo+'" precisa de revisão.'+(obs?' Obs: '+obs:''),tipo:'revisao'}};
   await notifySolicitante(id,msgs[status].titulo,msgs[status].msg,msgs[status].tipo);
+  if(status==='aprovado'){
+    var sF=sols.find(function(x){return x.id===id;});
+    var chosen=(sF&&sF.cotacoes||[]).find(function(c){return c.escolhida;});
+    var corpFinanceiro='<p>A solicitação <strong>'+titulo+'</strong> foi <strong style="color:#10b981">aprovada pela Diretoria</strong> e segue para emissão de Ordem de Compra.</p>'+
+      '<table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:13px">'+
+      '<tr><td style="padding:6px 0;color:#6B7280;width:140px">Solicitante:</td><td style="padding:6px 0;font-weight:600">'+(sF?esc(sF.nome):'')+'</td></tr>'+
+      '<tr><td style="padding:6px 0;color:#6B7280">Setor:</td><td style="padding:6px 0;font-weight:600">'+(sF?esc(sF.setor):'')+'</td></tr>'+
+      '<tr><td style="padding:6px 0;color:#6B7280">Categoria:</td><td style="padding:6px 0">'+(sF?esc(sF.categoria||sF.cat_interna||''):'')+'</td></tr>'+
+      (chosen?'<tr><td style="padding:6px 0;color:#6B7280">Fornecedor:</td><td style="padding:6px 0;font-weight:600">'+esc(chosen.forn)+'</td></tr>'+
+      '<tr><td style="padding:6px 0;color:#6B7280">Valor:</td><td style="padding:6px 0;font-weight:600;color:#1f4781">R$ '+fmt(chosen.val)+'</td></tr>'+
+      '<tr><td style="padding:6px 0;color:#6B7280">Condição:</td><td style="padding:6px 0">'+(chosen.cond?esc(chosen.cond):'-')+'</td></tr>':'<tr><td colspan="2" style="padding:6px 0;color:#F59E0B">⚠️ Nenhuma cotação selecionada ainda</td></tr>')+
+      '</table>'+
+      '<p style="margin-top:16px"><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block">Ver no ABBA Supply</a></p>';
+    await sendEmail(FINANCEIRO_EMAIL,'💰 Compra Aprovada — '+titulo,emailTpl('Compra Aprovada pela Diretoria',corpFinanceiro));
+  }
   sols=[];await openModal(id);render(curPage());
   toast(status==='aprovado'?'✅ Aprovado!':status==='reprovado'?'❌ Reprovado.':'🔄 Revisão solicitada.');
 }
