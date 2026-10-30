@@ -2824,11 +2824,19 @@ async function loadComentarios(solId){
 function buildChatSection(solId,comentarios){
   var msgs=comentarios.length?comentarios.map(function(c){
     var mine=c.user_id===CU.id;
-    var role=c.role==='admin'?'Compras':c.role==='diretor'?'Diretoria':'Solicitante';
+    var canAdmin=CU.role==='admin';
+    var canAct=mine||canAdmin;
+    var role=c.role==='admin'?'Compras':c.role==='diretor'?'Diretoria':c.role==='gerente'?'Gerente':c.role==='financeiro'?'Financeiro':'Solicitante';
     var time=new Date(c.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return'<div class="chat-bubble '+(mine?'mine':'theirs')+'">'+
-      '<div class="chat-meta"><strong>'+esc(c.nome)+'</strong> &bull; '+role+' &bull; '+time+'</div>'+
-      '<div class="chat-text">'+esc(c.mensagem)+'</div></div>';
+    var actions=canAct?
+      '<div class="chat-actions" style="display:flex;gap:4px;margin-top:4px;'+(mine?'justify-content:flex-end':'')+'">'+
+      '<button onclick="editChat('+c.id+','+solId+',\''+esc(c.mensagem).replace(/'/g,'&#39;').replace(/\n/g,'\\n')+'\')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--gray-400);padding:2px 6px;border-radius:4px;transition:background .15s" onmouseover="this.style.background=\'var(--gray-100)\'" onmouseout="this.style.background=\'none\'">✏️ Editar</button>'+
+      '<button onclick="deleteChat('+c.id+','+solId+')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--gray-400);padding:2px 6px;border-radius:4px;transition:background .15s" onmouseover="this.style.background=\'#FEF2F2\';this.style.color=\'#dc2626\'" onmouseout="this.style.background=\'none\';this.style.color=\'var(--gray-400)\'">🗑️ Excluir</button>'+
+      '</div>':'';
+    return'<div class="chat-bubble '+(mine?'mine':'theirs')+'" id="chat-msg-'+c.id+'">'+
+      '<div class="chat-meta"><strong>'+esc(c.nome)+'</strong> &bull; '+role+' &bull; '+time+(c.editado?' <span style="font-style:italic;color:var(--gray-400)">(editado)</span>':'')+'</div>'+
+      '<div class="chat-text" id="chat-text-'+c.id+'">'+esc(c.mensagem)+'</div>'+
+      actions+'</div>';
   }).join(''):'<div class="chat-empty">Nenhuma mensagem ainda. Inicie a conversa!</div>';
   return'<div class="sec chat-sec"><h3>&#x1F4AC; Andamento / Mensagens</h3>'+
     '<div class="chat-msgs" id="chat-msgs-'+solId+'">'+msgs+'</div>'+
@@ -2836,6 +2844,39 @@ function buildChatSection(solId,comentarios){
     '<textarea id="chat-input-'+solId+'" placeholder="Digite uma mensagem..." rows="1" onkeydown="chatKeydown(event,'+solId+')"></textarea>'+
     '<button class="chat-send" onclick="sendChat('+solId+')">Enviar</button>'+
     '</div></div>';
+}
+function editChat(msgId,solId,textoAtual){
+  var el=document.getElementById('chat-text-'+msgId);
+  if(!el)return;
+  var decoded=textoAtual.replace(/\\n/g,'\n').replace(/&#39;/g,"'");
+  el.innerHTML='<textarea id="chat-edit-'+msgId+'" style="width:100%;border:1.5px solid var(--primary);border-radius:8px;padding:8px 10px;font-size:13px;resize:none;font-family:inherit;min-height:60px" onkeydown="chatEditKey(event,'+msgId+','+solId+')">'+(decoded)+'</textarea>'+
+    '<div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">'+
+    '<button onclick="cancelEditChat('+msgId+',\''+textoAtual.replace(/'/g,'&#39;')+'\')" style="background:none;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer">Cancelar</button>'+
+    '<button onclick="saveEditChat('+msgId+','+solId+')" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;font-weight:600">Salvar</button>'+
+    '</div>';
+  var ta=document.getElementById('chat-edit-'+msgId);
+  if(ta){ta.focus();ta.selectionStart=ta.selectionEnd=ta.value.length;}
+}
+function chatEditKey(e,msgId,solId){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveEditChat(msgId,solId);}}
+function cancelEditChat(msgId,textoAtual){
+  var el=document.getElementById('chat-text-'+msgId);
+  if(el)el.innerHTML=esc(textoAtual.replace(/\\n/g,'\n').replace(/&#39;/g,"'"));
+}
+async function saveEditChat(msgId,solId){
+  var ta=document.getElementById('chat-edit-'+msgId);
+  var novoTexto=(ta?ta.value:'').trim();
+  if(!novoTexto)return;
+  var r=await sb.from('comentarios').update({mensagem:novoTexto,editado:true}).eq('id',msgId);
+  if(r.error){toast('❌ Erro ao editar mensagem');return;}
+  sols=[];await openModal(solId);
+  var chat=document.getElementById('chat-msgs-'+solId);
+  if(chat)chat.scrollTop=chat.scrollHeight;
+}
+async function deleteChat(msgId,solId){
+  if(!confirm('Excluir esta mensagem?'))return;
+  var r=await sb.from('comentarios').delete().eq('id',msgId);
+  if(r.error){toast('❌ Erro ao excluir mensagem');return;}
+  sols=[];await openModal(solId);
 }
 function chatKeydown(e,solId){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat(solId);}}
 async function sendChat(solId){
