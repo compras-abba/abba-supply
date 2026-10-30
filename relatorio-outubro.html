@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório Outubro 2026 — ABBA Supply</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#1f4781;--primary-light:#3b6fcf;--accent:#f59e0b;
+  --green:#16a34a;--red:#dc2626;--gray-50:#f8fafc;--gray-100:#f1f5f9;
+  --gray-200:#e2e8f0;--gray-400:#94a3b8;--gray-500:#64748b;--gray-700:#334155;--gray-900:#0f172a;
+  --bg:#f0f4fb;--card:#fff;--text:#0f172a;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.login-box{background:#fff;border-radius:20px;padding:48px 40px;max-width:400px;width:100%;box-shadow:0 8px 40px rgba(31,71,129,.12);text-align:center}
+.login-box h1{font-family:'DM Serif Display',serif;font-size:26px;color:var(--primary);margin-bottom:6px}
+.login-box p{color:var(--gray-400);font-size:14px;margin-bottom:32px}
+.login-box input{width:100%;padding:12px 16px;border:1.5px solid var(--gray-200);border-radius:10px;font-size:14px;margin-bottom:12px;outline:none;font-family:inherit;transition:border-color .15s}
+.login-box input:focus{border-color:var(--primary)}
+.btn-login{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-login:hover{background:var(--primary-light)}
+.login-err{color:#dc2626;font-size:13px;margin-top:8px}
+
+/* REPORT */
+#report-screen{display:none;padding:32px 24px 60px}
+.report-wrap{max-width:1100px;margin:0 auto}
+
+/* HEADER */
+.rpt-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;gap:16px;flex-wrap:wrap}
+.rpt-title-block h1{font-family:'DM Serif Display',serif;font-size:36px;color:var(--primary);line-height:1.1}
+.rpt-title-block .sub{color:var(--gray-500);font-size:14px;margin-top:6px;font-weight:500}
+.rpt-badge{background:var(--primary);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;white-space:nowrap;height:fit-content}
+
+/* KPI TILES */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px}
+.kpi-tile{background:var(--card);border-radius:16px;padding:22px 20px;box-shadow:0 2px 12px rgba(0,0,0,.06);position:relative;overflow:hidden}
+.kpi-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--tile-color,var(--primary))}
+.kpi-tile .kpi-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-400);margin-bottom:8px}
+.kpi-tile .kpi-val{font-size:32px;font-weight:800;color:var(--gray-900);line-height:1}
+.kpi-tile .kpi-sub{font-size:12px;color:var(--gray-400);margin-top:6px}
+
+/* SECTIONS */
+.section{background:var(--card);border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:20px}
+.section h2{font-size:15px;font-weight:700;color:var(--primary);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.section h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0}
+
+/* TWO-COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+
+/* STATUS BARS */
+.status-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.status-row:last-child{margin-bottom:0}
+.status-label{font-size:13px;color:var(--gray-700);width:160px;flex-shrink:0;font-weight:500}
+.status-bar-wrap{flex:1;background:var(--gray-100);border-radius:100px;height:10px;overflow:hidden}
+.status-bar-fill{height:100%;border-radius:100px}
+.status-count{font-size:13px;font-weight:700;color:var(--gray-700);width:36px;text-align:right;flex-shrink:0}
+.status-pct{font-size:11px;color:var(--gray-400);width:36px;text-align:right;flex-shrink:0}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-100)}
+td{padding:11px 12px;font-size:13px;border-bottom:1px solid var(--gray-100);color:var(--gray-700)}
+tr:last-child td{border-bottom:none}
+td.num{font-weight:700;color:var(--gray-900);font-variant-numeric:tabular-nums}
+
+/* SAVING */
+.saving-box{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #6ee7b7;border-radius:14px;padding:24px;display:flex;align-items:center;gap:20px;margin-bottom:20px}
+.saving-box .icon{font-size:40px;flex-shrink:0}
+.saving-box h3{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#065f46;margin-bottom:4px}
+.saving-box .val{font-size:36px;font-weight:800;color:#065f46}
+.saving-box .sub{font-size:12px;color:#047857;margin-top:4px}
+
+/* OTIF */
+.otif-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.otif-tile{background:var(--card);border-radius:12px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.05);text-align:center}
+.otif-tile .ot-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);margin-bottom:6px}
+.otif-tile .ot-val{font-size:28px;font-weight:800}
+
+/* FOOTER */
+.rpt-footer{text-align:center;color:var(--gray-400);font-size:12px;margin-top:48px}
+
+/* PRINT */
+@media print{
+  body{background:#fff}
+  .no-print{display:none!important}
+  .section,.kpi-tile,.saving-box,.otif-tile{box-shadow:none;border:1px solid #e2e8f0}
+}
+
+/* LOADING */
+#loading{display:none;text-align:center;padding:80px;color:var(--gray-400);font-size:15px}
+.spinner{width:40px;height:40px;border:4px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="width:52px;height:52px;background:var(--primary);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+      <svg width="28" height="28" fill="none" stroke="#fff" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </div>
+    <h1>ABBA Supply</h1>
+    <p>Entre para gerar o relatório de outubro</p>
+    <input type="email" id="inp-email" placeholder="seu@email.com">
+    <input type="password" id="inp-pwd" placeholder="Senha">
+    <button class="btn-login" onclick="doLogin()">Entrar e Gerar Relatório</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  Carregando dados de outubro...
+</div>
+
+<!-- REPORT -->
+<div id="report-screen">
+  <div class="report-wrap">
+
+    <div class="rpt-header">
+      <div class="rpt-title-block">
+        <h1>Relatório de Desempenho</h1>
+        <div class="sub">Compras &amp; Supply Chain · Outubro 2026 · ABBA Química</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div class="rpt-badge">Outubro 2026</div>
+        <button class="rpt-badge no-print" style="background:var(--gray-500);cursor:pointer;border:none;font-family:inherit" onclick="window.print()">🖨️ Imprimir / PDF</button>
+      </div>
+    </div>
+
+    <!-- KPI TILES -->
+    <div class="kpi-grid" id="kpi-tiles"></div>
+
+    <!-- SAVING -->
+    <div class="saving-box" id="saving-box"></div>
+
+    <!-- OTIF -->
+    <div class="section" style="margin-bottom:20px">
+      <h2><span class="dot" style="background:#10b981"></span>Indicadores de Entrega</h2>
+      <div class="otif-grid" id="otif-grid"></div>
+      <div id="otif-forn-table"></div>
+    </div>
+
+    <!-- STATUS + SETOR -->
+    <div class="two-col">
+      <div class="section">
+        <h2><span class="dot"></span>Distribuição por Status</h2>
+        <div id="status-chart"></div>
+      </div>
+      <div class="section">
+        <h2><span class="dot" style="background:#f59e0b"></span>Por Setor</h2>
+        <table>
+          <thead><tr><th>Setor</th><th>Qtd</th><th>%</th></tr></thead>
+          <tbody id="setor-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CATEGORIA + TOP FORNECEDORES -->
+    <div class="two-col">
+      <div class="section">
+        <h2><span class="dot" style="background:#8b5cf6"></span>Por Categoria Interna</h2>
+        <table>
+          <thead><tr><th>Categoria</th><th>Qtd</th></tr></thead>
+          <tbody id="cat-tbody"></tbody>
+        </table>
+      </div>
+      <div class="section">
+        <h2><span class="dot" style="background:#06b6d4"></span>Top Fornecedores (cotações)</h2>
+        <table>
+          <thead><tr><th>Fornecedor</th><th>Cotações</th><th>Escolhido</th><th>Valor Total (R$)</th></tr></thead>
+          <tbody id="forn-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DETALHAMENTO -->
+    <div class="section">
+      <h2><span class="dot" style="background:#f59e0b"></span>Solicitações do Mês — Detalhamento</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>#</th><th>Título</th><th>Solicitante</th><th>Setor</th><th>Categoria</th><th>Status</th><th>Criada em</th><th>Valor (R$)</th></tr></thead>
+          <tbody id="detail-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="rpt-footer" id="rpt-footer"></div>
+  </div>
+</div>
+
+<script>
+var SURL='https://mdiwameqbbguvmugbloh.supabase.co';
+var SKEY='sb_publishable_xriu2k1UP-FcZhULRRowuA_iodzduFq';
+var sb=supabase.createClient(SURL,SKEY);
+
+function fmt(n){return Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDate(d){if(!d)return'—';return new Date(d+'T00:00:00').toLocaleDateString('pt-BR');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+document.getElementById('inp-pwd').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+
+async function doLogin(){
+  var email=document.getElementById('inp-email').value.trim();
+  var pwd=document.getElementById('inp-pwd').value;
+  document.getElementById('login-err').textContent='';
+  if(!email||!pwd){document.getElementById('login-err').textContent='Preencha email e senha.';return;}
+  var r=await sb.auth.signInWithPassword({email:email,password:pwd});
+  if(r.error){document.getElementById('login-err').textContent='Credenciais inválidas.';return;}
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('loading').style.display='block';
+  await buildReport();
+}
+
+async function buildReport(){
+  var r1=await sb.from('solicitacoes').select('*')
+    .gte('created_at','2026-10-01T00:00:00')
+    .lt('created_at','2026-11-01T00:00:00')
+    .order('created_at',{ascending:false});
+  var sols=r1.data||[];
+
+  var solIds=sols.map(function(s){return s.id;});
+  var cots=[];
+  if(solIds.length){
+    var r2=await sb.from('cotacoes').select('*').in('sol_id',solIds);
+    cots=r2.data||[];
+  }
+
+  document.getElementById('loading').style.display='none';
+  document.getElementById('report-screen').style.display='block';
+
+  var total=sols.length;
+  var concluidos=sols.filter(function(s){return s.status==='concluido';}).length;
+  var emAndamento=sols.filter(function(s){return['triagem','cotacao','pre_aprovacao','aprovacao','emissao_oc','entrega'].indexOf(s.status)>=0;}).length;
+  var reprovados=sols.filter(function(s){return s.status==='reprovado';}).length;
+  var pausados=sols.filter(function(s){return s.status==='pausado';}).length;
+  var totalCots=cots.length;
+  var taxaConclusao=total?Math.round(concluidos/total*100):0;
+  var volTotal=cots.filter(function(c){return c.escolhida;}).reduce(function(a,c){return a+Number(c.val||0);},0);
+
+  // KPI TILES
+  var tilesData=[
+    {lbl:'Total de Solicitações',val:total,sub:'em outubro de 2026',color:'#1f4781'},
+    {lbl:'Concluídas',val:concluidos,sub:taxaConclusao+'% do total',color:'#16a34a'},
+    {lbl:'Em Andamento',val:emAndamento,sub:'no pipeline',color:'#3b6fcf'},
+    {lbl:'Cotações Recebidas',val:totalCots,sub:'neste mês',color:'#8b5cf6'},
+    {lbl:'Volume de Compras',val:'R$ '+fmt(volTotal),sub:'valor das OCs aprovadas',color:'#f59e0b'},
+    {lbl:'Reprovadas / Pausa',val:reprovados+pausados,sub:reprovados+' reprov. · '+pausados+' pausadas',color:'#dc2626'},
+  ];
+  document.getElementById('kpi-tiles').innerHTML=tilesData.map(function(t){
+    return'<div class="kpi-tile" style="--tile-color:'+t.color+'">'+
+      '<div class="kpi-lbl">'+t.lbl+'</div>'+
+      '<div class="kpi-val">'+t.val+'</div>'+
+      '<div class="kpi-sub">'+t.sub+'</div>'+
+      '</div>';
+  }).join('');
+
+  // SAVING
+  var totalSaving=sols.reduce(function(acc,s){return acc+(parseFloat(s.saving)||0);},0);
+  document.getElementById('saving-box').innerHTML=
+    '<div class="icon">💰</div>'+
+    '<div><h3>Saving Total Obtido — Outubro</h3>'+
+    '<div class="val">R$ '+fmt(totalSaving)+'</div>'+
+    '<div class="sub">economia gerada nas negociações do mês</div></div>';
+
+  // OTIF
+  var entregues=sols.filter(function(s){return s.dt_entrega&&(s.status==='concluido'||s.status==='entrega');});
+  var noPrazo=entregues.filter(function(s){
+    var ref=s.dt_prevista||s.prazo;
+    if(!ref)return false;
+    return new Date(s.dt_entrega+'T00:00:00')<=new Date(ref+'T00:00:00');
+  });
+  var otd=entregues.length?Math.round(noPrazo.length/entregues.length*100):null;
+  var full=entregues.filter(function(s){return s.status==='concluido';});
+  var fullNoPrazo=full.filter(function(s){
+    var ref=s.dt_prevista||s.prazo;
+    if(!ref)return false;
+    return new Date(s.dt_entrega+'T00:00:00')<=new Date(ref+'T00:00:00');
+  });
+  var otif=entregues.length?Math.round(fullNoPrazo.length/entregues.length*100):null;
+
+  function otifColor(v){return v===null?'#94a3b8':v>=80?'#16a34a':v>=60?'#f59e0b':'#dc2626';}
+  document.getElementById('otif-grid').innerHTML=
+    '<div class="otif-tile"><div class="ot-lbl">Entregas no Prazo (OTD)</div><div class="ot-val" style="color:'+otifColor(otd)+'">'+(otd!==null?otd+'%':'—')+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">'+noPrazo.length+' de '+entregues.length+' entregues</div></div>'+
+    '<div class="otif-tile"><div class="ot-lbl">On Time In Full (OTIF)</div><div class="ot-val" style="color:'+otifColor(otif)+'">'+(otif!==null?otif+'%':'—')+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">'+fullNoPrazo.length+' de '+entregues.length+' no prazo e completas</div></div>'+
+    '<div class="otif-tile"><div class="ot-lbl">Taxa de Conclusão</div><div class="ot-val" style="color:'+otifColor(taxaConclusao)+'">'+taxaConclusao+'%</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">'+concluidos+' de '+total+' finalizadas</div></div>'+
+    '<div class="otif-tile"><div class="ot-lbl">Atrasadas</div><div class="ot-val" style="color:'+(entregues.length-noPrazo.length>0?'#dc2626':'#16a34a')+'">'+(entregues.length-noPrazo.length)+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">entregas fora do prazo</div></div>';
+
+  // OTIF por fornecedor
+  var fornMap={};
+  sols.forEach(function(s){
+    if(!s.dt_entrega)return;
+    var cot=(cots||[]).find(function(c){return c.sol_id===s.id&&c.escolhida;});
+    if(!cot||!cot.forn)return;
+    var f=cot.forn;
+    if(!fornMap[f])fornMap[f]={total:0,noPrazo:0,full:0,fullNoPrazo:0};
+    fornMap[f].total++;
+    var ref=s.dt_prevista||s.prazo;
+    var noP=ref&&new Date(s.dt_entrega+'T00:00:00')<=new Date(ref+'T00:00:00');
+    if(noP)fornMap[f].noPrazo++;
+    if(s.status==='concluido'){fornMap[f].full++;if(noP)fornMap[f].fullNoPrazo++;}
+  });
+  var fornArr=Object.entries(fornMap).filter(function(e){return e[1].total>0;}).sort(function(a,b){return b[1].total-a[1].total;});
+  if(fornArr.length){
+    document.getElementById('otif-forn-table').innerHTML=
+      '<div style="margin-top:20px;border-top:1px solid var(--gray-100);padding-top:16px">'+
+      '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);margin-bottom:12px">OTIF por Fornecedor</div>'+
+      '<table><thead><tr><th>Fornecedor</th><th>Entregas</th><th>OTD %</th><th>OTIF %</th></tr></thead><tbody>'+
+      fornArr.map(function(e){
+        var f=e[1];
+        var otdF=Math.round(f.noPrazo/f.total*100);
+        var otifF=Math.round(f.fullNoPrazo/f.total*100);
+        return'<tr><td>'+esc(e[0])+'</td><td class="num">'+f.total+'</td>'+
+          '<td class="num" style="color:'+otifColor(otdF)+'">'+otdF+'%</td>'+
+          '<td class="num" style="color:'+otifColor(otifF)+'">'+otifF+'%</td></tr>';
+      }).join('')+
+      '</tbody></table></div>';
+  }
+
+  // STATUS CHART
+  var statusMap={triagem:{l:'Triagem',c:'#60a5fa'},cotacao:{l:'Cotação Externa',c:'#f59e0b'},pre_aprovacao:{l:'Pré-Aprovação',c:'#a78bfa'},aprovacao:{l:'Aprovação Diretoria',c:'#fb923c'},emissao_oc:{l:'Emissão OC',c:'#34d399'},entrega:{l:'Entrega',c:'#22d3ee'},concluido:{l:'Concluído',c:'#16a34a'},pausado:{l:'Pausado',c:'#6b7280'},reprovado:{l:'Reprovado',c:'#f87171'}};
+  var statusCount={};
+  sols.forEach(function(s){statusCount[s.status]=(statusCount[s.status]||0)+1;});
+  var maxSt=Math.max.apply(null,Object.values(statusCount).concat([1]));
+  document.getElementById('status-chart').innerHTML=Object.keys(statusMap).filter(function(k){return statusCount[k];}).map(function(k){
+    var cnt=statusCount[k]||0;
+    var pct=total?Math.round(cnt/total*100):0;
+    var w=Math.round(cnt/maxSt*100);
+    return'<div class="status-row"><span class="status-label">'+statusMap[k].l+'</span>'+
+      '<div class="status-bar-wrap"><div class="status-bar-fill" style="width:'+w+'%;background:'+statusMap[k].c+'"></div></div>'+
+      '<span class="status-count">'+cnt+'</span><span class="status-pct">'+pct+'%</span></div>';
+  }).join('')||'<p style="color:#94a3b8;font-size:13px">Nenhum dado</p>';
+
+  // SETOR
+  var setorCount={};
+  sols.forEach(function(s){if(s.setor)setorCount[s.setor]=(setorCount[s.setor]||0)+1;});
+  var setorRows=Object.entries(setorCount).sort(function(a,b){return b[1]-a[1];});
+  document.getElementById('setor-tbody').innerHTML=setorRows.map(function(r){
+    var pct=total?Math.round(r[1]/total*100):0;
+    return'<tr><td>'+esc(r[0])+'</td><td class="num">'+r[1]+'</td><td class="num">'+pct+'%</td></tr>';
+  }).join('')||'<tr><td colspan="3" style="color:#94a3b8">Nenhum dado</td></tr>';
+
+  // CATEGORIA
+  var catCount={};
+  sols.forEach(function(s){if(s.cat_interna)catCount[s.cat_interna]=(catCount[s.cat_interna]||0)+1;});
+  var catRows=Object.entries(catCount).sort(function(a,b){return b[1]-a[1];});
+  document.getElementById('cat-tbody').innerHTML=catRows.length?catRows.map(function(r){
+    return'<tr><td>'+esc(r[0])+'</td><td class="num">'+r[1]+'</td></tr>';
+  }).join(''):'<tr><td colspan="2" style="color:#94a3b8">Sem categoria definida</td></tr>';
+
+  // TOP FORNECEDORES
+  var fornCount={};var fornChosen={};var fornVal={};
+  cots.forEach(function(c){
+    if(c.forn){
+      fornCount[c.forn]=(fornCount[c.forn]||0)+1;
+      if(c.escolhida){fornChosen[c.forn]=(fornChosen[c.forn]||0)+1;fornVal[c.forn]=(fornVal[c.forn]||0)+Number(c.val||0);}
+    }
+  });
+  var fornRows=Object.entries(fornCount).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  document.getElementById('forn-tbody').innerHTML=fornRows.length?fornRows.map(function(r){
+    var escolhido=fornChosen[r[0]]||0;
+    var val=fornVal[r[0]]||0;
+    return'<tr><td>'+esc(r[0])+'</td><td class="num">'+r[1]+'</td><td class="num">'+escolhido+'</td><td class="num">'+(val>0?'R$ '+fmt(val):'—')+'</td></tr>';
+  }).join(''):'<tr><td colspan="4" style="color:#94a3b8">Nenhuma cotação</td></tr>';
+
+  // DETALHAMENTO
+  var statusLabel={triagem:'Triagem',cotacao:'Cotação',pre_aprovacao:'Pré-Aprovação',aprovacao:'Aprovação',emissao_oc:'Emissão OC',entrega:'Entrega',concluido:'Concluído',pausado:'Pausado',reprovado:'Reprovado'};
+  var statusColor={triagem:'#60a5fa',cotacao:'#f59e0b',pre_aprovacao:'#a78bfa',aprovacao:'#fb923c',emissao_oc:'#34d399',entrega:'#22d3ee',concluido:'#16a34a',pausado:'#6b7280',reprovado:'#f87171'};
+  document.getElementById('detail-tbody').innerHTML=sols.map(function(s,i){
+    var sc=statusColor[s.status]||'#94a3b8';
+    var sl=statusLabel[s.status]||s.status;
+    var cot=(cots||[]).find(function(c){return c.sol_id===s.id&&c.escolhida;});
+    var val=cot&&cot.val?'R$ '+fmt(cot.val):'—';
+    return'<tr>'+
+      '<td class="num" style="color:#94a3b8">'+(i+1)+'</td>'+
+      '<td style="font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.titulo||'—')+'</td>'+
+      '<td style="font-size:12px">'+esc(s.nome||'—')+'</td>'+
+      '<td>'+esc(s.setor||'—')+'</td>'+
+      '<td style="color:#64748b;font-size:12px">'+esc(s.cat_interna||s.categoria||'—')+'</td>'+
+      '<td><span style="background:'+sc+'22;color:'+sc+';font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px">'+sl+'</span></td>'+
+      '<td style="color:#94a3b8;font-size:12px">'+fmtDate(s.created_at?s.created_at.substring(0,10):null)+'</td>'+
+      '<td class="num" style="font-size:12px">'+val+'</td>'+
+      '</tr>';
+  }).join('')||'<tr><td colspan="8" style="color:#94a3b8;text-align:center;padding:20px">Nenhuma solicitação em outubro</td></tr>';
+
+  // FOOTER
+  var now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('rpt-footer').innerHTML=
+    'ABBA Supply · Relatório Outubro 2026 · Gerado em '+now+
+    '<br><span style="font-size:11px">compras@abbaquimica.com.br</span>';
+}
+</script>
+</body>
+</html>
