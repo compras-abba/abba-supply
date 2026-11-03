@@ -2990,7 +2990,7 @@ function gerarPDFOC(id){
     +'<span>'+(isOC?'📋':'📝')+'</span>'
     +'<span>ABBA SUPPLY — '+docTipo+'</span>'
     +'</div>'
-    +'<div class="header"><div><div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:.1em;margin-bottom:4px">'+(isOC?'Ordem de Compra emitida':'Aguardando emissão de OC')+'</div>'
+    +'<div class="header"><div><div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:.1em;margin-bottom:4px">ABBA SUPPLY</div>'
     +'<h1>'+esc(s.titulo)+'</h1>'
     +'<div class="meta">Solicitado em '+new Date(s.created_at).toLocaleDateString('pt-BR')+' &nbsp;|&nbsp; Gerado em '+now+'</div></div>'
     +'<div style="text-align:right"><span class="badge">'+esc(s.status==='concluido'?'Concluído':s.status==='emissao_oc'?'Emissão OC':'Entrega')+'</span>'
