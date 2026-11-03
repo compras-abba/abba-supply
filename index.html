@@ -730,6 +730,7 @@ var SURL='https://mdiwameqbbguvmugbloh.supabase.co';
 var SKEY='sb_publishable_xriu2k1UP-FcZhULRRowuA_iodzduFq';
 var CODES={diretor:'DIRETORIA',admin:'COMPRAS2026',gerente:'GERENTE2026',financeiro:'FINANCEIRO2026'};
 var FINANCEIRO_EMAIL='financeiro@abbaquimica.com.br';
+var COMPRADORES={'compras@abbaquimica.com.br':'Luiz','suprimentos@abbaquimica.com.br':'Taís'};
 var DIRECTOR_EMAILS={Christiane:'christiane@abbaquimica.com.br',Francisco:'francisco@abbaquimica.com.br'};
 var COMPRAS_EMAIL='compras@abbaquimica.com.br';
 var GERENTE_EMAIL='bruno@abbaquimica.com.br';
@@ -1556,7 +1557,11 @@ function kCard(s){
     '<div class="k-meta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+(s.status==='concluido'&&s.dt_entrega?'<span style="color:#10B981;font-weight:600">✅ '+fmtD(s.dt_entrega)+'</span>':fmtD(s.prazo))+'</div>'+
     fornTag+
     (s.status==='pausado'&&s.motivo_pausa?'<div style="font-size:11px;color:#6B7280;background:#F3F4F6;border-radius:6px;padding:5px 8px;margin-top:4px">&#x23F8;&#xFE0F; '+esc(s.motivo_pausa.substring(0,60))+(s.motivo_pausa.length>60?'...':'')+'</div>':'')+
-    '<div class="k-footer"><div><div class="k-user">'+esc(s.nome)+'</div>'+stag+'</div><span class="k-cat">'+esc(s.categoria)+'</span></div>'+moveBtn+'</div>';
+    '<div class="k-footer"><div><div class="k-user">'+esc(s.nome)+'</div>'+stag+'</div><span class="k-cat">'+esc(s.categoria)+'</span></div>'+
+    (s.responsavel_nome?'<div style="font-size:11px;color:#1f4781;font-weight:600;background:#EFF6FF;border-radius:6px;padding:4px 8px;margin-top:6px;display:flex;align-items:center;gap:4px"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'+esc(s.responsavel_nome)+'</div>':
+    (CU.role==='admin'?'<button onclick="event.stopPropagation();puxarParaMim('+s.id+')" style="font-size:11px;color:#1f4781;font-weight:600;background:#EFF6FF;border:1.5px dashed #93c5fd;border-radius:6px;padding:4px 8px;margin-top:6px;cursor:pointer;width:100%;text-align:left">⬆️ Puxar para mim</button>':
+    '<div style="font-size:11px;color:#94a3b8;background:#f8fafc;border-radius:6px;padding:4px 8px;margin-top:6px">Sem responsável</div>'))+
+    moveBtn+'</div>';
 }
 
 // FILA
@@ -1881,6 +1886,17 @@ function buildModal(s,anexos,comentarios){
     (s.cliente?'<div><div class="ii-lbl">🤝 Cliente</div><div class="ii-val">'+esc(s.cliente)+'</div></div>':'')+
     '<div><div class="ii-lbl">⚡ Prioridade</div><div class="ii-val"><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade||'media')+'</span></div></div>'+
     (CU.role!=='solicitante'?'<div><div class="ii-lbl">👤 Aprovador</div><div class="ii-val">'+esc(s.aprovador||'-')+'</div></div>':'')+
+    '<div><div class="ii-lbl">🔧 Responsável (Compras)</div><div class="ii-val" style="display:flex;align-items:center;gap:8px">'+
+      (s.responsavel_nome?'<span style="font-weight:700;color:#1f4781">'+esc(s.responsavel_nome)+'</span>':'<span style="color:#94a3b8">Não atribuído</span>')+
+      (canEdit?'<button onclick="toggleRespDropdown('+s.id+')" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#f8fafc;cursor:pointer;color:#1f4781;font-weight:600">✏️ Alterar</button>':'') +
+    '</div>'+
+    (canEdit?'<div id="resp-dd-'+s.id+'" style="display:none;margin-top:8px;display:none">'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button onclick="atribuirResp('+s.id+',\'Luiz\')" style="padding:6px 14px;border-radius:8px;border:2px solid '+(s.responsavel_nome==='Luiz'?'#1f4781':'#e2e8f0')+';background:'+(s.responsavel_nome==='Luiz'?'#1f4781':'#fff')+';color:'+(s.responsavel_nome==='Luiz'?'#fff':'#334155')+';font-weight:600;cursor:pointer;font-size:13px">👤 Luiz</button>'+
+      '<button onclick="atribuirResp('+s.id+',\'Taís\')" style="padding:6px 14px;border-radius:8px;border:2px solid '+(s.responsavel_nome==='Taís'?'#1f4781':'#e2e8f0')+';background:'+(s.responsavel_nome==='Taís'?'#1f4781':'#fff')+';color:'+(s.responsavel_nome==='Taís'?'#fff':'#334155')+';font-weight:600;cursor:pointer;font-size:13px">👤 Taís</button>'+
+      '<button onclick="atribuirResp('+s.id+',\'\')" style="padding:6px 14px;border-radius:8px;border:2px solid #e2e8f0;background:#fff;color:#94a3b8;font-weight:600;cursor:pointer;font-size:13px">✖ Remover</button>'+
+      '</div></div>':'') +
+    '</div>'+
     '</div>'+
     (s.categoria==='Serviço'?
       '<div style="margin-top:12px;padding:12px 14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
@@ -2000,7 +2016,8 @@ function buildModal(s,anexos,comentarios){
       s.status==='triagem'&&apStatus==='reprovado'?'<div class="ap-done reprovado">❌ Recusada'+(s.ap_obs?' — '+esc(s.ap_obs):'')+'</div>':
       '<div class="ap-wait">⏳ Em análise pelo time de Compras</div>';
     var tipoTag='<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Tipo: <strong>'+esc(s.categoria||'—')+'</strong></div>';
-    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+'</div>';
+    var respTag=s.responsavel_nome?'<div style="margin-top:10px;padding:10px 14px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:13px;color:#1e40af"><strong>🔧 Responsável:</strong> '+esc(s.responsavel_nome)+' (Compras)</div>':'';
+    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+respTag+'</div>';
   } else if(isSolicitante&&verValores){
     // Solicitante de categoria com permissão (Cotação, Compra Interna, Revenda, Reposição)
     var apStatus=s.ap_status||'aguardando';
@@ -2021,7 +2038,8 @@ function buildModal(s,anexos,comentarios){
         +'</div>';
     }
     var tipoTag='<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Tipo: <strong>'+esc(s.categoria||'—')+'</strong></div>';
-    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+valorCotacao+'</div>';
+    var respTag2=s.responsavel_nome?'<div style="margin-top:10px;padding:10px 14px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:13px;color:#1e40af"><strong>🔧 Responsável:</strong> '+esc(s.responsavel_nome)+' (Compras)</div>':'';
+    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+valorCotacao+respTag2+'</div>';
   } else {
   var cot='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Cotação Externa '+roTag+'</h3>'+
     '<div class="cot-list">'+(cotItems||'<p style="color:var(--gray-400);font-size:13px">Nenhuma cotação adicionada</p>')+'</div>'+
@@ -2876,6 +2894,25 @@ async function deleteChat(msgId,solId){
   if(!confirm('Excluir esta mensagem?'))return;
   var r=await sb.from('comentarios').delete().eq('id',msgId);
   if(r.error){toast('❌ Erro ao excluir mensagem');return;}
+  sols=[];await openModal(solId);
+}
+async function puxarParaMim(solId){
+  var meuNome=COMPRADORES[CU.email]||CU.nome;
+  var r=await sb.from('solicitacoes').update({responsavel_nome:meuNome,responsavel_id:CU.id}).eq('id',solId);
+  if(r.error){toast('❌ Erro ao puxar solicitação');return;}
+  toast('✅ Puxado para '+meuNome);
+  sols=[];renderKanban();
+}
+function toggleRespDropdown(solId){
+  var dd=document.getElementById('resp-dd-'+solId);
+  if(!dd)return;
+  dd.style.display=dd.style.display==='none'||!dd.style.display?'block':'none';
+}
+async function atribuirResp(solId,nome){
+  var upd={responsavel_nome:nome||null};
+  var r=await sb.from('solicitacoes').update(upd).eq('id',solId);
+  if(r.error){toast('❌ Erro ao atribuir responsável');return;}
+  toast('✅ Responsável '+(nome?'atribuído: '+nome:'removido'));
   sols=[];await openModal(solId);
 }
 function chatKeydown(e,solId){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat(solId);}}
