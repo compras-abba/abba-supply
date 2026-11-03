@@ -2974,8 +2974,10 @@ function gerarPDFOC(id){
     +etapa('pre_ap_aprovado','Gerência Aprovou')+etapa('ap_aprovado','Diretoria Aprovou')
     +etapa('emissao_oc','Emissão da OC')+etapa('entrega','Entrega')+etapa('concluido','Concluído')
     +'</table>';
+  var isOC=['emissao_oc','entrega','concluido'].indexOf(s.status)>=0;
+  var docTipo=isOC?'ORDEM DE COMPRA':'SOLICITAÇÃO DE COMPRA';
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
-    +'<title>OC — '+esc(s.titulo)+'</title>'
+    +'<title>'+docTipo+' — '+esc(s.titulo)+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;color:#111;padding:32px 40px;max-width:800px;margin:0 auto}'
     +'h1{font-size:20px;font-weight:700;color:#1f4781;margin-bottom:2px}h2{font-size:13px;font-weight:700;color:#1f4781;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 8px;padding-bottom:4px;border-bottom:2px solid #1f4781}'
     +'.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:12px;padding:3px 10px;background:#DCFCE7;color:#15803D}'
@@ -2984,7 +2986,11 @@ function gerarPDFOC(id){
     +'.meta{font-size:11px;color:#6B7280;margin-top:4px}'
     +'@media print{body{padding:20px}button{display:none!important}}'
     +'</style></head><body>'
-    +'<div class="header"><div><div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:.1em;margin-bottom:4px">ABBA SUPPLY — DOCUMENTO DE OC</div>'
+    +'<div style="background:'+(isOC?'#1f4781':'#f59e0b')+';color:#fff;padding:8px 40px;margin:-32px -40px 24px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:10px">'
+    +'<span>'+(isOC?'📋':'📝')+'</span>'
+    +'<span>ABBA SUPPLY — '+docTipo+'</span>'
+    +'</div>'
+    +'<div class="header"><div><div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:.1em;margin-bottom:4px">'+(isOC?'Ordem de Compra emitida':'Aguardando emissão de OC')+'</div>'
     +'<h1>'+esc(s.titulo)+'</h1>'
     +'<div class="meta">Solicitado em '+new Date(s.created_at).toLocaleDateString('pt-BR')+' &nbsp;|&nbsp; Gerado em '+now+'</div></div>'
     +'<div style="text-align:right"><span class="badge">'+esc(s.status==='concluido'?'Concluído':s.status==='emissao_oc'?'Emissão OC':'Entrega')+'</span>'
