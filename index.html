@@ -1574,7 +1574,7 @@ async function renderFila(){
     el.innerHTML=fila.map(function(s){
       return'<div class="fila-item" onclick="openModal('+s.id+')">'+
         '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
-        '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
+        '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span>'+(s.responsavel_nome?'<span style="color:#1f4781;font-weight:600">🔧 '+esc(s.responsavel_nome)+'</span>':'')+'</div>'+
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
         '</div><div class="fila-actions" onclick="event.stopPropagation()">'+
         '<span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
@@ -1597,7 +1597,7 @@ async function renderFila(){
     el.innerHTML=fila.map(function(s){
       return'<div class="fila-item" onclick="openModal('+s.id+')">'+
         '<div class="fila-info"><div class="fila-title">'+esc(s.titulo)+'</div>'+
-        '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span></div>'+
+        '<div class="fila-meta"><span>👤 '+esc(s.nome)+'</span><span>🏢 '+esc(s.setor)+'</span><span>📦 '+esc(s.quantidade)+'</span><span>📅 '+fmtD(s.prazo)+'</span>'+(s.responsavel_nome?'<span style="color:#1f4781;font-weight:600">🔧 '+esc(s.responsavel_nome)+'</span>':'')+'</div>'+
         (function(){var c=(s.cotacoes||[]).find(function(x){return x.escolhida;});return c?'<div class="fila-forn">&#x2705; <strong>'+esc(c.forn)+'</strong> &bull; R$ '+fmt(c.val)+(c.prazo?' &bull; '+esc(c.prazo):'')+' </div>':'<div class="fila-forn fila-forn-none">&#x26A0;&#xFE0F; Nenhum fornecedor selecionado</div>';})()+
         '</div><div class="fila-actions"><span class="badge '+s.prioridade+'">'+cap(s.prioridade)+'</span>'+
         '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();qAp('+s.id+',\'aprovado\')">✅ Aprovar</button>'+
