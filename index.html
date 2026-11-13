@@ -1944,9 +1944,6 @@ function buildModal(s,anexos,comentarios){
     '<div class="fg"><label>Tipo de Compra</label><div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">'+(s.categoria||'—')+'</div></div>'+
     '</div>'+
     '<div class="form-2">'+
-    '<div class="fg"><label>Categoria Interna</label><select id="cat-interna-sel-'+s.id+'" '+(canEdit?'onchange="onCatInterna('+s.id+',this.value)"':'disabled')+'>'+
-    '<option value="">Selecione</option>'+CATS.map(function(c){return'<option'+(s.cat_interna===c||s.cat_interna&&s.cat_interna.startsWith('Outros:')?c==='Outros':false?' selected':s.cat_interna===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'+
-    (canEdit?'<input type="text" id="cat-interna-outros-'+s.id+'" placeholder="Especifique..." style="margin-top:6px;width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;display:'+(s.cat_interna&&s.cat_interna.startsWith('Outros:')?'block':'none')+'" value="'+esc(s.cat_interna&&s.cat_interna.startsWith('Outros:')?s.cat_interna.replace('Outros:','').trim():'')+'">':'')+'</div>'+
     '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
     Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div>'+
     (!isComercial&&s.aprovador?'<div class="fg"><label>Aprovador</label><div class="ii-val">'+esc(s.aprovador)+'</div></div>':'')+'</div>'+
