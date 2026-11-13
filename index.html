@@ -1946,7 +1946,7 @@ function buildModal(s,anexos,comentarios){
     '<div class="form-2">'+
     '<div class="fg"><label>Etapa</label><select '+(canEdit?'onchange="updStatus('+s.id+',this.value)"':'disabled')+'>'+
     Object.keys(SL).map(function(k){return'<option value="'+k+'"'+(s.status===k?' selected':'')+'>'+SL[k]+'</option>';}).join('')+'</select></div>'+
-    (!isComercial&&s.aprovador?'<div class="fg"><label>Aprovador</label><div class="ii-val">'+esc(s.aprovador)+'</div></div>':'')+'</div>'+
+    (!isComercial&&s.aprovador?'<div class="fg"><label>Aprovador</label><div class="ii-val" style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:13px">'+esc(s.aprovador)+'</div></div>':'')+'</div>'+
     (s.categoria==='Serviço'?
       '<div style="margin-top:12px;padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px">'+
       '<div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:10px">🔧 Datas do Serviço</div>'+
