@@ -1880,7 +1880,7 @@ function buildModal(s,anexos,comentarios){
     '<div><div class="ii-lbl">✉️ Email</div><div class="ii-val">'+esc(s.email)+'</div></div>'+
     '<div><div class="ii-lbl">🏢 Setor</div><div class="ii-val">'+esc(s.setor)+'</div></div>'+
     '<div><div class="ii-lbl">📦 Quantidade</div><div class="ii-val">'+esc(s.quantidade)+'</div></div>'+
-    '<div><div class="ii-lbl">📅 Prazo</div><div class="ii-val">'+fmtD(s.prazo)+'</div></div>'+
+    '<div><div class="ii-lbl">📅 Prazo Necessário</div><div class="ii-val">'+fmtD(s.prazo)+'</div></div>'+
     '<div><div class="ii-lbl">📁 Categoria</div><div class="ii-val">'+esc(s.categoria)+'</div></div>'+
     '<div><div class="ii-lbl">🏭 Empresa</div><div class="ii-val">'+esc(s.empresa||'ABBA Química')+'</div></div>'+
     (s.cliente?'<div><div class="ii-lbl">🤝 Cliente</div><div class="ii-val">'+esc(s.cliente)+'</div></div>':'')+
@@ -3009,7 +3009,7 @@ function gerarPDFOC(id){
     // Documento completo — para uso interno (pré-aprovação em diante)
     html=cabecalho
       +'<h2>Dados da Solicitação</h2>'
-      +'<table style="width:calc(100% - 80px)">'+row('Solicitante',esc(s.nome))+row('Setor',esc(s.setor))+row('Empresa',esc(s.empresa))+(s.cliente?row('Cliente',esc(s.cliente)):'')+row('Categoria',esc(s.categoria))+row('Prioridade',esc(s.prioridade))+row('Prazo Solicitado',fmtD(s.prazo))+(s.aprovador?row('Aprovador',esc(s.aprovador)):'')+(s.responsavel_nome?row('Responsável Compras',esc(s.responsavel_nome)):'')+'</table>'
+      +'<table style="width:calc(100% - 80px)">'+row('Solicitante',esc(s.nome))+row('Setor',esc(s.setor))+row('Empresa',esc(s.empresa))+(s.cliente?row('Cliente',esc(s.cliente)):'')+row('Categoria',esc(s.categoria))+row('Prioridade',esc(s.prioridade))+row('Prazo Necessário',fmtD(s.prazo))+(s.aprovador?row('Aprovador',esc(s.aprovador)):'')+(s.responsavel_nome?row('Responsável Compras',esc(s.responsavel_nome)):'')+'</table>'
       +'<h2>Cotação Selecionada</h2>'+cotHtml
       +'<h2>Histórico de Aprovações</h2>'+etapasHtml
       +(s.ap_obs?'<div style="margin:10px 40px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px 14px;font-size:12px;color:#374151"><strong>Obs. Aprovação:</strong> '+esc(s.ap_obs)+'</div>':'')
