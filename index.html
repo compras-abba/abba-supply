@@ -2048,9 +2048,11 @@ function buildModal(s,anexos,comentarios){
     var respTag2=s.responsavel_nome?'<div style="margin-top:10px;padding:10px 14px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:13px;color:#1e40af"><strong>🔧 Responsável:</strong> '+esc(s.responsavel_nome)+' (Compras)</div>':'';
     var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+valorCotacao+respTag2+'</div>';
   } else {
-  var cot='<div class="sec'+(canEdit?'':' readonly')+'"><h3>Cotação Externa '+roTag+'</h3>'+
+  var isLockedCot=['ap_aprovado','emissao_oc','entrega','concluido'].indexOf(s.status)>=0;
+  var canEditCot=canEdit&&!isLockedCot;
+  var cot='<div class="sec'+(canEditCot?'':' readonly')+'"><h3>Cotação Externa '+roTag+'</h3>'+
     '<div class="cot-list">'+(cotItems||'<p style="color:var(--gray-400);font-size:13px">Nenhuma cotação adicionada</p>')+'</div>'+
-    (canEdit?'<button class="btn-add-cot" onclick="showCotForm('+s.id+')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Adicionar Cotação</button>'+
+    (canEditCot?'<button class="btn-add-cot" onclick="showCotForm('+s.id+')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Adicionar Cotação</button>'+
     savingField+
     enviarApBtn+
     '<div class="cot-form" id="cf-'+s.id+'">'+(
@@ -2073,6 +2075,14 @@ function buildModal(s,anexos,comentarios){
     '<div style="display:flex;gap:8px;justify-content:flex-end">'+
     '<button class="btn btn-outline btn-sm" onclick="hideCotForm('+s.id+')">Cancelar</button>'+
     '<button class="btn btn-primary btn-sm" onclick="saveCot('+s.id+')">Salvar</button></div></div>':'')+'</div>';
+  // Botão alterar após aprovação (admin)
+  if(isLockedCot&&canEdit){
+    cot+='<div style="margin-top:12px;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px;color:#92400E">'
+      +'<svg width="17" height="17" fill="none" viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V7a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="#D97706"/></svg>'
+      +'<span><strong>Solicitação aprovada.</strong> Cotação bloqueada. Para alterar, clique no botão abaixo — a solicitação voltará para reaprovação da Gerência.</span>'
+      +'<button onclick="confirmarAlteracaoCot('+s.id+')" style="margin-left:auto;background:#F59E0B;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">⚠️ Alterar após aprovação</button>'
+      +'</div>';
+  }
   } // end else (não solicitante)
 
   var ap=s.aprovacao;
@@ -2222,6 +2232,90 @@ function buildModal(s,anexos,comentarios){
     }
   }
   return info+triagem+cot+preApSec+apSec+reprovadoSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
+}
+
+// ALTERAÇÃO PÓS-APROVAÇÃO
+function confirmarAlteracaoCot(id){
+  var overlay=document.createElement('div');
+  overlay.id='reap-overlay-'+id;
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999';
+  overlay.innerHTML='<div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:430px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.2)">'
+    +'<div style="font-size:18px;font-weight:800;color:#111;margin-bottom:10px">⚠️ Alterar solicitação aprovada?</div>'
+    +'<p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:14px">Esta solicitação foi <strong>aprovada pela Diretoria</strong>. Ao salvar qualquer alteração, ela retornará automaticamente para reaprovação da Gerência.</p>'
+    +'<div style="background:#FEF3C7;border-radius:8px;padding:12px 16px;font-size:12px;color:#78350F;margin-bottom:20px;line-height:1.9">'
+    +'<strong>Fluxo após salvar:</strong><br>'
+    +'✏️ Você altera os dados → 📨 Gerência notificada<br>'
+    +'→ 🔄 Status volta para <strong>Pré-Aprovação (Gerência)</strong><br>'
+    +'→ ✅ Gerência e Diretoria reaprovam normalmente</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end">'
+    +'<button onclick="document.getElementById(\'reap-overlay-'+id+'\').remove()" style="background:#F3F4F6;color:#374151;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>'
+    +'<button onclick="abrirEdicaoReap('+id+')" style="background:#F59E0B;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Sim, quero alterar</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+}
+function abrirEdicaoReap(id){
+  var overlay=document.getElementById('reap-overlay-'+id);
+  if(overlay)overlay.remove();
+  // Abre modal de edição de cotação via overlay dedicado
+  var s=sols.find(function(x){return x.id===id;});
+  if(!s)return;
+  var cot=(s.cotacoes||[]).find(function(c){return c.escolhida;})||s.cotacoes&&s.cotacoes[0]||null;
+  var isCom=s.setor==='Comercial'&&s.categoria==='Cotação';
+  var camposHtml=isCom?
+    '<div class="form-2" style="margin-bottom:10px">'
+    +'<div class="fg"><label>Fornecedor</label><input id="reap-forn-'+id+'" value="'+esc(cot?cot.forn:'')+'"></div>'
+    +'<div class="fg"><label>Valor (R$/kg)</label><input type="number" id="reap-val-'+id+'" value="'+(cot?cot.val:'')+'" step="0.001"></div>'
+    +'</div>'
+    +'<div class="form-2" style="margin-bottom:12px">'
+    +'<div class="fg"><label>ICMS</label><input id="reap-cond-'+id+'" value="'+esc(cot?cot.cond:'')+'"></div>'
+    +'<div class="fg"><label>Prazo Entrega</label><input id="reap-prazo-'+id+'" value="'+esc(cot?cot.prazo:'')+'"></div>'
+    +'</div>'
+    :
+    '<div class="form-2" style="margin-bottom:10px">'
+    +'<div class="fg"><label>Fornecedor</label><input id="reap-forn-'+id+'" value="'+esc(cot?cot.forn:'')+'"></div>'
+    +'<div class="fg"><label>Valor (R$)</label><input type="number" id="reap-val-'+id+'" value="'+(cot?cot.val:'')+'" step="0.01"></div>'
+    +'</div>'
+    +'<div class="form-2" style="margin-bottom:12px">'
+    +'<div class="fg"><label>Prazo Entrega</label><input id="reap-prazo-'+id+'" value="'+esc(cot?cot.prazo:'')+'"></div>'
+    +'<div class="fg"><label>Condição Pgto. / ICMS</label><input id="reap-cond-'+id+'" value="'+esc(cot?cot.cond:'')+'"></div>'
+    +'</div>';
+  var ed=document.createElement('div');
+  ed.id='reap-edit-'+id;
+  ed.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999';
+  ed.innerHTML='<div style="background:#fff;border-radius:14px;padding:26px 28px;max-width:500px;width:94%;box-shadow:0 8px 40px rgba(0,0,0,.2)">'
+    +'<div style="font-size:15px;font-weight:800;color:#111;margin-bottom:6px">✏️ Alterar Cotação</div>'
+    +'<div style="background:#FEF3C7;border-radius:8px;padding:9px 14px;font-size:12px;color:#92400E;margin-bottom:16px">Ao salvar, a solicitação volta para <strong>reaprovação da Gerência</strong>.</div>'
+    +'<div style="display:grid;gap:0">'+camposHtml+'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">'
+    +'<button onclick="document.getElementById(\'reap-edit-'+id+'\').remove()" style="background:#F3F4F6;color:#374151;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>'
+    +'<button onclick="salvarReaprovacao('+id+(cot?','+cot.id:',-1')+')" style="background:#15803d;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">💾 Salvar e Reenviar para Gerência</button>'
+    +'</div></div>';
+  document.body.appendChild(ed);
+}
+async function salvarReaprovacao(solId,cotId){
+  var forn=document.getElementById('reap-forn-'+solId);
+  var val=document.getElementById('reap-val-'+solId);
+  var prazo=document.getElementById('reap-prazo-'+solId);
+  var cond=document.getElementById('reap-cond-'+solId);
+  if(!forn||!val)return;
+  var upd={forn:forn.value,val:parseFloat(val.value)||0,prazo:prazo?prazo.value:'',cond:cond?cond.value:''};
+  if(cotId>0){
+    var rc=await sb.from('cotacoes').update(upd).eq('id',cotId);
+    if(rc.error){toast('❌ Erro ao atualizar cotação: '+rc.error.message);return;}
+  }
+  var rs=await sb.from('solicitacoes').update({status:'pre_aprovacao',ap_status:'aguardando'}).eq('id',solId);
+  if(rs.error){toast('❌ Erro ao atualizar status: '+rs.error.message);return;}
+  await registrarHistorico(solId,'pre_aprovacao');
+  document.getElementById('reap-edit-'+solId).remove();
+  // Notificar gerentes
+  var sObj=sols.find(function(x){return x.id===solId;});
+  var titulo=sObj?sObj.titulo:'Solicitação #'+solId;
+  var corps='<p>O comprador <strong>'+esc(CU.nome)+'</strong> alterou a cotação da solicitação <strong>'+esc(titulo)+'</strong> após a aprovação.</p>'
+    +'<p style="margin-top:8px">Esta solicitação <strong>retornou para reaprovação da Gerência</strong>.</p>'
+    +'<p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:12px">Ver no ABBA Supply</a></p>';
+  await sendEmail(GERENTE_EMAIL,'🔄 Cotação alterada — reaprovação necessária: '+titulo,emailTpl('Reaprovação Necessária',corps));
+  toast('✅ Cotação atualizada! Solicitação retornou para reaprovação da Gerência.');
+  sols=[];await openModal(solId);
 }
 
 // MUTAÇÕES
