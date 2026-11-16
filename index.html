@@ -2992,6 +2992,10 @@ function gerarPDFOC(id){
   var isOC=['emissao_oc','entrega','concluido'].indexOf(s.status)>=0;
   var docTipo=isOC?'ORDEM DE COMPRA':'SOLICITAÇÃO DE COMPRA';
   var acor=isOC?'#1f4781':isSimples?'#f59e0b':'#1f4781';
+  // Empresa com CNPJ
+  var empMap={'ABBA Química':['Abba Industria e Comercio de Produtos Químicos Ltda','08.648.106/0001-08'],'ABBA Especialidades':['Abba Especialidades Químicas Ltda','11.247.117/0001-90']};
+  var empInfo=empMap[s.empresa]||[esc(s.empresa)||'',null];
+  var empHtml=empInfo[0]+(empInfo[1]?'<br>CNPJ: '+empInfo[1]:'');
   var cabecalho='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
     +'<title>'+docTipo+' — '+esc(s.titulo)+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;color:#111;padding:0;max-width:800px;margin:0 auto}'
@@ -3000,8 +3004,9 @@ function gerarPDFOC(id){
     +'@media print{button{display:none!important}}</style></head><body>'
     +'<div style="background:'+acor+';color:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between">'
     +'<div><div style="font-size:10px;font-weight:700;letter-spacing:.14em;opacity:.85;margin-bottom:3px">ABBA SUPPLY — '+docTipo+'</div>'
-    +'<div style="font-size:20px;font-weight:700">'+esc(s.titulo)+'</div></div>'
-    +'<div style="text-align:right;font-size:11px;opacity:.85"><div>Prazo: <strong>'+fmtD(s.prazo)+'</strong></div><div style="margin-top:3px">Gerado em '+now+'</div></div>'
+    +'<div style="font-size:20px;font-weight:700">'+esc(s.titulo)+'</div>'
+    +'<div style="font-size:11px;opacity:.8;margin-top:4px">'+esc(s.nome)+' — '+esc(s.setor)+'</div></div>'
+    +'<div style="text-align:right;font-size:11px;opacity:.85;line-height:1.7">'+empHtml+'<div style="margin-top:4px">Gerado em '+now+'</div></div>'
     +'</div>'
     +(s.justificativa?'<div style="margin:20px 40px 0;padding:12px 16px;background:#f8fafc;border-left:4px solid '+acor+';font-size:13px;color:#374151;line-height:1.6"><strong>Observação:</strong> '+esc(s.justificativa)+'</div>':'')
     +'<h2>Itens Solicitados</h2>'
@@ -3019,6 +3024,64 @@ function gerarPDFOC(id){
   if(isSimples){
     // Documento simplificado — só cabeçalho + itens (para fornecedor)
     html=cabecalho+rodape;
+  } else if(isOC){
+    // Documento OC formal — para envio ao fornecedor / uso quando ERP não gera OC
+    var fornCard=cot
+      ?'<div style="margin:0 40px 24px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:12px 24px">'
+        +'<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Razão Social / Nome</div>'
+        +'<div style="font-size:17px;font-weight:700;color:#1f4781">'+esc(cot.forn)+'</div></div>'
+        +'<div><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Valor Total</div>'
+        +'<div style="font-size:18px;font-weight:800;color:#15803d">R$ '+(s.setor==='Comercial'||s.categoria==='Cotação'?fmt(cot.val)+'/kg':fmt(cot.val))+'</div></div>'
+        +'<div><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Prazo de Entrega</div>'
+        +'<div style="font-size:14px;font-weight:700;color:#1f4781">'+esc(cot.prazo)+'</div></div>'
+        +'<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Condições de Pagamento / ICMS</div>'
+        +'<div style="font-size:14px;font-weight:600;color:#374151">'+esc(cot.cond)+'</div></div>'
+        +'</div>'
+      :'<div style="margin:0 40px 20px;padding:14px 18px;background:#FEF9C3;border:1px solid #FDE047;border-radius:8px;font-size:13px;color:#92400E">⚠️ Nenhuma cotação selecionada para esta solicitação.</div>';
+    var dadosOC='<div style="margin:0 40px 24px;display:grid;grid-template-columns:1fr 1fr;gap:8px 20px">'
+      +'<div style="font-size:12px"><span style="color:#9CA3AF;font-weight:600">Solicitante: </span><span style="color:#374151;font-weight:500">'+esc(s.nome)+'</span></div>'
+      +'<div style="font-size:12px"><span style="color:#9CA3AF;font-weight:600">Setor: </span><span style="color:#374151;font-weight:500">'+esc(s.setor)+'</span></div>'
+      +'<div style="font-size:12px"><span style="color:#9CA3AF;font-weight:600">Categoria: </span><span style="color:#374151;font-weight:500">'+esc(s.categoria)+'</span></div>'
+      +'<div style="font-size:12px"><span style="color:#9CA3AF;font-weight:600">Prazo Necessário: </span><span style="color:#374151;font-weight:500">'+fmtD(s.prazo)+'</span></div>'
+      +(s.responsavel_nome?'<div style="font-size:12px"><span style="color:#9CA3AF;font-weight:600">Responsável Compras: </span><span style="color:#374151;font-weight:500">'+esc(s.responsavel_nome)+'</span></div>':'')
+      +(hist.ap_aprovado?'<div style="font-size:12px"><span style="color:#9CA3AF;font-weight:600">Aprovado pela Diretoria: </span><span style="color:#374151;font-weight:500">'+fmtDT(hist.ap_aprovado)+'</span></div>':'')
+      +'</div>';
+    html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
+      +'<title>ORDEM DE COMPRA — '+esc(s.titulo)+'</title>'
+      +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;color:#111;padding:0;max-width:800px;margin:0 auto}'
+      +'h2{font-size:11px;font-weight:800;color:#1f4781;text-transform:uppercase;letter-spacing:.1em;margin:0 40px 10px;padding-bottom:6px;border-bottom:2px solid #1f4781}'
+      +'@media print{button{display:none!important}}</style></head><body>'
+      // Cabeçalho azul
+      +'<div style="background:#1f4781;color:#fff">'
+      +'<div style="padding:18px 32px;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><div style="font-size:10px;font-weight:700;letter-spacing:.14em;opacity:.8;margin-bottom:4px">ABBA SUPPLY — GESTÃO DE COMPRAS</div>'
+      +'<div style="font-size:22px;font-weight:800;letter-spacing:.02em">ORDEM DE COMPRA</div></div>'
+      +'<div style="text-align:right;font-size:11px;opacity:.85;line-height:1.7"><strong style="font-size:13px;display:block;opacity:1">OC #'+s.id+'</strong>'+empHtml+'<div style="margin-top:3px">Emitido em '+now+'</div></div>'
+      +'</div>'
+      +'<div style="background:#1a3a6e;padding:12px 32px;border-top:1px solid rgba(255,255,255,.1)">'
+      +'<div style="font-size:15px;font-weight:700;color:#fff">'+esc(s.titulo)+'</div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:2px">Solicitante: '+esc(s.nome)+' — '+esc(s.setor)+'</div>'
+      +'</div></div>'
+      // Fornecedor
+      +'<div style="padding:28px 0 0"><h2>Fornecedor Selecionado</h2>'
+      +fornCard
+      // Itens
+      +'<h2>Itens da Ordem de Compra</h2>'
+      +'<table style="border-collapse:collapse;width:calc(100% - 80px);margin:0 40px 24px;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">'
+      +'<tr style="background:#F8FAFC"><th style="font-size:11px;color:#6B7280;font-weight:700;text-align:left;padding:9px 12px;width:36px">#</th>'
+      +'<th style="font-size:11px;color:#6B7280;font-weight:700;text-align:left;padding:9px 12px">Descrição</th>'
+      +'<th style="font-size:11px;color:#6B7280;font-weight:700;text-align:left;padding:9px 12px;width:130px">Quantidade</th>'
+      +'<th style="font-size:11px;color:#6B7280;font-weight:700;text-align:left;padding:9px 12px">Observação</th></tr>'
+      +itensHtml+'</table>'
+      // Dados internos
+      +'<h2>Dados da Solicitação</h2>'
+      +dadosOC
+      +'</div>'
+      // Rodapé
+      +'<div style="margin:0 40px;padding-top:16px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF">'
+      +'<span>ABBA Supply — Gestão de Compras</span><span>compras@abbaquimica.com.br</span></div>'
+      +'<div style="margin:20px 40px 40px;text-align:center"><button onclick="window.print()" style="background:#1f4781;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer">🖨️ Imprimir / Salvar PDF</button></div>'
+      +'</body></html>';
   } else {
     // Documento completo — para uso interno (pré-aprovação em diante)
     html=cabecalho
