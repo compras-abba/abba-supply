@@ -1850,10 +1850,20 @@ async function deleteSol(id){
     var motivo=sel==='Outro'?(outro||'Outro'):sel;
     if(!motivo){toast('⚠️ Selecione o motivo da exclusão');return;}
     document.body.removeChild(overlay);
+    // Busca dados antes de excluir para notificar solicitante
+    var solDel=sols.find(function(x){return x.id===id;});
     await sb.from('cotacoes').delete().eq('sol_id',id);
     await sb.from('notificacoes').delete().eq('sol_id',id);
     var r=await sb.from('solicitacoes').delete().eq('id',id);
     if(r.error){toast('❌ Erro ao excluir: '+r.error.message);return;}
+    // Email para o solicitante
+    if(solDel&&solDel.email){
+      var tituloDel=solDel.titulo||solDel.descricao||'Solicitação #'+id;
+      var corpDel='<p>Sua solicitação <strong>'+esc(tituloDel)+'</strong> foi <strong style="color:#dc2626">excluída</strong> pelo time de Compras.</p>'
+        +'<p><strong>Motivo:</strong> '+esc(motivo)+'</p>'
+        +'<p style="color:#6B7280;font-size:13px;margin-top:12px">Se tiver dúvidas, entre em contato com o time de Compras.</p>';
+      await sendEmail(solDel.email,'🗑️ Solicitação excluída — '+esc(tituloDel),emailTpl('Solicitação Excluída',corpDel));
+    }
     closeModal();sols=[];render(curPage());toast('🗑️ Excluído: '+motivo);
   };
 }
@@ -2938,6 +2948,13 @@ async function sendChat(solId){
       +'<p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Ver a solicitação</a></p>';
     await notifyUsers(['admin'],tituloMsg2,sender+': '+msg.substring(0,120),'chat',solId);
     await sendEmail(COMPRAS_EMAIL,tituloMsg2,emailTpl(tituloMsg2,corpMsg2));
+    // Notifica também o solicitante quando outro role envia mensagem
+    if(solObj.email&&solObj.email!==CU.email){
+      var corpSol='<p><strong>'+esc(sender)+'</strong> enviou uma mensagem na sua solicitação <strong>'+esc(solTit)+'</strong>:</p>'
+        +'<blockquote style="border-left:4px solid #8B5CF6;padding:8px 14px;margin:12px 0;background:#f5f3ff;border-radius:0 6px 6px 0;font-style:italic;color:#374151">'+esc(msg)+'</blockquote>'
+        +'<p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Ver a solicitação</a></p>';
+      await sendEmail(solObj.email,'💬 Nova mensagem em sua solicitação — '+solTit,emailTpl('Nova mensagem',corpSol));
+    }
   }
   sols=[];await openModal(solId);
   // Scroll chat to bottom
