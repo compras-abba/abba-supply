@@ -1909,6 +1909,7 @@ function canVerValores(s){
 }
 function buildModal(s,anexos,comentarios){
   anexos=anexos||[];comentarios=comentarios||[];
+  var itens=(s.itens_solicitacao||[]);
   var canEdit=CU.role==='admin';
   var canApprove=CU.role==='diretor'||CU.role==='admin';
   var isComercial=s.setor==='Comercial'||s.categoria==='Compra Revenda';
