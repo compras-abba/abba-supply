@@ -2108,6 +2108,7 @@ function buildModal(s,anexos,comentarios){
 
   // Para solicitante sem permissão de ver valores: visão simplificada
   if(isSolicitante&&!verValores){
+    var isComercialSol=s.setor==='Comercial';
     var apStatus=s.ap_status||'aguardando';
     var etapaLabel=s.status==='concluido'?'<div class="ap-done aprovado">✅ Solicitação concluída</div>':
       s.status==='aprovacao'||s.status==='emissao_oc'||s.status==='entrega'?'<div class="ap-done aprovado">✅ Aprovada — em andamento</div>':
@@ -2118,6 +2119,7 @@ function buildModal(s,anexos,comentarios){
     var respTag=s.responsavel_nome?'<div style="margin-top:10px;padding:10px 14px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;font-size:13px;color:#1e40af"><strong>🔧 Responsável:</strong> '+esc(s.responsavel_nome)+' (Compras)</div>':'';
     var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+respTag+'</div>';
   } else if(isSolicitante&&verValores){
+    var isComercialSol=s.setor==='Comercial';
     // Solicitante de categoria com permissão (Cotação, Compra Interna, Revenda, Reposição)
     var apStatus=s.ap_status||'aguardando';
     var etapaLabel=s.status==='concluido'?'<div class="ap-done aprovado">✅ Solicitação concluída</div>':
@@ -2141,7 +2143,7 @@ function buildModal(s,anexos,comentarios){
     // Cotação Vendas concluída — mostra tabela de preços para o Comercial
     var tabelaPrecos='';
     var statusComPrecos=['ap_aprovado','emissao_oc','entrega','concluido'];
-    if(s.subcategoria==='Cotação Vendas'&&statusComPrecos.indexOf(s.status)>=0&&itens.length){
+    if((s.subcategoria==='Cotação Vendas'||s.categoria==='Cotação de Vendas')&&statusComPrecos.indexOf(s.status)>=0&&itens.length){
       var cotVend=(s.cotacoes||[]).find(function(c){return c.escolhida;})||(s.cotacoes||[])[0]||null;
       var freteInfo=itens[0]&&itens[0].frete?'Frete: <strong>'+esc(itens[0].frete)+'</strong>':'';
       var grand=0;
@@ -2180,7 +2182,8 @@ function buildModal(s,anexos,comentarios){
     if((s.subcategoria==='Cotação Vendas'||s.categoria==='Cotação de Vendas')&&s.status==='concluido'){
       convertBtn='<div style="margin-top:12px"><button onclick="converterEmCompra('+s.id+')" style="width:100%;background:#1f4781;color:#fff;border:none;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Abrir solicitação de compra com base nesta cotação</button></div>';
     }
-    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+(s.subcategoria==='Cotação Vendas'?tabelaPrecos:valorCotacao)+respTag2+convertBtn+'</div>';
+    var isCotVendasSol=s.subcategoria==='Cotação Vendas'||s.categoria==='Cotação de Vendas';
+    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+(isCotVendasSol?tabelaPrecos:valorCotacao)+respTag2+convertBtn+'</div>';
   } else {
   var isLockedCot=['ap_aprovado','emissao_oc','entrega','concluido'].indexOf(s.status)>=0;
   var canEditCot=canEdit&&!isLockedCot;
