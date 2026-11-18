@@ -1664,15 +1664,13 @@ async function renderMinhas(){
 
 // CLASSIFICAÇÃO AUTOMÁTICA DE TÍTULO
 var KEYWORDS={
-  'Químicos':['soda','ácido','acido','cloro','sulfato','hidróxido','hidroxido','reagente','resina','solvente','álcool','alcool','acetona','tolueno','hexano','metanol','etanol','glicerina','polímero','polimero','cáustica','caustica','cloridrico','sulfúrico','sulfurico','nítrico','nitrico','fosfórico','fosforico','peroxido','peróxido','hipoclorito','carbonato','bicarbonato','citrato','oxalato','persulfato','amônia','amonia','amônio','amonio','soda liquida','soda cáustica','ácido sulfúrico','ácido clorídrico','produto quimico','produto químico','insumo','matéria prima','materia prima','reagente','solvente','tensoativo','surfactante','emulsificante','dispersante','inibidor','catalisador'],
-  'Peças/Equipamentos':['bomba','motor','rolamento','válvula','valvula','cabeçote','cabecote','filtro','compressor','agitador','misturador','reator','tanque','trocador','centrífuga','centrifuga','ventilador','exaustor','correia','polia','engrenagem','redutor','selo','gaxeta','mancal','eixo','hélice','helice','impelidor','diafragma','pistão','pistao','cilindro','inversor','transformador','contator','sensor','encoder','medidor','manômetro','manometro','termômetro','termometro','rotâmetro','rotametro','fluxômetro','fluxometro','dosadora','bomba dosadora','bomba centrifuga','bomba peristáltica','bomba diafragma','agitador','misturador','reator','vaso pressão','trocador calor','condensador','evaporador','chiller','compressor','exaustor','ventilador','ciclone','filtro manga','filtro prensa','centrífuga','secador','moinho','triturador','prensa','extrusora','painel elétrico','painel eletrico','cLP','clp','inversor','soft-starter','motor elétrico','redutor','variador'],
-  'Manutenção':['parafuso','porca','arruela','pino','chave','graxa','óleo','oleo','lubrificante','abraçadeira','abracadeira','mangueira','conexão','conexao','niple','joelho','flange','junta','vedação','vedacao','silicone','cola','epóxi','epoxi','tinta','primer','tinner','estopa','lixa','disco','broca','eletrodo','arame','solda','reparo','peça de reposição','peca de reposicao','retentores','anel','o-ring','gaxeta','empanque','rolha','bucha','pino','chave allen','chave torx','mola','cinta','strapping','lacre'],
-  'EPI':['luva','capacete','óculos','oculos','bota','protetor','mascara','máscara','respirador','avental','uniforme','colete','cinto','talabarte','perneira','manga','epi','proteção','protecao','segurança','seguranca','tyvek','nitrilica','latex','látex','pvc','creme','protetor solar','protetor auricular','abafador','protetor facial','escudo facial','roupa quimica','roupa química'],
-  'Material de Escritório':['papel','caneta','folha','sulfite','toner','cartucho','cartão','cartao','envelope','pasta','arquivo','grampo','clips','fita','etiqueta','caderno','bloco','agenda','lápis','lapis','borracha','tesoura','régua','regua','calculadora','impressora','post-it','copiadora','resma','a4','a3'],
-  'Material de Limpeza':['detergente','vassoura','pano','desinfetante','sanitária','sanitaria','sabão','sabao','sabonete','esponja','balde','rodo','mop','limpador','multiuso','desentupidor','inseticida','desengordurante','álcool gel','alcool gel','hipoclorito sodio','cloro','água sanitária'],
-  'Alimentos/Consumo':['açúcar','acucar','café','cafe','água','agua','copo','prato','talher','guardanapo','toalha','lenço','lenco','galão','galao','garrafão','garrafao','bolacha','biscoito','leite','achocolatado','suco','chá','cha','filtro cafe','filtro café','snack','lanche'],
-  'Informática':['computador','notebook','mouse','teclado','monitor','hdmi','usb','cabo','nobreak','switch','roteador','memoria','hd','ssd','pen drive','pendrive','carregador','fonte','impressora','scanner','webcam','headset','fone'],
-  'Serviço':['manutenção preventiva','manutenção corretiva','manutencao','instalação','instalacao','calibração','calibracao','inspeção','inspecao','análise','analise','laudo','certificação','certificacao','treinamento','curso','consultoria','reparo','reforma','pintura','limpeza industrial','dedetização','dedetizacao','manutenção predial','aluguel','locação','locacao']
+  'Químicos':['soda','ácido','acido','cloro','sulfato','hidróxido','hidroxido','reagente','resina','solvente','álcool alcoolico','alcool alcoolico','acetona','tolueno','hexano','metanol','etanol','glicerina','polímero','polimero','cáustica','caustica','cloridrico','sulfúrico','sulfurico','nítrico','nitrico','fosfórico','fosforico','peroxido','peróxido','hipoclorito','carbonato','bicarbonato','citrato','oxalato','persulfato','amônia','amonia','amônio','amonio','soda caustica','soda líquida','soda liquida','acido sulfurico','acido cloridrico','produto quimico','produto químico','matéria prima','materia prima','tensoativo','surfactante','emulsificante','dispersante','inibidor','catalisador','ácido nítrico','ácido fosfórico','ácido oxálico','soda ash','soda barrilha'],
+  'Peças/Equipamentos':['bomba','motor','rolamento','válvula','valvula','cabeçote','cabecote','compressor','agitador','misturador','reator','tanque','trocador','centrífuga','centrifuga','ventilador','exaustor','correia','polia','engrenagem','redutor','gaxeta','mancal','eixo','hélice','helice','impelidor','diafragma','pistão','pistao','cilindro','inversor','transformador','contator','sensor','encoder','medidor','manômetro','manometro','termômetro','termometro','rotâmetro','rotametro','fluxômetro','fluxometro','dosadora','condensador','evaporador','chiller','ciclone','filtro manga','filtro prensa','secador','moinho','triturador','prensa','extrusora','painel elétrico','painel eletrico','clp','soft-starter','variador','bomba centrifuga','bomba peristaltica','bomba diafragma','vaso pressao'],
+  'Manutenção':['parafuso','porca','arruela','graxa','óleo lubrif','oleo lubrif','lubrificante','abraçadeira','abracadeira','mangueira','niple','joelho','flange','junta','vedação','vedacao','silicone','epóxi','epoxi','tinta','primer','tinner','estopa','lixa','disco abrasivo','broca','eletrodo','solda','retentor','o-ring','empanque','bucha','chave allen','strapping','lacre','pino','mola','conexão hidráulica','conexao hidraulica','niple','registro'],
+  'EPI':['luva','capacete','óculos','oculos','bota','protetor auricular','mascara','máscara','respirador','avental','colete','cinto segurança','talabarte','perneira','tyvek','latex','látex','protetor solar','abafador','protetor facial','escudo facial','roupa quimica','roupa química','epi','creme protetor'],
+  'Material de Escritório':['papel sulfit','folha sulfit','toner','cartucho','envelope','grampo','clips','etiqueta','caderno','bloco','agenda','lápis','lapis','borracha','régua','regua','calculadora','post-it','resma','a4','a3','caneta','pasta arquivo','organizador'],
+  'Copa, Cozinha e Limpeza':['açúcar','acucar','café','cafe','água mineral','agua mineral','copo descartável','copo descartavel','prato','talher','guardanapo','galão agua','galao agua','garrafão','garrafao','bolacha','biscoito','leite','achocolatado','suco','chá','cha','filtro cafe','filtro café','detergente','vassoura','pano','desinfetante','água sanitária','agua sanitaria','sabão','sabao','sabonete','esponja','balde','rodo','mop','limpador','multiuso','desentupidor','inseticida','desengordurante','álcool gel','alcool gel','cloro limpeza','sanitizante'],
+  'Informática':['computador','notebook','mouse','teclado','monitor','cabo hdmi','cabo usb','nobreak','switch rede','roteador','memoria ram','ssd','pen drive','pendrive','webcam','headset','impressora']
 };
 function classificarItem(txt){
   if(!txt||txt.length<3)return null;
@@ -1696,7 +1694,18 @@ function autoTitulo(val){
     if(display)display.innerHTML='<span style="color:var(--gray-400);font-style:italic">Gerado automaticamente ao descrever o 1º item...</span>';
     if(inp)inp.value='';return;
   }
-  var titulo=txt+(cat?' ('+cat+')':'');
+  if(!cat){
+    // Não identificado — abre edição manual para o usuário completar
+    var disp2=document.getElementById('f-titulo-display');
+    var btn2=document.getElementById('f-titulo-edit-btn');
+    if(inp)inp.style.display='';
+    if(disp2)disp2.style.display='none';
+    if(btn2)btn2.textContent='✅ Usar gerado';
+    _tituloManual=true;
+    if(inp){inp.value=txt+' (Outros)';inp.select();}
+    return;
+  }
+  var titulo=txt+' ('+cat+')';
   if(display)display.textContent=titulo;
   if(inp)inp.value=titulo;
 }
