@@ -1684,8 +1684,19 @@ function classificarItem(txt){
   return bestScore>0?best:null;
 }
 var _tituloManual=false;
+var _tituloTimer=null;
 function autoTitulo(val){
   if(_tituloManual)return;
+  clearTimeout(_tituloTimer);
+  // Aguarda o usuário parar de digitar e ter pelo menos 5 caracteres
+  if(val.trim().length<5){
+    var display0=document.getElementById('f-titulo-txt');
+    var inp0=document.getElementById('f-titulo');
+    if(display0)display0.innerHTML='<span style="color:var(--gray-400);font-style:italic">Gerado automaticamente ao descrever o 1º item...</span>';
+    if(inp0)inp0.value='';
+    return;
+  }
+  _tituloTimer=setTimeout(function(){
   var txt=val.trim().toUpperCase();
   var cat=classificarItem(val);
   var display=document.getElementById('f-titulo-txt');
@@ -1695,19 +1706,15 @@ function autoTitulo(val){
     if(inp)inp.value='';return;
   }
   if(!cat){
-    // Não identificado — abre edição manual para o usuário completar
-    var disp2=document.getElementById('f-titulo-display');
-    var btn2=document.getElementById('f-titulo-edit-btn');
-    if(inp)inp.style.display='';
-    if(disp2)disp2.style.display='none';
-    if(btn2)btn2.textContent='✅ Usar gerado';
-    _tituloManual=true;
-    if(inp){inp.value=txt+' (Outros)';inp.select();}
+    // Não identificado — só preenche, não abre manual automaticamente
+    if(display)display.textContent=txt+' (Outros)';
+    if(inp)inp.value=txt+' (Outros)';
     return;
   }
   var titulo=txt+' ('+cat+')';
   if(display)display.textContent=titulo;
   if(inp)inp.value=titulo;
+  },600);
 }
 function toggleTituloEdit(){
   var inp=document.getElementById('f-titulo');
