@@ -2486,7 +2486,7 @@ async function saveVendas(solId,enviar){
 async function converterEmCompra(solId){
   var s=sols.find(function(x){return x.id===solId;});if(!s)return;
   var itens=s.itens_solicitacao||[];
-  var novoTitulo='Compra — '+s.titulo;
+  var novoTitulo='COMPRA - REVENDA';
   var r=await sb.from('solicitacoes').insert({
     user_id:CU.id,titulo:novoTitulo,nome:s.nome,email:s.email,setor:s.setor,
     descricao:'Originada da cotação de vendas #'+solId+'. '+esc(s.descricao||''),
