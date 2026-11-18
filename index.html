@@ -623,7 +623,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
               <select id="f-empresa"><option value="ABBA Química">ABBA Química</option><option value="ABBA Especialidades">ABBA Especialidades</option></select>
             </div>
             <div class="ff"><label>Categoria <span class="req-mark">*</span></label>
-              <select id="f-cat" onchange="toggleServico()"><option value="">Selecione o tipo</option><option>Cotação</option><option>Uso e Consumo</option><option>Revenda / Serviço</option><option>Reposição de Estoque</option></select>
+              <select id="f-cat" onchange="toggleServico()"><option value="">Selecione o tipo</option><option>Cotação de Vendas</option><option>Uso e Consumo</option><option>Revenda / Serviço / Equipamentos</option><option>Reposição de Estoque (Almoxarifado)</option></select>
             </div>
           </div>
           <div class="ff" id="f-subcat-row" style="display:none">
@@ -770,7 +770,7 @@ var CU=null,sols=[],notifs=[],chipFilter='andamento',selId=null,forns=[],editFor
 var SL={triagem:'Triagem e Priorização',cotacao:'Cotação Externa',pre_aprovacao:'Pré-Aprovação Gerente',aprovacao:'Aprovação da Diretoria',emissao_oc:'Emissão da OC',entrega:'Entrega e Encerramento',concluido:'Concluído',pausado:'Pausado / Stand By',reprovado:'Reprovado'};
 var SL_PTBR={triagem:'na Triagem',cotacao:'em Cotação',pre_aprovacao:'em Pré-Aprovação',aprovacao:'aguardando Aprovação',emissao_oc:'em Emissão de OC',entrega:'em Entrega',concluido:'Concluído',reprovado:'Reprovado'};
 var SC={triagem:'#3B82F6',cotacao:'#8B5CF6',pre_aprovacao:'#06B6D4',aprovacao:'#F59E0B',emissao_oc:'#EC4899',entrega:'#F97316',concluido:'#10B981',pausado:'#6B7280',reprovado:'#DC2626'};
-var CATS=['Cotação','Uso e Consumo','Revenda / Serviço','Reposição de Estoque','Outros'];
+var CATS=['Cotação de Vendas','Uso e Consumo','Revenda / Serviço / Equipamentos','Reposição de Estoque (Almoxarifado)','Outros'];
 var PRIOS=['baixa','media','alta','urgente'];
 var PA={alta:'↑',urgente:'↑↑',media:'→',baixa:'↓'};
 var COLS=[{id:'triagem',l:'Triagem e Priorização'},{id:'cotacao',l:'Cotação Externa'},{id:'pre_aprovacao',l:'Pré-Aprovação Gerente'},{id:'aprovacao',l:'Aprovação da Diretoria'},{id:'emissao_oc',l:'Emissão da OC'},{id:'entrega',l:'Entrega e Encerramento'},{id:'concluido',l:'Concluído'},{id:'pausado',l:'Pausado / Stand By'},{id:'reprovado',l:'Reprovado'}];
@@ -1675,10 +1675,10 @@ async function renderMinhas(){
 function toggleServico(){
   var cat=document.getElementById('f-cat').value;
   var sd=document.getElementById('servico-datas');
-  if(sd)sd.style.display=(cat==='Revenda / Serviço')?'flex':'none';
+  if(sd)sd.style.display=(cat==='Revenda / Serviço / Equipamentos')?'flex':'none';
   var sr=document.getElementById('f-subcat-row');
-  if(sr)sr.style.display=(cat==='Cotação')?'block':'none';
-  if(cat!=='Cotação'){var r=document.querySelectorAll('input[name="f-subcat"]');r.forEach(function(x){x.checked=false;});subcatChange();}
+  if(sr)sr.style.display=(cat==='Cotação de Vendas')?'block':'none';
+  if(cat!=='Cotação de Vendas'){var r=document.querySelectorAll('input[name="f-subcat"]');r.forEach(function(x){x.checked=false;});subcatChange();}
 }
 function subcatChange(){
   var v=document.querySelector('input[name="f-subcat"]:checked');
@@ -1717,7 +1717,7 @@ async function criarSolicitacao(){
   var just=(document.getElementById('f-just').value||'').trim();
   var cliente=(document.getElementById('f-cliente')&&setor==='Comercial')?(document.getElementById('f-cliente').value||'').trim():'';
   if(!nome||!setor||!cat||!prazo||!just||!titulo){toast('⚠️ Preencha todos os campos obrigatórios');return;}
-  if(cat==='Cotação'&&!subcat){toast('⚠️ Selecione o tipo de cotação: Interna ou Vendas');return;}
+  if(cat==='Cotação de Vendas'&&!subcat){toast('⚠️ Selecione o tipo de cotação: Interna ou Vendas');return;}
   if(setor==='Comercial'&&!cliente){toast('⚠️ Informe o nome do cliente');return;}
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
   if(btn){btn.disabled=true;btn.innerHTML='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Enviando...';}
@@ -1794,7 +1794,7 @@ function openEditSol(id){
     '<div class="fg" style="margin-bottom:12px"><label>Setor</label><select id="es-setor">'+setorOpts.map(function(o){return'<option'+(s.setor===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div>'+
     '<div class="form-2" style="margin-bottom:12px">'+
     '<div class="fg"><label>Empresa</label><select id="es-empresa"><option value="ABBA Química"'+((!s.empresa||s.empresa==="ABBA Química")?' selected':'')+'>ABBA Química</option><option value="ABBA Especialidades"'+(s.empresa==="ABBA Especialidades"?' selected':'')+'>ABBA Especialidades</option></select></div>'+
-    '<div class="fg"><label>Categoria</label><select id="es-cat"><option>Cotação</option><option>Compra Interna</option><option>Compra Revenda</option><option>Reposição de Estoque</option></select></div>'+
+    '<div class="fg"><label>Categoria</label><select id="es-cat"><option>Cotação de Vendas</option><option>Uso e Consumo</option><option>Revenda / Serviço / Equipamentos</option><option>Reposição de Estoque (Almoxarifado)</option></select></div>'+
     '</div>'+
     '<div class="form-2" style="margin-bottom:12px">'+
     '<div class="fg"><label>Prioridade</label><select id="es-prio"><option value="baixa"'+(s.prioridade==='baixa'?' selected':'')+'>↓ Baixa</option><option value="media"'+(s.prioridade==='media'?' selected':'')+'>→ Média</option><option value="alta"'+(s.prioridade==='alta'?' selected':'')+'>↑ Alta</option><option value="urgente"'+(s.prioridade==='urgente'?' selected':'')+'>↑↑ Urgente</option></select></div>'+
@@ -1905,7 +1905,7 @@ function canVerValores(s){
   if(CU.role==='admin'||CU.role==='diretor'||CU.role==='gerente'||CU.role==='financeiro')return true;
   // Solicitante/Comercial só vê valores se a categoria for exatamente "Cotação"
   var cat=(s.categoria||'').trim();
-  return cat==='Cotação';
+  return cat==='Cotação de Vendas'||cat==='Cotação';
 }
 function buildModal(s,anexos,comentarios){
   anexos=anexos||[];comentarios=comentarios||[];
@@ -2070,7 +2070,7 @@ function buildModal(s,anexos,comentarios){
     if(cotEsc&&cotEsc.val){
       valorCotacao='<div style="margin-top:14px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:14px 16px">'
         +'<div style="font-size:11px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">💰 Valor</div>'
-        +'<div style="font-size:22px;font-weight:800;color:#0C4A6E">R$ '+fmt(cotEsc.val)+(s.setor==='Comercial'||s.categoria==='Cotação'?'/kg':'')+'</div>'
+        +'<div style="font-size:22px;font-weight:800;color:#0C4A6E">R$ '+fmt(cotEsc.val)+(s.setor==='Comercial'||s.categoria==='Cotação de Vendas'||s.categoria==='Cotação'?'/kg':'')+'</div>'
         +(cotEsc.forn?'<div style="font-size:12px;color:#0369A1;margin-top:4px">Fornecedor: '+esc(cotEsc.forn)+'</div>':'')
         +(cotEsc.cond?'<div style="font-size:12px;color:#0369A1;margin-top:2px">Condição: '+esc(cotEsc.cond)+'</div>':'')
         +(cotEsc.prazo?'<div style="font-size:12px;color:#0369A1;margin-top:2px">Entrega: '+esc(cotEsc.prazo)+'</div>':'')
@@ -2429,7 +2429,7 @@ async function converterEmCompra(solId){
     user_id:CU.id,titulo:novoTitulo,nome:s.nome,email:s.email,setor:s.setor,
     descricao:'Originada da cotação de vendas #'+solId+'. '+esc(s.descricao||''),
     quantidade:s.quantidade,prazo:s.prazo,justificativa:s.justificativa||null,
-    prioridade:s.prioridade||'media',categoria:'Cotação',subcategoria:'Cotação Interna',
+    prioridade:s.prioridade||'media',categoria:'Revenda / Serviço / Equipamentos',subcategoria:null,
     empresa:s.empresa||'ABBA Química',aprovador:s.aprovador||null,
     status:'triagem',ap_status:'aguardando',ap_obs:''
   }).select().single();
@@ -2472,7 +2472,7 @@ function abrirEdicaoReap(id){
   var s=sols.find(function(x){return x.id===id;});
   if(!s)return;
   var cot=(s.cotacoes||[]).find(function(c){return c.escolhida;})||s.cotacoes&&s.cotacoes[0]||null;
-  var isCom=s.setor==='Comercial'&&s.categoria==='Cotação';
+  var isCom=s.setor==='Comercial'&&(s.categoria==='Cotação de Vendas'||s.categoria==='Cotação');
   var camposHtml=isCom?
     '<div class="form-2" style="margin-bottom:10px">'
     +'<div class="fg"><label>Fornecedor</label><input id="reap-forn-'+id+'" value="'+esc(cot?cot.forn:'')+'"></div>'
@@ -3286,7 +3286,7 @@ function gerarPDFOC(id){
   }).join(''):'<tr><td colspan="4" style="padding:10px;font-size:12px;color:#9CA3AF">Nenhum item registrado</td></tr>';
   var cotHtml=cot
     ?'<table style="width:100%;border-collapse:collapse;margin-top:4px">'+
-      row('Fornecedor',esc(cot.forn))+row('Valor',cot.val?(s.setor==='Comercial'||s.categoria==='Cotação'?'R$ '+fmt(cot.val)+'/kg':'R$ '+fmt(cot.val)):null)+
+      row('Fornecedor',esc(cot.forn))+row('Valor',cot.val?(s.setor==='Comercial'||s.categoria==='Cotação de Vendas'||s.categoria==='Cotação'?'R$ '+fmt(cot.val)+'/kg':'R$ '+fmt(cot.val)):null)+
       row('Prazo Entrega',esc(cot.prazo))+row('Cond. Pagamento / ICMS',esc(cot.cond))+'</table>'
     :'<p style="font-size:12px;color:#9CA3AF;margin:8px 0 0">Nenhuma cotação registrada.</p>';
   var etapasHtml='<table style="width:100%;border-collapse:collapse">'
@@ -3338,7 +3338,7 @@ function gerarPDFOC(id){
         +'<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Razão Social / Nome</div>'
         +'<div style="font-size:17px;font-weight:700;color:#1f4781">'+esc(cot.forn)+'</div></div>'
         +'<div><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Valor Total</div>'
-        +'<div style="font-size:18px;font-weight:800;color:#15803d">R$ '+(s.setor==='Comercial'||s.categoria==='Cotação'?fmt(cot.val)+'/kg':fmt(cot.val))+'</div></div>'
+        +'<div style="font-size:18px;font-weight:800;color:#15803d">R$ '+(s.setor==='Comercial'||s.categoria==='Cotação de Vendas'||s.categoria==='Cotação'?fmt(cot.val)+'/kg':fmt(cot.val))+'</div></div>'
         +'<div><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Prazo de Entrega</div>'
         +'<div style="font-size:14px;font-weight:700;color:#1f4781">'+esc(cot.prazo)+'</div></div>'
         +'<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Condições de Pagamento / ICMS</div>'
