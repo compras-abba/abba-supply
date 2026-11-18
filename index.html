@@ -626,28 +626,13 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
               <select id="f-cat" onchange="toggleServico()"><option value="">Selecione o tipo</option><option>Cotação de Vendas</option><option>Uso e Consumo</option><option>Revenda / Serviço / Equipamentos</option><option>Reposição de Estoque (Almoxarifado)</option></select>
             </div>
           </div>
-          <div class="ff" id="f-subcat-row" style="display:none">
-            <label>Tipo de Cotação <span class="req-mark">*</span></label>
-            <div style="display:flex;gap:8px;margin-top:4px">
-              <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:9px;cursor:pointer;font-size:13px;font-weight:500" id="subcat-interna-lbl">
-                <input type="radio" name="f-subcat" id="f-subcat-interna" value="Cotação Interna" onchange="subcatChange()"> Cotação Interna
-              </label>
-              <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:9px;cursor:pointer;font-size:13px;font-weight:500" id="subcat-vendas-lbl">
-                <input type="radio" name="f-subcat" id="f-subcat-vendas" value="Cotação Vendas" onchange="subcatChange()"> Cotação Vendas
-              </label>
-            </div>
-          </div>
           <div class="ff-row">
             <div class="ff"><label>Prioridade <span class="req-mark">*</span></label>
               <select id="f-prio"><option value="baixa">↓ Baixa</option><option value="media" selected>→ M&eacute;dia</option><option value="alta">↑ Alta</option><option value="urgente">↑↑ Urgente</option></select>
             </div>
           </div>
           <div class="ff">
-            <label>Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo">
-          </div>
-          <div class="ff-row" id="servico-datas" style="display:none">
-            <div class="ff"><label>Previs&atilde;o de In&iacute;cio do Servi&ccedil;o</label><input type="date" id="f-serv-inicio"></div>
-            <div class="ff"><label>Previs&atilde;o de Finaliza&ccedil;&atilde;o do Servi&ccedil;o</label><input type="date" id="f-serv-fim"></div>
+            <label id="f-prazo-label">Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo">
           </div>
           <div class="ff">
             <label>T&iacute;tulo da Compra <span class="req-mark">*</span></label>
@@ -1674,11 +1659,8 @@ async function renderMinhas(){
 // NOVA SOLICITAÇÃO
 function toggleServico(){
   var cat=document.getElementById('f-cat').value;
-  var sd=document.getElementById('servico-datas');
-  if(sd)sd.style.display=(cat==='Revenda / Serviço / Equipamentos')?'flex':'none';
-  var sr=document.getElementById('f-subcat-row');
-  if(sr)sr.style.display=(cat==='Cotação de Vendas')?'block':'none';
-  if(cat!=='Cotação de Vendas'){var r=document.querySelectorAll('input[name="f-subcat"]');r.forEach(function(x){x.checked=false;});subcatChange();}
+  var pl=document.getElementById('f-prazo-label');
+  if(pl)pl.innerHTML=(cat==='Cotação de Vendas'?'Prazo Necessário para Cotação':'Prazo Necessário para Entrega')+' <span class="req-mark">*</span>';
 }
 function subcatChange(){
   var v=document.querySelector('input[name="f-subcat"]:checked');
@@ -1735,12 +1717,9 @@ async function criarSolicitacao(){
     var itemsToSave=itens.map(function(it){return{sol_id:solId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao};});
     if(itemsToSave.length)await sb.from('itens_solicitacao').insert(itemsToSave);
     sols=[];
-    ['f-titulo','f-prazo','f-just','f-cat','f-serv-inicio','f-serv-fim'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-    document.querySelectorAll('input[name="f-subcat"]').forEach(function(x){x.checked=false;});
-    var sr=document.getElementById('f-subcat-row');if(sr)sr.style.display='none';
-    subcatChange();
+    ['f-titulo','f-prazo','f-just','f-cat'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
     var ep=document.getElementById('f-prio');if(ep)ep.value='media';
-    var sd=document.getElementById('servico-datas');if(sd)sd.style.display='none';
+    var pl=document.getElementById('f-prazo-label');if(pl)pl.innerHTML='Prazo Necessário <span class="req-mark">*</span>';
     var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
     renderPendingFiles();
     toast('✅ Solicitação enviada com sucesso!');go('minhas');
