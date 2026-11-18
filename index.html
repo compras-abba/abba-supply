@@ -634,9 +634,15 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
           <div class="ff">
             <label id="f-prazo-label">Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo">
           </div>
-          <div class="ff">
+          <div class="ff" id="f-titulo-row">
             <label>T&iacute;tulo da Compra <span class="req-mark">*</span></label>
-            <input type="text" id="f-titulo" placeholder="Ex: COMPRA MERCADO, REPOSIÇÃO EPI, MANUTENÇÃO BOMBA..." style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div id="f-titulo-display" style="flex:1;padding:10px 14px;background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:9px;font-size:13px;font-weight:600;color:var(--gray-500);min-height:42px;display:flex;align-items:center">
+                <span id="f-titulo-txt" style="color:var(--gray-400);font-style:italic">Gerado automaticamente ao descrever o 1º item...</span>
+              </div>
+              <button type="button" id="f-titulo-edit-btn" onclick="toggleTituloEdit()" title="Editar manualmente" style="flex-shrink:0;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:9px;background:var(--surface);color:var(--gray-500);font-size:12px;cursor:pointer;white-space:nowrap">✏️ Editar</button>
+            </div>
+            <input type="text" id="f-titulo" style="display:none;margin-top:6px;text-transform:uppercase" placeholder="Digite o título manualmente..." oninput="this.value=this.value.toUpperCase()">
           </div>
           <div class="ff">
             <label>Itens da Solicita&ccedil;&atilde;o <span class="req-mark">*</span></label>
@@ -1656,6 +1662,64 @@ async function renderMinhas(){
   }).join('');
 }
 
+// CLASSIFICAÇÃO AUTOMÁTICA DE TÍTULO
+var KEYWORDS={
+  'Químicos':['soda','ácido','acido','cloro','sulfato','hidróxido','hidroxido','reagente','resina','solvente','álcool','alcool','acetona','tolueno','hexano','metanol','etanol','glicerina','polímero','polimero','cáustica','caustica','cloridrico','sulfúrico','sulfurico','nítrico','nitrico','fosfórico','fosforico','peroxido','peróxido','hipoclorito','carbonato','bicarbonato','citrato','oxalato','persulfato','amônia','amonia','amônio','amonio','soda liquida','soda cáustica','ácido sulfúrico','ácido clorídrico','produto quimico','produto químico','insumo','matéria prima','materia prima','reagente','solvente','tensoativo','surfactante','emulsificante','dispersante','inibidor','catalisador'],
+  'Peças/Equipamentos':['bomba','motor','rolamento','válvula','valvula','cabeçote','cabecote','filtro','compressor','agitador','misturador','reator','tanque','trocador','centrífuga','centrifuga','ventilador','exaustor','correia','polia','engrenagem','redutor','selo','gaxeta','mancal','eixo','hélice','helice','impelidor','diafragma','pistão','pistao','cilindro','inversor','transformador','contator','sensor','encoder','medidor','manômetro','manometro','termômetro','termometro','rotâmetro','rotametro','fluxômetro','fluxometro','dosadora','bomba dosadora','bomba centrifuga','bomba peristáltica','bomba diafragma','agitador','misturador','reator','vaso pressão','trocador calor','condensador','evaporador','chiller','compressor','exaustor','ventilador','ciclone','filtro manga','filtro prensa','centrífuga','secador','moinho','triturador','prensa','extrusora','painel elétrico','painel eletrico','cLP','clp','inversor','soft-starter','motor elétrico','redutor','variador'],
+  'Manutenção':['parafuso','porca','arruela','pino','chave','graxa','óleo','oleo','lubrificante','abraçadeira','abracadeira','mangueira','conexão','conexao','niple','joelho','flange','junta','vedação','vedacao','silicone','cola','epóxi','epoxi','tinta','primer','tinner','estopa','lixa','disco','broca','eletrodo','arame','solda','reparo','peça de reposição','peca de reposicao','retentores','anel','o-ring','gaxeta','empanque','rolha','bucha','pino','chave allen','chave torx','mola','cinta','strapping','lacre'],
+  'EPI':['luva','capacete','óculos','oculos','bota','protetor','mascara','máscara','respirador','avental','uniforme','colete','cinto','talabarte','perneira','manga','epi','proteção','protecao','segurança','seguranca','tyvek','nitrilica','latex','látex','pvc','creme','protetor solar','protetor auricular','abafador','protetor facial','escudo facial','roupa quimica','roupa química'],
+  'Material de Escritório':['papel','caneta','folha','sulfite','toner','cartucho','cartão','cartao','envelope','pasta','arquivo','grampo','clips','fita','etiqueta','caderno','bloco','agenda','lápis','lapis','borracha','tesoura','régua','regua','calculadora','impressora','post-it','copiadora','resma','a4','a3'],
+  'Material de Limpeza':['detergente','vassoura','pano','desinfetante','sanitária','sanitaria','sabão','sabao','sabonete','esponja','balde','rodo','mop','limpador','multiuso','desentupidor','inseticida','desengordurante','álcool gel','alcool gel','hipoclorito sodio','cloro','água sanitária'],
+  'Alimentos/Consumo':['açúcar','acucar','café','cafe','água','agua','copo','prato','talher','guardanapo','toalha','lenço','lenco','galão','galao','garrafão','garrafao','bolacha','biscoito','leite','achocolatado','suco','chá','cha','filtro cafe','filtro café','snack','lanche'],
+  'Informática':['computador','notebook','mouse','teclado','monitor','hdmi','usb','cabo','nobreak','switch','roteador','memoria','hd','ssd','pen drive','pendrive','carregador','fonte','impressora','scanner','webcam','headset','fone'],
+  'Serviço':['manutenção preventiva','manutenção corretiva','manutencao','instalação','instalacao','calibração','calibracao','inspeção','inspecao','análise','analise','laudo','certificação','certificacao','treinamento','curso','consultoria','reparo','reforma','pintura','limpeza industrial','dedetização','dedetizacao','manutenção predial','aluguel','locação','locacao']
+};
+function classificarItem(txt){
+  if(!txt||txt.length<3)return null;
+  var t=txt.toLowerCase().trim();
+  var best=null,bestScore=0;
+  Object.keys(KEYWORDS).forEach(function(cat){
+    var score=0;
+    KEYWORDS[cat].forEach(function(kw){if(t.indexOf(kw)>=0)score+=kw.length;});
+    if(score>bestScore){bestScore=score;best=cat;}
+  });
+  return bestScore>0?best:null;
+}
+var _tituloManual=false;
+function autoTitulo(val){
+  if(_tituloManual)return;
+  var txt=val.trim().toUpperCase();
+  var cat=classificarItem(val);
+  var display=document.getElementById('f-titulo-txt');
+  var inp=document.getElementById('f-titulo');
+  if(!txt){
+    if(display)display.innerHTML='<span style="color:var(--gray-400);font-style:italic">Gerado automaticamente ao descrever o 1º item...</span>';
+    if(inp)inp.value='';return;
+  }
+  var titulo=txt+(cat?' ('+cat+')':'');
+  if(display)display.textContent=titulo;
+  if(inp)inp.value=titulo;
+}
+function toggleTituloEdit(){
+  var inp=document.getElementById('f-titulo');
+  var disp=document.getElementById('f-titulo-display');
+  var btn=document.getElementById('f-titulo-edit-btn');
+  if(!inp)return;
+  if(inp.style.display==='none'){
+    inp.style.display='';inp.focus();
+    _tituloManual=true;
+    if(btn)btn.textContent='✅ Usar gerado';
+    if(disp)disp.style.display='none';
+  } else {
+    inp.style.display='none';
+    _tituloManual=false;
+    if(btn)btn.textContent='✏️ Editar';
+    if(disp)disp.style.display='';
+    var item1=document.getElementById('item-desc-1');
+    if(item1&&item1.value)autoTitulo(item1.value);
+  }
+}
+
 // NOVA SOLICITAÇÃO
 function toggleServico(){
   var cat=document.getElementById('f-cat').value;
@@ -1720,6 +1784,11 @@ async function criarSolicitacao(){
     ['f-titulo','f-prazo','f-just','f-cat'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
     var ep=document.getElementById('f-prio');if(ep)ep.value='media';
     var pl=document.getElementById('f-prazo-label');if(pl)pl.innerHTML='Prazo Necessário <span class="req-mark">*</span>';
+    _tituloManual=false;
+    var td=document.getElementById('f-titulo-txt');if(td)td.innerHTML='<span style="color:var(--gray-400);font-style:italic">Gerado automaticamente ao descrever o 1º item...</span>';
+    var tinp=document.getElementById('f-titulo');if(tinp)tinp.style.display='none';
+    var tdisp=document.getElementById('f-titulo-display');if(tdisp)tdisp.style.display='';
+    var tbtn=document.getElementById('f-titulo-edit-btn');if(tbtn)tbtn.textContent='✏️ Editar';
     var tb=document.getElementById('itens-tbody');if(tb)tb.innerHTML='';itemRowCount=0;addItemRow();
     renderPendingFiles();
     toast('✅ Solicitação enviada com sucesso!');go('minhas');
@@ -2820,7 +2889,7 @@ function addItemRow(desc, qtd, obs) {
   tr.id = 'item-row-' + n;
   tr.innerHTML =
     '<td class="td-num">' + document.getElementById('itens-tbody').children.length + 1 + '</td>' +
-    '<td><input type="text" id="item-desc-' + n + '" placeholder="Descreva o item..." value="' + (desc || '') + '"></td>' +
+    '<td><input type="text" id="item-desc-' + n + '" placeholder="Descreva o item..." value="' + (desc || '') + '" oninput="if(this.id===\'item-desc-1\')autoTitulo(this.value)"></td>' +
     '<td><input type="text" id="item-qtd-' + n + '" placeholder="Ex: 10 unid." value="' + (qtd || '') + '"></td>' +
     '<td><input type="text" id="item-obs-' + n + '" placeholder="Opcional" value="' + (obs || '') + '"></td>' +
     '<td class="td-del"><button class="btn-del-item" onclick="removeItemRow(' + n + ')" title="Remover">&times;</button></td>';
