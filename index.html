@@ -640,7 +640,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
               <div id="f-titulo-display" style="flex:1;padding:10px 14px;background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:9px;font-size:13px;font-weight:600;color:var(--gray-500);min-height:42px;display:flex;align-items:center">
                 <span id="f-titulo-txt" style="color:var(--gray-400);font-style:italic">Gerado automaticamente ao descrever o 1º item...</span>
               </div>
-              <button type="button" id="f-titulo-edit-btn" onclick="toggleTituloEdit()" title="Editar manualmente" style="flex-shrink:0;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:9px;background:var(--surface);color:var(--gray-500);font-size:12px;cursor:pointer;white-space:nowrap">✏️ Editar</button>
+              <button type="button" id="f-titulo-edit-btn" onclick="toggleTituloEdit()" title="Editar manualmente" style="display:none;flex-shrink:0;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:9px;background:var(--surface);color:var(--gray-500);font-size:12px;cursor:pointer;white-space:nowrap">✏️ Editar</button>
             </div>
             <input type="text" id="f-titulo" style="display:none;margin-top:6px;text-transform:uppercase" placeholder="Digite o título manualmente..." oninput="this.value=this.value.toUpperCase()">
           </div>
@@ -1703,9 +1703,25 @@ function autoTitulo(val){
   var catItem=classificarItem(val)||'Outros';
   var display=document.getElementById('f-titulo-txt');
   var inp=document.getElementById('f-titulo');
+  var btn=document.getElementById('f-titulo-edit-btn');
   var titulo=(catSol?catSol+' - ':'')+catItem.toUpperCase();
-  if(display)display.textContent=titulo;
-  if(inp)inp.value=titulo;
+  if(catItem==='Outros'){
+    // Outros: mostra botão e abre campo para editar
+    if(btn)btn.style.display='';
+    if(inp){inp.style.display='';inp.value=titulo;inp.focus();inp.select();}
+    var disp=document.getElementById('f-titulo-display');
+    if(disp)disp.style.display='none';
+    if(btn)btn.textContent='✅ Usar gerado';
+    _tituloManual=true;
+  } else {
+    // Classificado: bloqueia edição manual
+    if(btn)btn.style.display='none';
+    if(inp){inp.style.display='none';inp.value=titulo;}
+    var disp=document.getElementById('f-titulo-display');
+    if(disp)disp.style.display='';
+    if(display)display.textContent=titulo;
+    _tituloManual=false;
+  }
   },600);
 }
 function toggleTituloEdit(){
