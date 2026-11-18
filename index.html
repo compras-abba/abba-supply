@@ -2116,7 +2116,11 @@ function buildModal(s,anexos,comentarios){
         +'<span style="font-size:16px;font-weight:800;color:#15803d">R$ '+fmt(grand)+'</span>'
         +'</div></div>';
     }
-    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+(s.subcategoria==='Cotação Vendas'?tabelaPrecos:valorCotacao)+respTag2+'</div>';
+    var convertBtn='';
+    if(s.subcategoria==='Cotação Vendas'&&s.status==='concluido'){
+      convertBtn='<div style="margin-top:12px"><button onclick="converterEmCompra('+s.id+')" style="width:100%;background:#1f4781;color:#fff;border:none;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Abrir solicitação de compra com base nesta cotação</button></div>';
+    }
+    var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+(s.subcategoria==='Cotação Vendas'?tabelaPrecos:valorCotacao)+respTag2+convertBtn+'</div>';
   } else {
   var isLockedCot=['ap_aprovado','emissao_oc','entrega','concluido'].indexOf(s.status)>=0;
   var canEditCot=canEdit&&!isLockedCot;
@@ -2161,7 +2165,7 @@ function buildModal(s,anexos,comentarios){
       '<div style="display:flex;gap:8px;margin-top:14px;align-items:center;justify-content:space-between">'
       +'<div id="vtotal-'+s.id+'" style="font-size:14px;font-weight:700;color:#15803d"></div>'
       +'<div style="display:flex;gap:8px">'
-      +(s.status==='cotacao'?'<button class="btn btn-primary btn-sm" onclick="saveVendas('+s.id+',true)">📨 Salvar e enviar para aprovação</button>':'')
+      +(s.status==='cotacao'?'<button class="btn btn-primary btn-sm" onclick="saveVendas('+s.id+',true)">✅ Concluir cotação</button>':'')
       +'<button class="btn btn-outline btn-sm" onclick="saveVendas('+s.id+',false)">💾 Salvar preços</button>'
       +'</div></div>':'';
     cot='<div class="sec'+(canEditCot?'':' readonly')+'">'
@@ -2407,19 +2411,39 @@ async function saveVendas(solId,enviar){
     } else {
       await sb.from('cotacoes').insert({sol_id:solId,forn:s.empresa,val:totalGrand,prazo:'',cond:frete?'Frete: '+frete:'',escolhida:true});
     }
-    await sb.from('solicitacoes').update({status:'pre_aprovacao',ap_status:'aguardando'}).eq('id',solId);
-    await registrarHistorico(solId,'pre_aprovacao');
-    var titulo=s.titulo||'Solicitação #'+solId;
-    var corp='<p><strong>'+esc(s.nome)+'</strong> enviou a cotação de vendas para aprovação.</p>'
-      +'<p><strong>'+esc(titulo)+'</strong></p>'
-      +'<p>Total: <strong>R$ '+fmt(totalGrand)+'</strong></p>'
-      +'<p><a href="https://compras-abba.github.io/abba-supply/" style="background:#1f4781;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Ver no ABBA Supply</a></p>';
-    await sendEmail(GERENTE_EMAIL,'📋 Cotação de Vendas para aprovação: '+titulo,emailTpl('Cotação Vendas',corp));
-    toast('✅ Preços salvos e enviado para aprovação!');
+    await sb.from('solicitacoes').update({status:'concluido'}).eq('id',solId);
+    await registrarHistorico(solId,'concluido');
+    toast('✅ Cotação concluída! Preços disponíveis para consulta.');
   } else {
     toast('✅ Preços salvos!');
   }
   sols=[];await openModal(solId);
+}
+
+// CONVERTER COTAÇÃO VENDAS EM SOLICITAÇÃO DE COMPRA
+async function converterEmCompra(solId){
+  var s=sols.find(function(x){return x.id===solId;});if(!s)return;
+  var itens=s.itens_solicitacao||[];
+  var novoTitulo='Compra — '+s.titulo;
+  var r=await sb.from('solicitacoes').insert({
+    user_id:CU.id,titulo:novoTitulo,nome:s.nome,email:s.email,setor:s.setor,
+    descricao:'Originada da cotação de vendas #'+solId+'. '+esc(s.descricao||''),
+    quantidade:s.quantidade,prazo:s.prazo,justificativa:s.justificativa||null,
+    prioridade:s.prioridade||'media',categoria:'Cotação',subcategoria:'Cotação Interna',
+    empresa:s.empresa||'ABBA Química',aprovador:s.aprovador||null,
+    status:'triagem',ap_status:'aguardando',ap_obs:''
+  }).select().single();
+  if(r.error){toast('❌ Erro ao criar solicitação: '+r.error.message);return;}
+  var novaSolId=r.data.id;
+  if(itens.length){
+    var iRows=itens.map(function(it){return{sol_id:novaSolId,descricao:it.descricao,quantidade:it.quantidade,observacao:it.observacao||null};});
+    await sb.from('itens_solicitacao').insert(iRows);
+  }
+  toast('✅ Solicitação de compra criada! (#'+novaSolId+')');
+  sols=[];
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow='';
+  await loadSols();render(curPage());
 }
 
 // ALTERAÇÃO PÓS-APROVAÇÃO
@@ -3270,8 +3294,9 @@ function gerarPDFOC(id){
     +etapa('pre_ap_aprovado','Gerência Aprovou')+etapa('ap_aprovado','Diretoria Aprovou')
     +etapa('emissao_oc','Emissão da OC')+etapa('entrega','Entrega')+etapa('concluido','Concluído')
     +'</table>';
-  var isSimples=['triagem','cotacao'].indexOf(s.status)>=0;
-  var isOC=['emissao_oc','entrega','concluido'].indexOf(s.status)>=0;
+  var isCotVendas=s.subcategoria==='Cotação Vendas';
+  var isSimples=['triagem','cotacao'].indexOf(s.status)>=0&&!isCotVendas;
+  var isOC=['emissao_oc','entrega','concluido'].indexOf(s.status)>=0&&!isCotVendas;
   var docTipo=isOC?'ORDEM DE COMPRA':'SOLICITAÇÃO DE COMPRA';
   var acor=isOC?'#1f4781':isSimples?'#f59e0b':'#1f4781';
   // Empresa com CNPJ
@@ -3373,6 +3398,51 @@ function gerarPDFOC(id){
       +'<h2>Histórico de Aprovações</h2>'+etapasHtml
       +(s.ap_obs?'<div style="margin:10px 40px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px 14px;font-size:12px;color:#374151"><strong>Obs. Aprovação:</strong> '+esc(s.ap_obs)+'</div>':'')
       +rodape;
+  }
+  if(isCotVendas){
+    var grand2=0;
+    var linhasCotV=itens.map(function(it,i){
+      var qtdNum=parseFloat((it.quantidade||'').replace(/[^\d.,]/g,'').replace(',','.'))||0;
+      var sub=it.preco_unit&&qtdNum?it.preco_unit*qtdNum:0;
+      grand2+=sub;
+      return'<tr style="border-bottom:1px solid #F3F4F6">'
+        +'<td style="padding:8px 10px;font-size:12px;color:#9CA3AF;width:30px">'+(i+1)+'</td>'
+        +'<td style="padding:8px 10px;font-size:13px;color:#111;font-weight:500">'+esc(it.descricao||'')+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+esc(it.quantidade||'')+'</td>'
+        +'<td style="padding:8px 10px;font-size:13px;color:#1f4781;font-weight:700">'+(it.preco_unit?'R$ '+fmt(it.preco_unit)+'/kg':'—')+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.icms||'—')+'</td>'
+        +'<td style="padding:8px 10px;font-size:13px;font-weight:700;color:#15803d">'+(sub>0?'R$ '+fmt(sub):'—')+'</td>'
+        +'</tr>';
+    }).join('');
+    var freteCV=(itens[0]&&itens[0].frete)||'';
+    html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
+      +'<title>Tabela de Preços — '+esc(s.titulo)+'</title>'
+      +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;color:#111;max-width:800px;margin:0 auto}'
+      +'@media print{button{display:none!important}}</style></head><body>'
+      +'<div style="background:#15803d;color:#fff;padding:0">'
+      +'<div style="padding:18px 32px;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><div style="font-size:10px;font-weight:700;letter-spacing:.14em;opacity:.8;margin-bottom:4px">ABBA SUPPLY — TABELA DE PREÇOS</div>'
+      +'<div style="font-size:20px;font-weight:800">'+esc(s.titulo)+'</div>'
+      +'<div style="font-size:11px;opacity:.8;margin-top:4px">Solicitante: '+esc(s.nome)+' — '+esc(s.setor)+'</div></div>'
+      +'<div style="text-align:right;font-size:11px;opacity:.85;line-height:1.7">'+empHtml+(freteCV?'<br>Frete: <strong>'+freteCV+'</strong>':'')+'<div style="margin-top:4px">Gerado em '+now+'</div></div>'
+      +'</div></div>'
+      +'<div style="padding:24px 32px">'
+      +'<div style="font-size:11px;font-weight:800;color:#15803d;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #15803d">Precificação por item</div>'
+      +'<table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">'
+      +'<tr style="background:#F0FDF4"><th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:30px">#</th>'
+      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px">Produto</th>'
+      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:110px">Quantidade</th>'
+      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:90px">R$/kg</th>'
+      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:70px">ICMS</th>'
+      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:95px">Subtotal</th></tr>'
+      +linhasCotV
+      +'<tr style="background:#DCFCE7"><td colspan="5" style="padding:10px;font-size:13px;font-weight:700;color:#15803d;text-align:right">Total geral:</td>'
+      +'<td style="padding:10px;font-size:15px;font-weight:800;color:#15803d">R$ '+fmt(grand2)+'</td></tr>'
+      +'</table></div>'
+      +'<div style="margin:0 32px;padding-top:14px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF">'
+      +'<span>ABBA Supply — Gestão de Compras</span><span>compras@abbaquimica.com.br</span></div>'
+      +'<div style="margin:16px 32px 36px;text-align:center"><button onclick="window.print()" style="background:#15803d;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer">🖨️ Imprimir / Salvar PDF</button></div>'
+      +'</body></html>';
   }
   var w=window.open('','_blank','width=860,height=700');
   if(w){w.document.write(html);w.document.close();setTimeout(function(){w.focus();},300);}
