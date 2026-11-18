@@ -2177,7 +2177,7 @@ function buildModal(s,anexos,comentarios){
         +'</div></div>';
     }
     var convertBtn='';
-    if(s.subcategoria==='Cotação Vendas'&&s.status==='concluido'){
+    if((s.subcategoria==='Cotação Vendas'||s.categoria==='Cotação de Vendas')&&s.status==='concluido'){
       convertBtn='<div style="margin-top:12px"><button onclick="converterEmCompra('+s.id+')" style="width:100%;background:#1f4781;color:#fff;border:none;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Abrir solicitação de compra com base nesta cotação</button></div>';
     }
     var cot='<div class="sec"><h3>Status da Solicitação</h3>'+tipoTag+etapaLabel+(s.subcategoria==='Cotação Vendas'?tabelaPrecos:valorCotacao)+respTag2+convertBtn+'</div>';
@@ -2228,6 +2228,7 @@ function buildModal(s,anexos,comentarios){
       +(s.status==='cotacao'?'<button class="btn btn-primary btn-sm" onclick="saveVendas('+s.id+',true)">✅ Concluir cotação</button>':'')
       +'<button class="btn btn-outline btn-sm" onclick="saveVendas('+s.id+',false)">💾 Salvar preços</button>'
       +'</div></div>':'';
+    var convertBtnAdmin=(s.status==='concluido')?'<div style="margin-top:14px"><button onclick="converterEmCompra('+s.id+')" style="width:100%;background:#1f4781;color:#fff;border:none;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Abrir solicitação de compra com base nesta cotação</button></div>':'';
     cot='<div class="sec'+(canEditCot?'':' readonly')+'">'
       +'<h3>Cotação Vendas — Precificação ABBA '+roTag+'</h3>'
       +'<table style="width:100%;border-collapse:collapse;border:1px solid var(--gray-100);border-radius:8px;overflow:hidden">'
@@ -2238,7 +2239,7 @@ function buildModal(s,anexos,comentarios){
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:80px">ICMS</th>'
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:95px">Subtotal</th>'
       +'</tr>'+itensVendas+'</table>'
-      +freteHtml+salvarVendasBtn+'</div>';
+      +freteHtml+salvarVendasBtn+convertBtnAdmin+'</div>';
   } else {
   // COTAÇÃO INTERNA — fornecedores externos A/B/C
   cot='<div class="sec'+(canEditCot?'':' readonly')+'"><h3>Cotação Externa '+roTag+'</h3>'+
