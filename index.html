@@ -1772,14 +1772,13 @@ async function criarSolicitacao(){
   var subcat=subcatEl?subcatEl.value:null;
   var prio=document.getElementById('f-prio').value||'media';
   var prazo=document.getElementById('f-prazo').value;
-  var servInicio=document.getElementById('f-serv-inicio').value||null;
-  var servFim=document.getElementById('f-serv-fim').value||null;
+  var servInicio=null;
+  var servFim=null;
   var titulo=(document.getElementById('f-titulo').value||'').trim().toUpperCase();
   var itens=getItemRows();
   var just=(document.getElementById('f-just').value||'').trim();
   var cliente=(document.getElementById('f-cliente')&&setor==='Comercial')?(document.getElementById('f-cliente').value||'').trim():'';
   if(!nome||!setor||!cat||!prazo||!just||!titulo){toast('⚠️ Preencha todos os campos obrigatórios');return;}
-  if(cat==='Cotação de Vendas'&&!subcat){toast('⚠️ Selecione o tipo de cotação: Interna ou Vendas');return;}
   if(setor==='Comercial'&&!cliente){toast('⚠️ Informe o nome do cliente');return;}
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
   if(btn){btn.disabled=true;btn.innerHTML='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Enviando...';}
