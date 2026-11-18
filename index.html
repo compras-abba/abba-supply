@@ -2248,7 +2248,7 @@ function buildModal(s,anexos,comentarios){
     savingField+
     enviarApBtn+
     '<div class="cot-form" id="cf-'+s.id+'">'+
-    (s.setor==='Comercial'?
+    (s.setor==='Comercial'&&(s.categoria==='Cotação de Vendas'||s.subcategoria==='Cotação Vendas')?
       '<div class="form-2" style="margin-bottom:10px"><div class="fg"><label style="margin-top:0">Fornecedor</label><select id="ci-forn-'+s.id+'"><option value="">Selecione...</option><option value="Abba Química">Abba Química</option><option value="Abba Especialidades">Abba Especialidades</option></select></div>'+
       '<div class="fg"><label style="margin-top:0">Preço de Venda (R$)</label><input type="number" id="ci-val-'+s.id+'" placeholder="0,00"></div></div>'+
       '<div class="form-2" style="margin-bottom:12px"><div class="fg"><label style="margin-top:0">ICMS</label><select id="ci-cond-'+s.id+'"><option value="">—</option><option value="12%">12%</option><option value="19,5%">19,5%</option><option value="17%">17%</option></select></div>'+
