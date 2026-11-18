@@ -2182,7 +2182,7 @@ function buildModal(s,anexos,comentarios){
   } else {
   var isLockedCot=['ap_aprovado','emissao_oc','entrega','concluido'].indexOf(s.status)>=0;
   var canEditCot=canEdit&&!isLockedCot;
-  var isVendas=s.subcategoria==='Cotação Vendas';
+  var isVendas=s.subcategoria==='Cotação Vendas'||s.categoria==='Cotação de Vendas';
   var cot;
   if(isVendas){
     // COTAÇÃO VENDAS — preço por item direto na tabela
