@@ -2021,7 +2021,9 @@ function buildModal(s,anexos,comentarios){
       return '<div class="just-block"><div class="just-lbl">Descrição</div>'+html+'</div>';
     })():'')+
     '<div class="just-block" style="margin-top:8px"><div class="just-lbl">Justificativa</div><p class="just-txt">'+esc(s.justificativa||'-')+'</p></div>'+
-    ((s.itens_solicitacao&&s.itens_solicitacao.length)?
+    // Para cotação de vendas vista pelo comprador/admin, os itens aparecem na seção de preços
+    ((!isSolicitante&&(s.subcategoria==='Cotação Vendas'||s.categoria==='Cotação de Vendas'))?'':
+    (s.itens_solicitacao&&s.itens_solicitacao.length)?
       '<div class="just-block" style="margin-top:12px"><div class="just-lbl">Itens Solicitados ('+s.itens_solicitacao.length+')</div>'+
       '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">'+
       s.itens_solicitacao.map(function(it,i){
@@ -2415,7 +2417,8 @@ function buildModal(s,anexos,comentarios){
         +histRows+'</div>';
     }
   }
-  return info+triagem+cot+preApSec+apSec+reprovadoSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
+  var isVendasComp=!isComercial&&(s.subcategoria==='Cotação Vendas'||s.categoria==='Cotação de Vendas');
+  return info+(isVendasComp?cot+triagem:triagem+cot)+preApSec+apSec+reprovadoSec+pausaSec+(isComercial?'':entregaSec)+(isComercial?'':chatSec)+anexSec+histSec;
 }
 
 // COTAÇÃO VENDAS
