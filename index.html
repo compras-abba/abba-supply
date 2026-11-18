@@ -1697,21 +1697,13 @@ function autoTitulo(val){
     return;
   }
   _tituloTimer=setTimeout(function(){
-  var txt=val.trim().toUpperCase();
-  var cat=classificarItem(val);
+  var catSolMap={'Cotação de Vendas':'COTAÇÃO','Uso e Consumo':'USO E CONSUMO','Revenda / Serviço / Equipamentos':'REVENDA','Reposição de Estoque (Almoxarifado)':'REPOSIÇÃO'};
+  var catSolEl=document.getElementById('f-cat');
+  var catSol=catSolEl?catSolMap[catSolEl.value]||catSolEl.value.toUpperCase():'';
+  var catItem=classificarItem(val)||'Outros';
   var display=document.getElementById('f-titulo-txt');
   var inp=document.getElementById('f-titulo');
-  if(!txt){
-    if(display)display.innerHTML='<span style="color:var(--gray-400);font-style:italic">Gerado automaticamente ao descrever o 1º item...</span>';
-    if(inp)inp.value='';return;
-  }
-  if(!cat){
-    // Não identificado — só preenche, não abre manual automaticamente
-    if(display)display.textContent=txt+' (Outros)';
-    if(inp)inp.value=txt+' (Outros)';
-    return;
-  }
-  var titulo=txt+' ('+cat+')';
+  var titulo=(catSol?catSol+' - ':'')+catItem.toUpperCase();
   if(display)display.textContent=titulo;
   if(inp)inp.value=titulo;
   },600);
@@ -1741,6 +1733,7 @@ function toggleServico(){
   var cat=document.getElementById('f-cat').value;
   var pl=document.getElementById('f-prazo-label');
   if(pl)pl.innerHTML=(cat==='Cotação de Vendas'?'Prazo Necessário para Cotação':'Prazo Necessário para Entrega')+' <span class="req-mark">*</span>';
+  if(!_tituloManual){var item1=document.getElementById('item-desc-1');if(item1&&item1.value.trim().length>=5)autoTitulo(item1.value);}
 }
 function subcatChange(){
   var v=document.querySelector('input[name="f-subcat"]:checked');
