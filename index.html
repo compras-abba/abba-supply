@@ -2165,7 +2165,8 @@ function buildModal(s,anexos,comentarios){
       var grand=0;
       var linhas=itens.map(function(it,idx){
         var _q=(it.quantidade||'').replace(/[^\d.,]/g,'');var qtdNum=parseFloat(_q.indexOf(',')>=0?_q.replace(/\./g,'').replace(',','.'):(/\.\d{3}/.test(_q)?_q.replace(/\./g,''):_q))||0;
-        var sub=it.preco_unit&&qtdNum?it.preco_unit*qtdNum:0;
+        var ipiPctS=it.ipi?parseFloat(it.ipi)||0:0;
+        var sub=it.preco_unit&&qtdNum?it.preco_unit*(1+ipiPctS/100)*qtdNum:0;
         grand+=sub;
         return'<tr style="border-bottom:1px solid #EFF6FF">'
           +'<td style="padding:8px 10px;font-size:12px;color:#94A3B8;width:28px">'+(idx+1)+'</td>'
@@ -2189,7 +2190,7 @@ function buildModal(s,anexos,comentarios){
         +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:90px">R$</th>'
         +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:70px">ICMS</th>'
         +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:60px">IPI</th>'
-        +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:95px">Subtotal</th></tr>'
+        +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:95px">Subtotal (c/ IPI)</th></tr>'
         +linhas+'</table>'
         +'<div style="padding:10px 14px;background:#DCFCE7;display:flex;justify-content:space-between;align-items:center">'
         +'<span style="font-size:12px;font-weight:700;color:#15803d">Total geral</span>'
@@ -2212,7 +2213,8 @@ function buildModal(s,anexos,comentarios){
     var itensVendas=itens.length?itens.map(function(it,idx){
       var pVal=it.preco_unit?it.preco_unit.toString():'';
       var _q=(it.quantidade||'').replace(/[^\d.,]/g,'');var qtdNum=parseFloat(_q.indexOf(',')>=0?_q.replace(/\./g,'').replace(',','.'):(/\.\d{3}/.test(_q)?_q.replace(/\./g,''):_q))||0;
-      var subT=it.preco_unit&&qtdNum?(it.preco_unit*qtdNum):0;
+      var ipiPctT=it.ipi?parseFloat(it.ipi)||0:0;
+      var subT=it.preco_unit&&qtdNum?(it.preco_unit*(1+ipiPctT/100)*qtdNum):0;
       if(canEditCot){
         return'<tr style="border-bottom:1px solid var(--gray-100)">'
           +'<td style="padding:8px 10px;font-size:12px;color:var(--gray-400);width:32px">'+(idx+1)+'</td>'
@@ -2261,7 +2263,7 @@ function buildModal(s,anexos,comentarios){
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:90px">R$</th>'
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:80px">ICMS</th>'
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:70px">IPI</th>'
-      +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:95px">Subtotal</th>'
+      +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:95px">Subtotal (c/ IPI)</th>'
       +'</tr>'+itensVendas+'</table>'
       +freteHtml+salvarVendasBtn+convertBtnAdmin+'</div>';
   } else {
@@ -2461,8 +2463,10 @@ function calcVendas(solId){
   var grand=0;
   (s.itens_solicitacao||[]).forEach(function(it){
     var p=parseFloat((document.getElementById('vp-'+it.id)||{}).value)||0;
+    var ipiEl=document.getElementById('vii-'+it.id);
+    var ipiPct=ipiEl?parseFloat(ipiEl.value)||0:0;
     var _q=(it.quantidade||'').replace(/[^\d.,]/g,'');var qtdNum=parseFloat(_q.indexOf(',')>=0?_q.replace(/\./g,'').replace(',','.'):(/\.\d{3}/.test(_q)?_q.replace(/\./g,''):_q))||0;
-    var sub=p*qtdNum;
+    var sub=p*(1+ipiPct/100)*qtdNum;
     var el=document.getElementById('vs-'+it.id);
     if(el){el.textContent=sub>0?'R$ '+fmt(sub):'—';el.style.color=sub>0?'#15803d':'var(--gray-400)';}
     grand+=sub;
@@ -3492,7 +3496,8 @@ function gerarPDFOC(id){
     var grand2=0;
     var linhasCotV=itens.map(function(it,i){
       var _q=(it.quantidade||'').replace(/[^\d.,]/g,'');var qtdNum=parseFloat(_q.indexOf(',')>=0?_q.replace(/\./g,'').replace(',','.'):(/\.\d{3}/.test(_q)?_q.replace(/\./g,''):_q))||0;
-      var sub=it.preco_unit&&qtdNum?it.preco_unit*qtdNum:0;
+      var ipiPctP=it.ipi?parseFloat(it.ipi)||0:0;
+      var sub=it.preco_unit&&qtdNum?it.preco_unit*(1+ipiPctP/100)*qtdNum:0;
       grand2+=sub;
       return'<tr style="border-bottom:1px solid #F3F4F6">'
         +'<td style="padding:8px 10px;font-size:12px;color:#9CA3AF;width:30px">'+(i+1)+'</td>'
@@ -3525,7 +3530,7 @@ function gerarPDFOC(id){
       +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:90px">R$</th>'
       +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:70px">ICMS</th>'
       +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:60px">IPI</th>'
-      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:95px">Subtotal</th></tr>'
+      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:95px">Subtotal (c/ IPI)</th></tr>'
       +linhasCotV
       +'<tr style="background:#DCFCE7"><td colspan="6" style="padding:10px;font-size:13px;font-weight:700;color:#15803d;text-align:right">Total geral:</td>'
       +'<td style="padding:10px;font-size:15px;font-weight:800;color:#15803d">R$ '+fmt(grand2)+'</td></tr>'
