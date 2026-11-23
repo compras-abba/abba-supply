@@ -385,7 +385,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
       <div class="lf"><label>Email <span style="color:var(--red)">*</span></label><input type="email" id="r-email" placeholder="seu@email.com"></div>
       <div class="lf"><label>Senha <span style="color:var(--red)">*</span></label><input type="password" id="r-pwd" placeholder="M&iacute;nimo 6 caracteres"></div>
       <div class="lf"><label>Setor <span style="color:var(--red)">*</span></label>
-        <select id="r-setor"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Compras</option></select>
+        <select id="r-setor"><option value="">Selecione o setor</option><option>Diretoria</option><option>Comercial</option><option>F&aacute;brica</option><option>Almoxarifado</option><option>Expedi&ccedil;&atilde;o</option><option>Log&iacute;stica</option><option>Administrativo</option><option>Financeiro</option><option>RH</option><option>Projetos</option><option>Laborat&oacute;rio</option><option>Qualidade</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Compras</option><option>CIPA/Brigada de Emerg&ecirc;ncia</option></select>
       </div>
       <div class="lf"><label>Tipo de Acesso <span style="color:var(--red)">*</span></label>
         <select id="r-role" onchange="toggleCode()"><option value="solicitante">Solicitante</option><option value="gerente">Gerente</option><option value="diretor">Diretor</option><option value="admin">Administrador (Compras)</option><option value="financeiro">Financeiro</option></select>
@@ -615,7 +615,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             <div class="ff"><label>Email</label><input type="email" id="f-email" placeholder="seu@email.com"></div>
           </div>
           <div class="ff"><label>Setor <span class="req-mark">*</span></label>
-            <select id="f-setor" onchange="toggleCliente()"><option value="">Selecione o setor</option><option>Administrativo</option><option>Almoxarifado</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>Comercial</option><option>Compras</option><option>Diretoria</option><option>Expedi&ccedil;&atilde;o</option><option>F&aacute;brica</option><option>Financeiro</option><option>Laborat&oacute;rio</option><option>Log&iacute;stica</option><option>Projetos</option><option>Qualidade</option><option>RH</option></select>
+            <select id="f-setor" onchange="toggleCliente()"><option value="">Selecione o setor</option><option>Administrativo</option><option>Almoxarifado</option><option>Assist&ecirc;ncia T&eacute;cnica</option><option>CIPA/Brigada de Emerg&ecirc;ncia</option><option>Comercial</option><option>Compras</option><option>Diretoria</option><option>Expedi&ccedil;&atilde;o</option><option>F&aacute;brica</option><option>Financeiro</option><option>Laborat&oacute;rio</option><option>Log&iacute;stica</option><option>Projetos</option><option>Qualidade</option><option>RH</option></select>
           </div>
           <div class="ff" id="f-cliente-row" style="display:none"><label>Cliente <span class="req-mark">*</span></label><input type="text" id="f-cliente" placeholder="Nome do cliente"></div>
           <div class="ff-row">
@@ -2148,7 +2148,7 @@ function buildModal(s,anexos,comentarios){
     if(cotEsc&&cotEsc.val){
       valorCotacao='<div style="margin-top:14px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:14px 16px">'
         +'<div style="font-size:11px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">💰 Valor</div>'
-        +'<div style="font-size:22px;font-weight:800;color:#0C4A6E">R$ '+fmt(cotEsc.val)+(s.setor==='Comercial'||s.categoria==='Cotação de Vendas'||s.categoria==='Cotação'?'/kg':'')+'</div>'
+        +'<div style="font-size:22px;font-weight:800;color:#0C4A6E">R$ '+fmt(cotEsc.val)+'</div>'
         +(cotEsc.forn?'<div style="font-size:12px;color:#0369A1;margin-top:4px">Fornecedor: '+esc(cotEsc.forn)+'</div>':'')
         +(cotEsc.cond?'<div style="font-size:12px;color:#0369A1;margin-top:2px">Condição: '+esc(cotEsc.cond)+'</div>':'')
         +(cotEsc.prazo?'<div style="font-size:12px;color:#0369A1;margin-top:2px">Entrega: '+esc(cotEsc.prazo)+'</div>':'')
@@ -2164,15 +2164,16 @@ function buildModal(s,anexos,comentarios){
       var freteInfo=itens[0]&&itens[0].frete?'Frete: <strong>'+esc(itens[0].frete)+'</strong>':'';
       var grand=0;
       var linhas=itens.map(function(it,idx){
-        var qtdNum=parseFloat((it.quantidade||'').replace(/[^\d.,]/g,'').replace(',','.'))||0;
+        var _q=(it.quantidade||'').replace(/[^\d.,]/g,'');var qtdNum=parseFloat(_q.indexOf(',')>=0?_q.replace(/\./g,'').replace(',','.'):(/\.\d{3}/.test(_q)?_q.replace(/\./g,''):_q))||0;
         var sub=it.preco_unit&&qtdNum?it.preco_unit*qtdNum:0;
         grand+=sub;
         return'<tr style="border-bottom:1px solid #EFF6FF">'
           +'<td style="padding:8px 10px;font-size:12px;color:#94A3B8;width:28px">'+(idx+1)+'</td>'
           +'<td style="padding:8px 10px;font-size:13px;color:#0F172A;font-weight:500">'+esc(it.descricao||'')+'</td>'
           +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+esc(it.quantidade||'')+'</td>'
-          +'<td style="padding:8px 10px;font-size:13px;color:#1f4781;font-weight:700">'+(it.preco_unit?'R$ '+it.preco_unit+'/kg':'<span style="color:#94A3B8">—</span>')+'</td>'
+          +'<td style="padding:8px 10px;font-size:13px;color:#1f4781;font-weight:700">'+(it.preco_unit?'R$ '+it.preco_unit:'<span style="color:#94A3B8">—</span>')+'</td>'
           +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.icms||'<span style="color:#94A3B8">—</span>')+'</td>'
+          +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.ipi||'<span style="color:#94A3B8">—</span>')+'</td>'
           +'<td style="padding:8px 10px;font-size:13px;font-weight:700;color:#15803d">'+(sub>0?'R$ '+fmt(sub):'<span style="color:#94A3B8">—</span>')+'</td>'
           +'</tr>';
       }).join('');
@@ -2185,8 +2186,9 @@ function buildModal(s,anexos,comentarios){
         +'<tr style="background:#DCFCE7"><th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:28px">#</th>'
         +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px">Produto</th>'
         +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:110px">Qtd</th>'
-        +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:90px">R$/kg</th>'
+        +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:90px">R$</th>'
         +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:70px">ICMS</th>'
+        +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:60px">IPI</th>'
         +'<th style="font-size:10px;color:#15803d;font-weight:700;text-align:left;padding:7px 10px;width:95px">Subtotal</th></tr>'
         +linhas+'</table>'
         +'<div style="padding:10px 14px;background:#DCFCE7;display:flex;justify-content:space-between;align-items:center">'
@@ -2209,7 +2211,7 @@ function buildModal(s,anexos,comentarios){
     // COTAÇÃO VENDAS — preço por item direto na tabela
     var itensVendas=itens.length?itens.map(function(it,idx){
       var pVal=it.preco_unit?it.preco_unit.toString():'';
-      var qtdNum=parseFloat((it.quantidade||'').replace(/[^\d.,]/g,'').replace(',','.'))||0;
+      var _q=(it.quantidade||'').replace(/[^\d.,]/g,'');var qtdNum=parseFloat(_q.indexOf(',')>=0?_q.replace(/\./g,'').replace(',','.'):(/\.\d{3}/.test(_q)?_q.replace(/\./g,''):_q))||0;
       var subT=it.preco_unit&&qtdNum?(it.preco_unit*qtdNum):0;
       if(canEditCot){
         return'<tr style="border-bottom:1px solid var(--gray-100)">'
@@ -2218,6 +2220,7 @@ function buildModal(s,anexos,comentarios){
           +'<td style="padding:8px 10px;font-size:12px;color:var(--gray-600);white-space:nowrap">'+esc(it.quantidade||'')+'</td>'
           +'<td style="padding:6px 8px;width:90px"><input type="number" step="0.001" id="vp-'+it.id+'" value="'+esc(pVal)+'" placeholder="0,000" oninput="calcVendas('+s.id+')" style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:5px 7px;font-size:12px"></td>'
           +'<td style="padding:6px 8px;width:80px"><select id="vi-'+it.id+'" onchange="calcVendas('+s.id+')" style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:5px 6px;font-size:12px"><option value="">—</option><option value="12%"'+(it.icms==='12%'?' selected':'')+'>12%</option><option value="19,5%"'+(it.icms==='19,5%'?' selected':'')+'>19,5%</option><option value="17%"'+(it.icms==='17%'?' selected':'')+'>17%</option></select></td>'
+          +'<td style="padding:6px 8px;width:70px"><input type="text" id="vii-'+it.id+'" value="'+esc(it.ipi||'')+'" placeholder="—" style="width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:5px 7px;font-size:12px"></td>'
           +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:'+(subT>0?'#15803d':'var(--gray-400)')+'" id="vs-'+it.id+'">'+(subT>0?'R$ '+fmt(subT):'—')+'</td>'
           +'</tr>';
       } else {
@@ -2225,8 +2228,9 @@ function buildModal(s,anexos,comentarios){
           +'<td style="padding:8px 10px;font-size:12px;color:var(--gray-400);width:32px">'+(idx+1)+'</td>'
           +'<td style="padding:8px 10px;font-size:13px;color:#111;font-weight:500">'+esc(it.descricao||'')+'</td>'
           +'<td style="padding:8px 10px;font-size:12px;color:var(--gray-600)">'+esc(it.quantidade||'')+'</td>'
-          +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.preco_unit?'R$ '+it.preco_unit+'/kg':'—')+'</td>'
+          +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.preco_unit?'R$ '+it.preco_unit:'—')+'</td>'
           +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.icms||'—')+'</td>'
+          +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.ipi||'—')+'</td>'
           +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:'+(subT>0?'#15803d':'var(--gray-400)')+'">'+(subT>0?'R$ '+fmt(subT):'—')+'</td>'
           +'</tr>';
       }
@@ -2254,8 +2258,9 @@ function buildModal(s,anexos,comentarios){
       +'<tr style="background:var(--gray-50)"><th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:32px">#</th>'
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px">Produto</th>'
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:110px">Quantidade</th>'
-      +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:90px">R$/kg</th>'
+      +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:90px">R$</th>'
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:80px">ICMS</th>'
+      +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:70px">IPI</th>'
       +'<th style="font-size:11px;color:var(--gray-500);font-weight:700;text-align:left;padding:8px 10px;width:95px">Subtotal</th>'
       +'</tr>'+itensVendas+'</table>'
       +freteHtml+salvarVendasBtn+convertBtnAdmin+'</div>';
@@ -2456,7 +2461,7 @@ function calcVendas(solId){
   var grand=0;
   (s.itens_solicitacao||[]).forEach(function(it){
     var p=parseFloat((document.getElementById('vp-'+it.id)||{}).value)||0;
-    var qtdNum=parseFloat((it.quantidade||'').replace(/[^\d.,]/g,'').replace(',','.'))||0;
+    var _q=(it.quantidade||'').replace(/[^\d.,]/g,'');var qtdNum=parseFloat(_q.indexOf(',')>=0?_q.replace(/\./g,'').replace(',','.'):(/\.\d{3}/.test(_q)?_q.replace(/\./g,''):_q))||0;
     var sub=p*qtdNum;
     var el=document.getElementById('vs-'+it.id);
     if(el){el.textContent=sub>0?'R$ '+fmt(sub):'—';el.style.color=sub>0?'#15803d':'var(--gray-400)';}
@@ -2474,7 +2479,9 @@ async function saveVendas(solId,enviar){
     var p=parseFloat((document.getElementById('vp-'+it.id)||{}).value)||null;
     var icmsEl=document.getElementById('vi-'+it.id);
     var icms=icmsEl?icmsEl.value:'';
-    return sb.from('itens_solicitacao').update({preco_unit:p,icms:icms||null,frete:frete||null}).eq('id',it.id);
+    var ipiEl=document.getElementById('vii-'+it.id);
+    var ipi=ipiEl?ipiEl.value.trim():'';
+    return sb.from('itens_solicitacao').update({preco_unit:p,icms:icms||null,ipi:ipi||null,frete:frete||null}).eq('id',it.id);
   });
   var results=await Promise.all(updates);
   var err=results.find(function(r){return r.error;});
@@ -2557,7 +2564,7 @@ function abrirEdicaoReap(id){
   var camposHtml=isCom?
     '<div class="form-2" style="margin-bottom:10px">'
     +'<div class="fg"><label>Fornecedor</label><input id="reap-forn-'+id+'" value="'+esc(cot?cot.forn:'')+'"></div>'
-    +'<div class="fg"><label>Valor (R$/kg)</label><input type="number" id="reap-val-'+id+'" value="'+(cot?cot.val:'')+'" step="0.001"></div>'
+    +'<div class="fg"><label>Valor (R$)</label><input type="number" id="reap-val-'+id+'" value="'+(cot?cot.val:'')+'" step="0.001"></div>'
     +'</div>'
     +'<div class="form-2" style="margin-bottom:12px">'
     +'<div class="fg"><label>ICMS</label><input id="reap-cond-'+id+'" value="'+esc(cot?cot.cond:'')+'"></div>'
@@ -3367,7 +3374,7 @@ function gerarPDFOC(id){
   }).join(''):'<tr><td colspan="4" style="padding:10px;font-size:12px;color:#9CA3AF">Nenhum item registrado</td></tr>';
   var cotHtml=cot
     ?'<table style="width:100%;border-collapse:collapse;margin-top:4px">'+
-      row('Fornecedor',esc(cot.forn))+row('Valor',cot.val?(s.setor==='Comercial'||s.categoria==='Cotação de Vendas'||s.categoria==='Cotação'?'R$ '+fmt(cot.val)+'/kg':'R$ '+fmt(cot.val)):null)+
+      row('Fornecedor',esc(cot.forn))+row('Valor',cot.val?'R$ '+fmt(cot.val):null)+
       row('Prazo Entrega',esc(cot.prazo))+row('Cond. Pagamento / ICMS',esc(cot.cond))+'</table>'
     :'<p style="font-size:12px;color:#9CA3AF;margin:8px 0 0">Nenhuma cotação registrada.</p>';
   var etapasHtml='<table style="width:100%;border-collapse:collapse">'
@@ -3419,7 +3426,7 @@ function gerarPDFOC(id){
         +'<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Razão Social / Nome</div>'
         +'<div style="font-size:17px;font-weight:700;color:#1f4781">'+esc(cot.forn)+'</div></div>'
         +'<div><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Valor Total</div>'
-        +'<div style="font-size:18px;font-weight:800;color:#15803d">R$ '+(s.setor==='Comercial'||s.categoria==='Cotação de Vendas'||s.categoria==='Cotação'?fmt(cot.val)+'/kg':fmt(cot.val))+'</div></div>'
+        +'<div style="font-size:18px;font-weight:800;color:#15803d">R$ '+fmt(cot.val)+'</div></div>'
         +'<div><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Prazo de Entrega</div>'
         +'<div style="font-size:14px;font-weight:700;color:#1f4781">'+esc(cot.prazo)+'</div></div>'
         +'<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Condições de Pagamento / ICMS</div>'
@@ -3483,15 +3490,16 @@ function gerarPDFOC(id){
   if(isCotVendas){
     var grand2=0;
     var linhasCotV=itens.map(function(it,i){
-      var qtdNum=parseFloat((it.quantidade||'').replace(/[^\d.,]/g,'').replace(',','.'))||0;
+      var _q=(it.quantidade||'').replace(/[^\d.,]/g,'');var qtdNum=parseFloat(_q.indexOf(',')>=0?_q.replace(/\./g,'').replace(',','.'):(/\.\d{3}/.test(_q)?_q.replace(/\./g,''):_q))||0;
       var sub=it.preco_unit&&qtdNum?it.preco_unit*qtdNum:0;
       grand2+=sub;
       return'<tr style="border-bottom:1px solid #F3F4F6">'
         +'<td style="padding:8px 10px;font-size:12px;color:#9CA3AF;width:30px">'+(i+1)+'</td>'
         +'<td style="padding:8px 10px;font-size:13px;color:#111;font-weight:500">'+esc(it.descricao||'')+'</td>'
         +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+esc(it.quantidade||'')+'</td>'
-        +'<td style="padding:8px 10px;font-size:13px;color:#1f4781;font-weight:700">'+(it.preco_unit?'R$ '+fmt(it.preco_unit)+'/kg':'—')+'</td>'
+        +'<td style="padding:8px 10px;font-size:13px;color:#1f4781;font-weight:700">'+(it.preco_unit?'R$ '+fmt(it.preco_unit):'—')+'</td>'
         +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.icms||'—')+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;color:#374151">'+(it.ipi||'—')+'</td>'
         +'<td style="padding:8px 10px;font-size:13px;font-weight:700;color:#15803d">'+(sub>0?'R$ '+fmt(sub):'—')+'</td>'
         +'</tr>';
     }).join('');
@@ -3513,11 +3521,12 @@ function gerarPDFOC(id){
       +'<tr style="background:#F0FDF4"><th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:30px">#</th>'
       +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px">Produto</th>'
       +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:110px">Quantidade</th>'
-      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:90px">R$/kg</th>'
+      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:90px">R$</th>'
       +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:70px">ICMS</th>'
+      +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:60px">IPI</th>'
       +'<th style="font-size:11px;color:#166534;font-weight:700;text-align:left;padding:9px 10px;width:95px">Subtotal</th></tr>'
       +linhasCotV
-      +'<tr style="background:#DCFCE7"><td colspan="5" style="padding:10px;font-size:13px;font-weight:700;color:#15803d;text-align:right">Total geral:</td>'
+      +'<tr style="background:#DCFCE7"><td colspan="6" style="padding:10px;font-size:13px;font-weight:700;color:#15803d;text-align:right">Total geral:</td>'
       +'<td style="padding:10px;font-size:15px;font-weight:800;color:#15803d">R$ '+fmt(grand2)+'</td></tr>'
       +'</table></div>'
       +'<div style="margin:0 32px;padding-top:14px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF">'
