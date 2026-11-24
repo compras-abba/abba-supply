@@ -2003,6 +2003,7 @@ function buildModal(s,anexos,comentarios){
     '<div><div class="ii-lbl">🏭 Empresa</div><div class="ii-val">'+esc(s.empresa||'ABBA Química')+'</div></div>'+
     (s.cliente?'<div><div class="ii-lbl">🤝 Cliente</div><div class="ii-val">'+esc(s.cliente)+'</div></div>':'')+
     '<div><div class="ii-lbl">⚡ Prioridade</div><div class="ii-val"><span class="badge '+s.prioridade+'">'+(PA[s.prioridade]||'→')+' '+cap(s.prioridade||'media')+'</span></div></div>'+
+    (s.tipo?'<div><div class="ii-lbl">🔖 Tipo</div><div class="ii-val">'+(s.tipo==='compra'?'Compra':'Cotação')+'</div></div>':'')+
     (CU.role!=='solicitante'?'<div><div class="ii-lbl">👤 Aprovador</div><div class="ii-val">'+esc(s.aprovador||'-')+'</div></div>':'')+
     '<div><div class="ii-lbl">🔧 Responsável (Compras)</div><div class="ii-val" style="display:flex;align-items:center;gap:8px">'+
       (s.responsavel_nome?'<span style="font-weight:700;color:#1f4781">'+esc(s.responsavel_nome)+'</span>':'<span style="color:#94a3b8">Não atribuído</span>')+
