@@ -630,6 +630,9 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
             <div class="ff"><label>Prioridade <span class="req-mark">*</span></label>
               <select id="f-prio"><option value="baixa">↓ Baixa</option><option value="media" selected>→ M&eacute;dia</option><option value="alta">↑ Alta</option><option value="urgente">↑↑ Urgente</option></select>
             </div>
+            <div class="ff"><label>Tipo <span class="req-mark">*</span></label>
+              <select id="f-tipo"><option value="cotacao">Cotação</option><option value="compra">Compra</option></select>
+            </div>
           </div>
           <div class="ff">
             <label id="f-prazo-label">Prazo Necess&aacute;rio <span class="req-mark">*</span></label><input type="date" id="f-prazo">
@@ -1780,6 +1783,7 @@ async function criarSolicitacao(){
   var subcatEl=document.querySelector('input[name="f-subcat"]:checked');
   var subcat=subcatEl?subcatEl.value:null;
   var prio=document.getElementById('f-prio').value||'media';
+  var tipo=document.getElementById('f-tipo').value||'cotacao';
   var prazo=document.getElementById('f-prazo').value;
   var servInicio=null;
   var servFim=null;
@@ -1794,7 +1798,7 @@ async function criarSolicitacao(){
   try{
     var desc=itens.map(function(it,i){return (i+1)+'. '+it.descricao+(it.quantidade?' - '+it.quantidade:'')+(it.observacao?' ('+it.observacao+')':'');}).join('\n');
     var qtd=itens.length+' item(ns)';
-    var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:titulo,nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,categoria:cat,subcategoria:subcat||null,empresa:empresa,cliente:cliente||null,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
+    var r=await sb.from('solicitacoes').insert({user_id:CU.id,titulo:titulo,nome:nome,email:email,setor:setor,descricao:desc,quantidade:qtd,prazo:prazo,justificativa:just,prioridade:prio,tipo:tipo,categoria:cat,subcategoria:subcat||null,empresa:empresa,cliente:cliente||null,aprovador:'Francisco',serv_inicio:servInicio,serv_fim:servFim,status:'triagem',ap_status:'aguardando',ap_obs:''}).select().single();
     if(r.error){toast('❌ Erro ao enviar: '+r.error.message);return;}
     var solId=r.data.id;
     await registrarHistorico(solId,'triagem');
