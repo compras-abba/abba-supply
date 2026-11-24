@@ -1752,6 +1752,11 @@ function toggleServico(){
   var cat=document.getElementById('f-cat').value;
   var pl=document.getElementById('f-prazo-label');
   if(pl)pl.innerHTML=(cat==='Cotação de Vendas'?'Prazo Necessário para Cotação':'Prazo Necessário para Entrega')+' <span class="req-mark">*</span>';
+  var tipoEl=document.getElementById('f-tipo');
+  if(tipoEl){
+    if(cat==='Cotação de Vendas')tipoEl.value='cotacao';
+    else if(cat!=='Desenvolvimento de Novos Produtos')tipoEl.value='compra';
+  }
   if(!_tituloManual){var item1=document.getElementById('item-desc-1');if(item1&&item1.value.trim().length>=5)autoTitulo(item1.value);}
 }
 function subcatChange(){
