@@ -1062,12 +1062,17 @@ async function renderAdmin(){
     '<div class="kpi"><div class="kpi-icon purple">👥</div><div><div class="kpi-val">'+sets+'</div><div class="kpi-lbl">Setores Ativos</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon amber">⏳</div><div><div class="kpi-val">'+wait+'</div><div class="kpi-lbl">Aguardando Aprovação</div></div></div>'+
     '<div class="kpi"><div class="kpi-icon emerald">💰</div><div><div class="kpi-val">R$&nbsp;'+fmt(vol)+'</div><div class="kpi-lbl">Volume Total</div></div></div>';
-  // Saving: apenas aprovadas/concluídas; usa campo manual se preenchido
+  // Saving: apenas aprovadas/concluídas; prioriza preco_ofertado da cotação escolhida
   var aprovadas=s.filter(function(x){return x.ap_status==='aprovado'||x.status==='concluido'||x.status==='entrega'||x.status==='emissao_oc';});
   var totalSaving=aprovadas.reduce(function(acc,x){
+    var cots=x.cotacoes||[];
+    var chosen=cots.find(function(c){return c.escolhida;});
+    if(chosen&&Number(chosen.preco_ofertado)>0&&Number(chosen.val)>0){
+      return acc+Math.max(0,Number(chosen.preco_ofertado)-Number(chosen.val));
+    }
     if(x.saving&&Number(x.saving)>0)return acc+Number(x.saving);
-    var cots=x.cotacoes||[];if(cots.length<2)return acc;
-    var chosen=cots.find(function(c){return c.escolhida;});if(!chosen)return acc;
+    if(cots.length<2)return acc;
+    if(!chosen)return acc;
     var maxVal=Math.max.apply(null,cots.map(function(c){return Number(c.val)||0;}));
     return acc+Math.max(0,maxVal-Number(chosen.val));
   },0);
@@ -1428,15 +1433,18 @@ async function renderAdmin(){
   var ps={};s.forEach(function(x){var v=(x.cotacoes||[]).reduce(function(a,c){return a+(c.escolhida?Number(c.val):0);},0);if(v)ps[x.setor]=(ps[x.setor]||0)+v;});
   drawBars('chart-setor',ps,'#8B5CF6',function(v,pct){return{val:'R$ '+fmt(v),sub:pct+'% do total'};});
   var pf={};aprovadas.forEach(function(x){
+    var cots=x.cotacoes||[];
+    var chosen=cots.find(function(c){return c.escolhida;});
     var sv=0;
-    if(x.saving&&Number(x.saving)>0){
-      var chosen2=(x.cotacoes||[]).find(function(c){return c.escolhida;});
+    if(chosen&&Number(chosen.preco_ofertado)>0&&Number(chosen.val)>0){
+      sv=Math.max(0,Number(chosen.preco_ofertado)-Number(chosen.val));
+      if(sv>0)pf[chosen.forn]=(pf[chosen.forn]||0)+sv;
+    } else if(x.saving&&Number(x.saving)>0){
       sv=Number(x.saving);
-      var forn2=chosen2?chosen2.forn:(x.setor||'Manual');
+      var forn2=chosen?chosen.forn:(x.setor||'Manual');
       if(sv>0)pf[forn2]=(pf[forn2]||0)+sv;
     } else {
-      var cots=x.cotacoes||[];if(cots.length<2)return;
-      var chosen=cots.find(function(c){return c.escolhida;});if(!chosen)return;
+      if(cots.length<2||!chosen)return;
       var maxVal=Math.max.apply(null,cots.map(function(c){return Number(c.val)||0;}));
       sv=Math.max(0,maxVal-Number(chosen.val));
       if(sv>0)pf[chosen.forn]=(pf[chosen.forn]||0)+sv;
@@ -2093,6 +2101,30 @@ function buildModal(s,anexos,comentarios){
 
   var isSolicitante=CU.role==='solicitante';
   var cotItems=(!verValores&&isSolicitante)?'':(s.cotacoes||[]).map(function(c){
+    // Calcula saving inline para cotação escolhida
+    var savingInline='';
+    if(c.escolhida&&canEdit){
+      var piVal=Number(c.preco_ofertado)||0;
+      var negVal=Number(c.val)||0;
+      var savingInlineBlock=
+        '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'+
+        '<div>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em">Preço Ofertado (antes de negociar)</div>'+
+        '<div style="font-size:11px;color:var(--gray-400);margin-top:2px">Valor que o fornecedor ofertou inicialmente</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+        '<div style="position:relative"><span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--gray-500);pointer-events:none">R$</span>'+
+        '<input type="number" step="0.01" id="cpo-'+c.id+'" value="'+(piVal||'')+'" placeholder="0,00" style="width:120px;border:1px solid var(--gray-200);border-radius:7px;padding:6px 8px 6px 28px;font-size:13px;background:var(--surface);color:var(--fg)" oninput="calcSavingInline('+s.id+','+c.id+')">'+
+        '</div>'+
+        '<button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" onclick="savePO('+s.id+','+c.id+')">Salvar</button>'+
+        '<div id="saving-chip-'+c.id+'">'+
+        (piVal&&negVal&&piVal>negVal?'<span style="background:#DCFCE7;color:#15803d;border-radius:7px;padding:4px 10px;font-size:12px;font-weight:700">↓ R$ '+fmt(piVal-negVal)+' ('+Math.round((piVal-negVal)/piVal*1000)/10+'%)</span>':
+         piVal&&negVal&&piVal<=negVal?'<span style="background:#FFFBEB;color:#92400E;border-radius:7px;padding:4px 10px;font-size:12px;font-weight:700">Sem saving</span>':
+         '<span style="background:var(--gray-50);color:var(--gray-400);border-radius:7px;padding:4px 10px;font-size:12px;border:1px solid var(--gray-200)">—</span>')+
+        '</div>'+
+        '</div></div>';
+      savingInline=savingInlineBlock;
+    }
     return'<div class="cot-item'+(c.escolhida?' chosen':'')+'" id="cot-item-'+c.id+'">'+
       '<div class="cot-head" '+(canEdit?'onclick="toggleCot('+s.id+','+c.id+','+c.escolhida+')" style="cursor:pointer"':'')+'>'+
       '<span class="cot-forn">'+esc(c.forn)+'</span>'+(c.escolhida?'<span class="chosen-badge">Escolhido</span>':'')+
@@ -2101,15 +2133,16 @@ function buildModal(s,anexos,comentarios){
       '<button class="btn btn-red btn-sm" style="padding:3px 8px;font-size:11px" onclick="deleteCot('+s.id+','+c.id+')">🗑️</button>'+
       '</div>':'')+
       '</div><div class="cot-fields" id="cot-fields-'+c.id+'">'+
-      '<div><div class="cf-val">R$ '+fmt(c.val)+'</div><div class="cf-lbl">Valor Total</div></div>'+
+      '<div><div class="cf-val">R$ '+fmt(c.val)+'</div><div class="cf-lbl">Valor Negociado</div></div>'+
       '<div><div class="cf-val">'+esc(c.prazo)+'</div><div class="cf-lbl">Prazo</div></div>'+
       '<div><div class="cf-val">'+esc(c.cond)+'</div><div class="cf-lbl">Condição</div></div>'+
       '</div>'+
       (c.obs?'<div style="margin-top:8px;padding:7px 10px;background:var(--gray-50);border-radius:7px;font-size:12px;color:var(--gray-600);border-left:3px solid #93c5fd"><span style="font-weight:600;color:var(--gray-500)">Obs:</span> '+esc(c.obs)+'</div>':'')+
+      savingInline+
       '<div id="cot-edit-'+c.id+'" style="display:none;padding:10px 0 4px">'+
       '<div class="form-2" style="margin-bottom:8px">'+
       '<div class="fg"><label style="margin-top:0">Fornecedor</label><input id="ce-forn-'+c.id+'" value="'+esc(c.forn)+'"></div>'+
-      '<div class="fg"><label style="margin-top:0">Valor (R$)</label><input type="number" id="ce-val-'+c.id+'" value="'+c.val+'"></div></div>'+
+      '<div class="fg"><label style="margin-top:0">Valor Negociado (R$)</label><input type="number" id="ce-val-'+c.id+'" value="'+c.val+'"></div></div>'+
       '<div class="form-2" style="margin-bottom:8px">'+
       '<div class="fg"><label style="margin-top:0">Prazo</label><input id="ce-prazo-'+c.id+'" value="'+esc(c.prazo)+'"></div>'+
       '<div class="fg"><label style="margin-top:0">Condição</label><input id="ce-cond-'+c.id+'" value="'+esc(c.cond)+'"></div></div>'+
@@ -2121,14 +2154,28 @@ function buildModal(s,anexos,comentarios){
       '</div>';
   }).join('');
   var chosen=(s.cotacoes||[]).find(function(c){return c.escolhida;});
-  var savingField=canEdit?
-    '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;margin-top:12px">'+
-    '<label style="font-size:12px;font-weight:600;color:#166534;display:block;margin-bottom:6px">💰 Saving Obtido (R$)</label>'+
-    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
-    '<input type="number" id="saving-input-'+s.id+'" placeholder="0,00" value="'+(s.saving||'')+'" style="border:1px solid #BBF7D0;border-radius:8px;padding:7px 10px;font-size:14px;width:160px;background:#fff">'+
-    '<button class="btn btn-outline btn-sm" onclick="salvarSaving('+s.id+')">Salvar Saving</button>'+
-    '<span style="font-size:12px;color:#166534">Valor economizado nesta compra</span>'+
-    '</div></div>':'';
+  // Resumo de saving: automático via preco_ofertado; fallback para campo manual
+  var savingField='';
+  if(canEdit){
+    var piNum=chosen?Number(chosen.preco_ofertado)||0:0;
+    var negNum=chosen?Number(chosen.val)||0:0;
+    var savAuto=piNum>0&&negNum>0?Math.max(0,piNum-negNum):0;
+    var savManual=Number(s.saving)||0;
+    var savTotal=savAuto>0?savAuto:savManual;
+    if(savTotal>0){
+      var savPct=piNum>0?Math.round((piNum-negNum)/piNum*1000)/10:0;
+      savingField='<div style="background:#F0FDF4;border:1.5px solid #DCFCE7;border-radius:10px;padding:14px 16px;margin-top:12px">'+
+        '<div style="font-size:11px;font-weight:800;color:#15803d;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">💰 Saving Registrado</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+
+        '<div><div style="font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase;opacity:.7;margin-bottom:3px">Saving (R$)</div><div style="font-size:18px;font-weight:800;color:#15803d">R$ '+fmt(savTotal)+'</div></div>'+
+        (savPct>0?'<div><div style="font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase;opacity:.7;margin-bottom:3px">Desconto (%)</div><div style="font-size:18px;font-weight:800;color:#15803d">'+savPct+'%</div></div>':'')+
+        (chosen?'<div><div style="font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase;opacity:.7;margin-bottom:3px">Fornecedor</div><div style="font-size:13px;font-weight:700;color:#15803d;line-height:1.3">'+esc(chosen.forn)+'</div></div>':'')+
+        '</div></div>';
+    } else {
+      savingField='<div style="background:var(--gray-50);border:1.5px dashed var(--gray-200);border-radius:10px;padding:12px 14px;margin-top:12px;text-align:center;font-size:12px;color:var(--gray-400)">'+
+        'Preencha o <strong>Preço Ofertado</strong> na cotação escolhida para registrar o saving automaticamente.</div>';
+    }
+  }
   var enviarApBtn=(canEdit&&!isComercial&&s.status==='cotacao'&&chosen)?
     '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-200)">'+
     '<button class="btn btn-primary" style="width:100%" onclick="enviarAprovacao('+s.id+')">'+
@@ -2870,6 +2917,26 @@ async function deleteCot(solId,cotId){
   if(!confirm('Excluir esta cotação?'))return;
   await sb.from('cotacoes').delete().eq('id',cotId);
   sols=[];await openModal(solId);toast('🗑️ Cotação removida.');
+}
+function calcSavingInline(solId,cotId){
+  var piEl=document.getElementById('cpo-'+cotId);
+  var pi=piEl?parseFloat(piEl.value)||0:0;
+  var sol=sols.find(function(x){return x.id===solId;})||{};
+  var c=(sol.cotacoes||[]).find(function(x){return x.id===cotId;})||{};
+  var neg=Number(c.val)||0;
+  var chip=document.getElementById('saving-chip-'+cotId);
+  if(!chip)return;
+  if(!pi){chip.innerHTML='<span style="background:var(--gray-50);color:var(--gray-400);border-radius:7px;padding:4px 10px;font-size:12px;border:1px solid var(--gray-200)">—</span>';return;}
+  var sav=pi-neg;
+  if(sav>0){chip.innerHTML='<span style="background:#DCFCE7;color:#15803d;border-radius:7px;padding:4px 10px;font-size:12px;font-weight:700">↓ R$ '+fmt(sav)+' ('+Math.round(sav/pi*1000)/10+'%)</span>';}
+  else{chip.innerHTML='<span style="background:#FFFBEB;color:#92400E;border-radius:7px;padding:4px 10px;font-size:12px;font-weight:700">Sem saving</span>';}
+}
+async function savePO(solId,cotId){
+  var piEl=document.getElementById('cpo-'+cotId);
+  var pi=piEl?parseFloat(piEl.value)||null:null;
+  var r=await sb.from('cotacoes').update({preco_ofertado:pi}).eq('id',cotId);
+  if(r.error){toast('❌ Erro ao salvar: '+r.error.message);return;}
+  sols=[];await openModal(solId);toast('✅ Preço Ofertado salvo!');
 }
 async function toggleCot(solId,cotId,wasChosen){
   await sb.from('cotacoes').update({escolhida:false}).eq('sol_id',solId);
