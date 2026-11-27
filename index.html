@@ -1756,6 +1756,7 @@ function toggleServico(){
   if(tipoEl){
     if(cat==='Cotação de Vendas')tipoEl.value='cotacao';
     else if(cat!=='Desenvolvimento de Novos Produtos')tipoEl.value='compra';
+    tipoEl.disabled=(cat==='Revenda / Serviço / Equipamentos');
   }
   if(!_tituloManual){var item1=document.getElementById('item-desc-1');if(item1&&item1.value.trim().length>=5)autoTitulo(item1.value);}
 }
