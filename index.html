@@ -1141,7 +1141,7 @@ async function renderAdmin(){
   var totalDiasEtapas=(function(){
     var sum=0;
     TRANS_KPI.forEach(function(t){
-      var vals=sols.map(function(x){
+      var vals=s.map(function(x){
         var h=x.historico||{};
         return diffDiasKPI(h[t.de],h[t.ate]||(t.ate==='ap_aprovado'?x.dt_aprovacao:null)||(t.ate==='concluido'?x.dt_entrega:null));
       }).filter(function(v){return v!==null&&v>=0;});
@@ -1151,10 +1151,9 @@ async function renderAdmin(){
   })();
 
   // OTD: filtrado por mês de dt_entrega (não created_at)
-  var otdPool=sols.filter(function(x){
+  var otdPool=s.filter(function(x){
     if(!x.dt_entrega||(!(x.dt_prevista||x.prazo)))return false;
-    if(!filtroMes)return true;
-    return mkey(x.dt_entrega)===filtroMes;
+    return true;
   });
   var otdNoPrazo=otdPool.filter(function(x){
     var ref=x.dt_prevista||x.prazo;
@@ -1342,7 +1341,7 @@ async function renderAdmin(){
       {l:'Reprovadas',      c:'#DC2626'},
     ];
     function diaCount(dia,idx){
-      return sols.filter(function(x){
+      return s.filter(function(x){
         var h=x.historico||{};
         if(idx===0)return isoDate(x.created_at)===dia;
         if(idx===1)return isoDate(h.triagem)===dia;
@@ -1389,7 +1388,7 @@ async function renderAdmin(){
     function diffDias(a,b){return diasUteisEntreDatas(a,b);}
     if(CU.role!=='admin'){document.getElementById('tempo-etapas').innerHTML='';return;}
     var resultados=TRANS.map(function(t){
-      var vals=sols.map(function(x){
+      var vals=s.map(function(x){
         var h=x.historico||{};
         var de=h[t.de];
         var ate=h[t.ate]||(t.ate==='ap_aprovado'?x.dt_aprovacao:null)||(t.ate==='concluido'?x.dt_entrega:null);
