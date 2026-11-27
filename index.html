@@ -631,7 +631,7 @@ nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-
               <select id="f-prio"><option value="baixa">↓ Baixa</option><option value="media" selected>→ M&eacute;dia</option><option value="alta">↑ Alta</option><option value="urgente">↑↑ Urgente</option></select>
             </div>
             <div class="ff"><label>Tipo <span class="req-mark">*</span></label>
-              <select id="f-tipo"><option value="cotacao">Cotação</option><option value="compra">Compra</option></select>
+              <select id="f-tipo"><option value="">Selecione</option><option value="cotacao">Cotação</option><option value="compra">Compra</option></select>
             </div>
           </div>
           <div class="ff">
@@ -1756,9 +1756,9 @@ function toggleServico(){
   if(tipoEl){
     var soCotacao=['Cotação de Vendas'];
     var soCompra=['Revenda / Serviço / Equipamentos','Reposição de Estoque (Almoxarifado)'];
-    if(soCotacao.indexOf(cat)>=0)tipoEl.value='cotacao';
-    else if(soCompra.indexOf(cat)>=0)tipoEl.value='compra';
-    tipoEl.disabled=(soCotacao.indexOf(cat)>=0||soCompra.indexOf(cat)>=0);
+    if(soCotacao.indexOf(cat)>=0){tipoEl.value='cotacao';tipoEl.disabled=true;}
+    else if(soCompra.indexOf(cat)>=0){tipoEl.value='compra';tipoEl.disabled=true;}
+    else{tipoEl.value='';tipoEl.disabled=false;}
   }
   if(!_tituloManual){var item1=document.getElementById('item-desc-1');if(item1&&item1.value.trim().length>=5)autoTitulo(item1.value);}
 }
@@ -1791,7 +1791,7 @@ async function criarSolicitacao(){
   var subcatEl=document.querySelector('input[name="f-subcat"]:checked');
   var subcat=subcatEl?subcatEl.value:null;
   var prio=document.getElementById('f-prio').value||'media';
-  var tipo=document.getElementById('f-tipo').value||'cotacao';
+  var tipo=document.getElementById('f-tipo').value;
   var prazo=document.getElementById('f-prazo').value;
   var servInicio=null;
   var servFim=null;
@@ -1800,6 +1800,7 @@ async function criarSolicitacao(){
   var just=(document.getElementById('f-just').value||'').trim();
   var cliente=(document.getElementById('f-cliente')&&setor==='Comercial')?(document.getElementById('f-cliente').value||'').trim():'';
   if(!nome||!setor||!cat||!prazo||!just||!titulo){toast('⚠️ Preencha todos os campos obrigatórios');return;}
+  if(!tipo){toast('⚠️ Selecione o Tipo: Cotação ou Compra');return;}
   if(setor==='Comercial'&&!cliente){toast('⚠️ Informe o nome do cliente');return;}
   if(!itens.length){toast('⚠️ Adicione pelo menos um item');return;}
   if(btn){btn.disabled=true;btn.innerHTML='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Enviando...';}
