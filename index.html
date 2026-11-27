@@ -1754,9 +1754,11 @@ function toggleServico(){
   if(pl)pl.innerHTML=(cat==='Cotação de Vendas'?'Prazo Necessário para Cotação':'Prazo Necessário para Entrega')+' <span class="req-mark">*</span>';
   var tipoEl=document.getElementById('f-tipo');
   if(tipoEl){
-    if(cat==='Cotação de Vendas')tipoEl.value='cotacao';
-    else if(cat!=='Desenvolvimento de Novos Produtos')tipoEl.value='compra';
-    tipoEl.disabled=(cat==='Revenda / Serviço / Equipamentos');
+    var soCotacao=['Cotação de Vendas'];
+    var soCompra=['Revenda / Serviço / Equipamentos','Reposição de Estoque (Almoxarifado)'];
+    if(soCotacao.indexOf(cat)>=0)tipoEl.value='cotacao';
+    else if(soCompra.indexOf(cat)>=0)tipoEl.value='compra';
+    tipoEl.disabled=(soCotacao.indexOf(cat)>=0||soCompra.indexOf(cat)>=0);
   }
   if(!_tituloManual){var item1=document.getElementById('item-desc-1');if(item1&&item1.value.trim().length>=5)autoTitulo(item1.value);}
 }
